@@ -89,7 +89,7 @@ and test checks via GitHub Actions. All checks must pass before merging.
 
 ## Jira Board
 
-YOUR_JIRA_BOARD_URL
+https://senjitinels.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog
 
 ## Branch Protection Setup
 
@@ -104,7 +104,4 @@ After the first successful CI run, configure branch protection for `main` in Git
 7. Enable Do not allow bypassing the above settings.
 
 Before opening the first test pull request, add placeholder GitHub Actions secrets in
-Settings > Secrets and variables > Actions:
-
-- NEXT_PUBLIC_SUPABASE_URL (dummy value)
-- NEXT_PUBLIC_SUPABASE_ANON_KEY (dummy value)
+Settings > Secrets and variables > Actions: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
