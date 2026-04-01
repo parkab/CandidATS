@@ -20,7 +20,7 @@ export default function Navbar({ user }: NavbarProps) {
   };
 
   return (
-    <nav className="flex h-18 items-center justify-between border-b border-[#2a2a2a] bg-[#121212] pl-6 pr-6">
+    <nav className="flex h-20 items-center justify-between border-b border-[#2a2a2a] bg-[#121212] pl-6 pr-6">
       <Link
         href="/dashboard"
         className="flex h-full items-center gap-3 text-[2rem] font-bold leading-none text-[#faf9f6] no-underline visited:text-[#faf9f6] hover:no-underline"

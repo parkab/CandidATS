@@ -6,7 +6,9 @@ type DashboardLayoutProps = {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // TODO: Replace with real auth user once backend auth integration is ready.
-  const mockUser = { name: 'Job Applicant' };
+  // ADD MOCK_USER=true to .env.local to test logged-in state (user name in navbar, access profile/settings/documents pages)
+  const useMockUser = process.env.MOCK_USER === 'true';
+  const mockUser = useMockUser ? { name: 'Job Applicant' } : null;
 
   return (
     // change mock user to null to test logged-out state (login/register buttons)
