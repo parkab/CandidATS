@@ -10,30 +10,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
   }
 
+  const registrationResponse = {
+    message: 'Registration request received',
+  };
+
   const { email, password, firstName, lastName } = validation.data;
   const existingUser = await prisma.user.findUnique({ where: { email } });
 
   if (existingUser) {
-    return NextResponse.json({ error: 'Email already in use' }, { status: 409 });
+    return NextResponse.json(registrationResponse, { status: 201 });
   }
 
   const hashedPassword = await hashPassword(password);
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email,
       hashedPassword,
       firstName,
       lastName,
     },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      createdAt: true,
-      updatedAt: true,
-    },
   });
 
-  return NextResponse.json({ user }, { status: 201 });
+  return NextResponse.json(registrationResponse, { status: 201 });
 }
