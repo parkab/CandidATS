@@ -55,4 +55,33 @@ describe('POST /api/auth/register', () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'Email already in use' });
   });
+
+  test('returns 201 and creates a user with a hashed password', async () => {
+    const password = 'validPassword123';
+    const createdUser = {
+      id: '1',
+      email: 'new@example.com',
+    };
+
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue(createdUser);
+
+    const response = await POST(createJsonRequest({ email: 'new@example.com', password }));
+
+    expect(response.status).toBe(201);
+    expect(prisma.user.create).toHaveBeenCalledTimes(1);
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: 'new@example.com',
+          password: expect.any(String),
+        }),
+      }),
+    );
+
+    const createArgs = prisma.user.create.mock.calls[0][0];
+    expect(createArgs.data.password).not.toBe(password);
+
+    expect(await response.json()).toEqual(createdUser);
+  });
 });
