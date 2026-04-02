@@ -4,6 +4,28 @@
   :root {
     --background: #121212;
     --foreground: #faf9f6;
+    --text-muted: color-mix(in oklab, var(--foreground) 52%, transparent);
+    --surface: color-mix(in oklab, var(--foreground) 4%, var(--background));
+    --surface-border: color-mix(in oklab, var(--foreground) 14%, transparent);
+    --surface-divider: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --action-bg: color-mix(in oklab, var(--foreground) 10%, transparent);
+    --action-border: color-mix(in oklab, var(--foreground) 22%, transparent);
+    --action-hover: color-mix(in oklab, var(--foreground) 16%, transparent);
+    --inverse-hover: color-mix(
+      in oklab,
+      var(--foreground) 88%,
+      var(--background)
+    );
+    --danger-bg: color-mix(in oklab, #ef4444 14%, var(--background));
+    --danger-border: color-mix(in oklab, #ef4444 55%, transparent);
+    --danger-text: color-mix(in oklab, #ef4444 82%, var(--foreground));
+    --danger-hover: color-mix(in oklab, #ef4444 22%, var(--background));
+    --toggle-track: color-mix(in oklab, var(--foreground) 20%, transparent);
+  }
+
+  [data-theme='light'] {
+    --background: #faf9f6;
+    --foreground: #121212;
   }
 
   body {
