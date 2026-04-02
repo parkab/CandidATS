@@ -7,6 +7,7 @@ export default function Documents() {
         <h1 className={GRADIENT_HEADING_CLASS}>Documents</h1>
         <p className="mt-3 text-base text-(--text-muted)">
           Upload, organize, and review the files tied to your applications.
+          (Coming soon!)
         </p>
       </div>
     </section>

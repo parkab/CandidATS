@@ -7,6 +7,7 @@ export default function Profile() {
         <h1 className={GRADIENT_HEADING_CLASS}>Profile</h1>
         <p className="mt-3 text-base text-(--text-muted)">
           Keep your personal details and application information up to date.
+          (Coming soon!)
         </p>
       </div>
     </section>

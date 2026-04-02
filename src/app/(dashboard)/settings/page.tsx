@@ -19,9 +19,6 @@ export default function Settings() {
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
         <h1 className={GRADIENT_HEADING_CLASS}>Settings</h1>
-        <p className="mt-3 text-base text-(--text-muted)">
-          Customize your account preferences and control your experience.
-        </p>
       </div>
 
       <div className="mx-auto mt-10 max-w-2xl">

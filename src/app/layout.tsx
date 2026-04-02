@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ATS for Candidates',
+  title: 'CandidATS: ATS for Candidates',
   description: 'A candidate-facing applicant tracking system.',
   icons: {
     icon: '/icons/polaroid-logo.png',
