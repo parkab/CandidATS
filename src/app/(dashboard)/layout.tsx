@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const mockUser = useMockUser ? { name: 'Job Applicant' } : null;
 
   return (
-    // change mock user to null to test logged-out state (login/register buttons)
+    // Set MOCK_USER=false or remove it from .env.local to test logged-out state (login/register buttons)
     <main className="min-h-screen bg-transparent">
       <Navbar user={mockUser} />
       {children}

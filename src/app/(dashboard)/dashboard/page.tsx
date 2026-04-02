@@ -11,7 +11,7 @@ type MockJob = {
   company: string;
   location: string;
   position: string;
-  last_activity_date: string;
+  lastActivityDate: string;
   status: ApplicationStatus;
 };
 
@@ -21,7 +21,7 @@ const MOCK_JOBS: MockJob[] = [
     company: 'Stripe',
     location: 'San Francisco, CA',
     position: 'Software Engineer',
-    last_activity_date: '03.30.2026',
+    lastActivityDate: '03.30.2026',
     status: 'Applied',
   },
 ];
@@ -115,7 +115,7 @@ export default function Dashboard() {
             company={job.company}
             location={job.location}
             position={job.position}
-            last_activity_date={job.last_activity_date}
+            lastActivityDate={job.lastActivityDate}
             status={job.status}
             angle={getStableAngle(job.id)}
           />

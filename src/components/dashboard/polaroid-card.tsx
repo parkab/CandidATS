@@ -5,7 +5,7 @@ type PolaroidCardProps = {
   company: string;
   location: string;
   position: string;
-  last_activity_date: string;
+  lastActivityDate: string;
   status: ApplicationStatus;
   angle?: number;
 };
@@ -14,7 +14,7 @@ export default function PolaroidCard({
   company,
   location,
   position,
-  last_activity_date,
+  lastActivityDate,
   status,
   angle = 0,
 }: PolaroidCardProps) {
@@ -34,7 +34,7 @@ export default function PolaroidCard({
 
       <div className="mt-4 flex items-center justify-between gap-3 text-sm">
         <p className="text-left italic leading-none opacity-80">
-          {last_activity_date}
+          {lastActivityDate}
         </p>
         <p
           className="rounded-md px-2.5 py-1 text-right leading-none font-bold text-(--background)"
