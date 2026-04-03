@@ -1,7 +1,4 @@
+import { redirect } from 'next/navigation';
 export default function Home() {
-  return (
-    <main>
-      <p>ATS for Candidates (coming soon).</p>
-    </main>
-  );
+  redirect('/dashboard');
 }
