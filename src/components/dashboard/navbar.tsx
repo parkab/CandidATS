@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useEffect, useRef, useState } from 'react';
 
@@ -14,9 +15,11 @@ type NavbarProps = {
 };
 
 export default function Navbar({ user }: NavbarProps) {
+  const router = useRouter();
   const menuRef = useRef<HTMLDetailsElement>(null);
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -32,6 +35,17 @@ export default function Navbar({ user }: NavbarProps) {
 
   const handleMenuItemClick = () => {
     menuRef.current?.removeAttribute('open');
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -88,10 +102,16 @@ export default function Navbar({ user }: NavbarProps) {
             >
               Settings
             </Link>
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full text-left block rounded px-3 py-2 text-sm text-(--foreground) hover:bg-(--action-bg) disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoggingOut ? 'Signing out...' : 'Sign out'}
+            </button>
           </div>
         </details>
       ) : (
-        // Login/Register pages not created yet, WILL 404
         <div className="flex items-center gap-2">
           <Link
             href="/login"
