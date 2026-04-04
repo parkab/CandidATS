@@ -40,10 +40,16 @@ export default function Navbar({ user }: NavbarProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      const response = await fetch('/api/auth/logout', { method: 'POST' });
+
+      if (!response.ok) {
+        throw new Error(`Logout failed with status ${response.status}`);
+      }
+
       router.refresh();
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
       setIsLoggingOut(false);
     }
   };
