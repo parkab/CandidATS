@@ -10,14 +10,14 @@ export interface SessionData {
 
 export async function getSession(): Promise<SessionData | null> {
   const cookieStore = await cookies();
-  const authToken = cookieStore.get('sb-auth-token')?.value;
+  const accessToken = cookieStore.get('sb-access-token')?.value;
 
-  if (!authToken) {
+  if (!accessToken) {
     return null;
   }
 
   try {
-    const { data, error } = await supabaseAdmin.auth.getUser(authToken);
+    const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
 
     if (error || !data.user) {
       return null;
@@ -40,5 +40,6 @@ export async function getSession(): Promise<SessionData | null> {
 
 export async function deleteSession(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete('sb-auth-token');
+  cookieStore.delete('sb-access-token');
+  cookieStore.delete('sb-refresh-token');
 }

@@ -41,13 +41,23 @@ export async function POST(request: Request) {
       { status: 200 }
     );
 
-    // Set Supabase session cookie
+    // Set Supabase session cookies (both access and refresh tokens)
     if (data.session.access_token) {
-      response.cookies.set('sb-auth-token', data.session.access_token, {
+      response.cookies.set('sb-access-token', data.session.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: data.session.expires_in || 3600,
+        path: '/',
+      });
+    }
+
+    if (data.session.refresh_token) {
+      response.cookies.set('sb-refresh-token', data.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
         path: '/',
       });
     }
