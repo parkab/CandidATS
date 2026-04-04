@@ -40,6 +40,6 @@ export async function getSession(): Promise<SessionData | null> {
 
 export async function deleteSession(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete('sb-access-token');
-  cookieStore.delete('sb-refresh-token');
+  cookieStore.delete({ name: 'sb-access-token', path: '/' });
+  cookieStore.delete({ name: 'sb-refresh-token', path: '/' });
 }
