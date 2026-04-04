@@ -9,6 +9,8 @@ export async function POST() {
     { status: 200 }
   );
 
-  response.cookies.delete('sb-auth-token');
+  response.cookies.set('sb-access-token', '', { path: '/', maxAge: 0 });
+  response.cookies.set('sb-refresh-token', '', { path: '/', maxAge: 0 });
+  response.cookies.set('sb-auth-token', '', { path: '/', maxAge: 0 });
   return response;
 }
