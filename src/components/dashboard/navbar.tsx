@@ -41,7 +41,7 @@ export default function Navbar({ user }: NavbarProps) {
     setIsLoggingOut(true);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
+      router.refresh();
     } catch (error) {
       console.error('Logout failed:', error);
       setIsLoggingOut(false);

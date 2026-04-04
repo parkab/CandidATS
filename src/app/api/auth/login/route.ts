@@ -14,41 +14,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error || !data.session) {
+    if (error || !data.session) {
+      console.error('Supabase login error:', error);
+      return NextResponse.json(
+        { error: error?.message || 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    const response = NextResponse.json(
+      {
+        message: 'Login successful',
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          firstName: data.user.user_metadata?.first_name,
+          lastName: data.user.user_metadata?.last_name,
+        },
+      },
+      { status: 200 }
+    );
+
+    // Set Supabase session cookie
+    if (data.session.access_token) {
+      response.cookies.set('sb-auth-token', data.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: data.session.expires_in || 3600,
+        path: '/',
+      });
+    }
+
+    return response;
+  } catch (err) {
+    console.error('Unexpected login error:', err);
     return NextResponse.json(
-      { error: error?.message || 'Invalid email or password' },
-      { status: 401 }
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
     );
   }
-
-  const response = NextResponse.json(
-    {
-      message: 'Login successful',
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        firstName: data.user.user_metadata?.first_name,
-        lastName: data.user.user_metadata?.last_name,
-      },
-    },
-    { status: 200 }
-  );
-
-  // Set Supabase session cookie
-  if (data.session.access_token) {
-    response.cookies.set('sb-auth-token', data.session.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: data.session.expires_in || 3600,
-      path: '/',
-    });
-  }
-
-  return response;
 }
