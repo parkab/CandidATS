@@ -14,8 +14,15 @@ describe('auth helpers', () => {
 
   test('validateRegistrationPayload rejects invalid payloads', () => {
     expect(validateRegistrationPayload(null)).toMatchObject({ valid: false });
-    expect(validateRegistrationPayload({ email: 'bad-email', password: '12345678' })).toMatchObject({ valid: false });
-    expect(validateRegistrationPayload({ email: 'test@example.com', password: 'short' })).toMatchObject({ valid: false });
+    expect(
+      validateRegistrationPayload({ email: 'bad-email', password: '12345678' }),
+    ).toMatchObject({ valid: false });
+    expect(
+      validateRegistrationPayload({
+        email: 'test@example.com',
+        password: 'short',
+      }),
+    ).toMatchObject({ valid: false });
   });
 
   test('validateRegistrationPayload normalizes a valid payload', () => {

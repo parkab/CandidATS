@@ -2,31 +2,37 @@ import GRADIENT_HEADING_CLASS from '@/components/dashboard/gradient';
 import PolaroidAddCard from '@/components/dashboard/polaroid-add-card';
 import PolaroidCard from '@/components/dashboard/polaroid-card';
 import PolaroidLandingCard from '@/components/dashboard/polaroid-landing-card';
+import { getSession } from '@/lib/auth/session';
 import type { ApplicationStatus } from '@/lib/jobs/status';
+import { prisma } from '@/lib/prisma';
+import { formatDate } from '@/lib/utils/formatDate';
 import Link from 'next/link';
 
-// TODO: Remove mock jobs and replace with real data
-type MockJob = {
-  id: string;
-  company: string;
-  location: string;
-  position: string;
-  lastActivityDate: string;
-  status: ApplicationStatus;
-};
-
-const MOCK_JOBS: MockJob[] = [
-  {
-    id: 'stripe-frontend-engineer',
-    company: 'Stripe',
-    location: 'San Francisco, CA',
-    position: 'Software Engineer',
-    lastActivityDate: '03.30.2026',
-    status: 'Applied',
-  },
-];
-
 const CARD_ANGLES = [-3, -2, -1, 0, 1, 2, 3];
+
+function toApplicationStatus(stage: string): ApplicationStatus {
+  const normalizedStage = stage.trim().toLowerCase();
+
+  switch (normalizedStage) {
+    case 'interested':
+      return 'Interested';
+    case 'applied':
+      return 'Applied';
+    case 'interview':
+    case 'interviewing':
+      return 'Interview';
+    case 'offer':
+    case 'offered':
+      return 'Offer';
+    case 'rejected':
+      return 'Rejected';
+    case 'archived':
+    case 'archive':
+      return 'Archived';
+    default:
+      return 'Interested';
+  }
+}
 
 function getStableAngle(id: string) {
   const hash = Array.from(id).reduce(
@@ -36,10 +42,10 @@ function getStableAngle(id: string) {
   return CARD_ANGLES[hash % CARD_ANGLES.length];
 }
 
-export default function Dashboard() {
-  const isLoggedIn = process.env.MOCK_USER === 'true';
+export default async function Dashboard() {
+  const session = await getSession();
 
-  if (!isLoggedIn) {
+  if (!session) {
     return (
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl text-center">
@@ -101,6 +107,23 @@ export default function Dashboard() {
     );
   }
 
+  const jobs = await prisma.job.findMany({
+    select: {
+      id: true,
+      company_name: true,
+      title: true,
+      location: true,
+      pipeline_stage: true,
+      last_activity_date: true,
+    },
+    where: {
+      user_id: session.userId,
+    },
+    orderBy: {
+      last_activity_date: 'desc',
+    },
+  });
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
@@ -108,17 +131,27 @@ export default function Dashboard() {
       </div>
 
       <div className="mx-auto mt-12 grid max-w-6xl gap-8 grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">
-        <PolaroidAddCard />
-        {MOCK_JOBS.map((job) => (
-          <PolaroidCard
+        <Link
+          href="/jobs/create"
+          className="block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
+        >
+          <PolaroidAddCard />
+        </Link>
+        {jobs.map((job) => (
+          <Link
             key={job.id}
-            company={job.company}
-            location={job.location}
-            position={job.position}
-            lastActivityDate={job.lastActivityDate}
-            status={job.status}
-            angle={getStableAngle(job.id)}
-          />
+            href={{ pathname: '/jobs/edit', query: { id: job.id } }}
+            className="block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
+          >
+            <PolaroidCard
+              company={job.company_name}
+              location={job.location}
+              position={job.title}
+              lastActivityDate={formatDate(job.last_activity_date)}
+              status={toApplicationStatus(job.pipeline_stage)}
+              angle={getStableAngle(job.id)}
+            />
+          </Link>
         ))}
       </div>
     </section>

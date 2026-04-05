@@ -9,7 +9,7 @@ describe('PolaroidCard', () => {
         company="Stripe"
         location="San Francisco, CA"
         position="Software Engineer"
-        last_activity_date="03.30.2026"
+        lastActivityDate="03.30.2026"
         status="Applied"
       />,
     );

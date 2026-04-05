@@ -6,7 +6,9 @@ const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Anon client requires public URL and key (used for auth and public operations)
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required');
+  throw new Error(
+    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required',
+  );
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

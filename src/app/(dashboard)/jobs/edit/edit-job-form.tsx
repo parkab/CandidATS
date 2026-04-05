@@ -69,16 +69,19 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       return;
     }
 
-    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId.trim())}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      `/api/jobs/${encodeURIComponent(jobId.trim())}`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
 
     if (!response.ok) {
-      const responseBody = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const responseBody = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       setError(responseBody?.error ?? 'Unable to update job right now.');
       setIsSubmitting(false);
       return;
@@ -96,7 +99,10 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       <input type="hidden" name="jobId" value={initialJob.id} />
 
       <div className="grid gap-2">
-        <label htmlFor="title" className="text-sm font-semibold text-(--foreground)">
+        <label
+          htmlFor="title"
+          className="text-sm font-semibold text-(--foreground)"
+        >
           Job Position
         </label>
         <input
@@ -111,7 +117,10 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <label htmlFor="company" className="text-sm font-semibold text-(--foreground)">
+        <label
+          htmlFor="company"
+          className="text-sm font-semibold text-(--foreground)"
+        >
           Company Name
         </label>
         <input
@@ -126,7 +135,10 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <label htmlFor="location" className="text-sm font-semibold text-(--foreground)">
+        <label
+          htmlFor="location"
+          className="text-sm font-semibold text-(--foreground)"
+        >
           Location
         </label>
         <input
@@ -141,7 +153,10 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <label htmlFor="stage" className="text-sm font-semibold text-(--foreground)">
+        <label
+          htmlFor="stage"
+          className="text-sm font-semibold text-(--foreground)"
+        >
           Stage
         </label>
         <select
@@ -178,7 +193,10 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <label htmlFor="deadline" className="text-sm font-semibold text-(--foreground)">
+        <label
+          htmlFor="deadline"
+          className="text-sm font-semibold text-(--foreground)"
+        >
           Deadline
         </label>
         <input

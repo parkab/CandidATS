@@ -43,7 +43,7 @@ function asOptionalDate(value: unknown): Date | null {
 
 export async function POST(request: Request) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
-  
+
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
-  
+
   const { data, error } = authResult;
 
   if (error || !data.user) {
@@ -63,7 +63,10 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as CreateJobBody | null;
 
   if (!body || typeof body !== 'object') {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid request body' },
+      { status: 400 },
+    );
   }
 
   const title = asRequiredString(body.title);
@@ -100,7 +103,10 @@ export async function POST(request: Request) {
   }
 
   if (body.deadline && !deadline) {
-    return NextResponse.json({ error: 'Invalid deadline date' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid deadline date' },
+      { status: 400 },
+    );
   }
 
   try {
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
     return NextResponse.json(createdJob, { status: 201 });
   } catch (error) {
     console.error('Failed to create job:', error);
-    
+
     return NextResponse.json(
       { error: 'Unable to create job right now.' },
       { status: 500 },

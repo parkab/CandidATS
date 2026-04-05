@@ -5,7 +5,9 @@ type DashboardLayoutProps = {
   children: React.ReactNode;
 };
 
-export default async function DashboardLayout({ children }: DashboardLayoutProps) {
+export default async function DashboardLayout({
+  children,
+}: DashboardLayoutProps) {
   const session = await getSession();
 
   // Format user name from first and last name if authenticated

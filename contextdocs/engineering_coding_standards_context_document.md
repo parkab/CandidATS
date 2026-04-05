@@ -454,4 +454,3 @@ code must remain testable
 code must follow shared architecture
 
 Following this document ensures the ATS platform maintains a professional engineering standard suitable for production-quality deployment.
-

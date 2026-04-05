@@ -13,7 +13,10 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
 
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
 }
 
@@ -45,15 +48,22 @@ export function validateRegistrationPayload(input: unknown): ValidationResult {
   const payload = input as Record<string, unknown>;
   const email = typeof payload.email === 'string' ? payload.email.trim() : '';
   const password = typeof payload.password === 'string' ? payload.password : '';
-  const firstName = typeof payload.firstName === 'string' ? payload.firstName.trim() : undefined;
-  const lastName = typeof payload.lastName === 'string' ? payload.lastName.trim() : undefined;
+  const firstName =
+    typeof payload.firstName === 'string'
+      ? payload.firstName.trim()
+      : undefined;
+  const lastName =
+    typeof payload.lastName === 'string' ? payload.lastName.trim() : undefined;
 
   if (!email || !EMAIL_REGEX.test(email.toLowerCase())) {
     return { valid: false, error: 'A valid email is required' };
   }
 
   if (!password || password.length < 8) {
-    return { valid: false, error: 'Password must be at least 8 characters long' };
+    return {
+      valid: false,
+      error: 'Password must be at least 8 characters long',
+    };
   }
 
   return {

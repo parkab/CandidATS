@@ -62,7 +62,10 @@ export async function PATCH(
   const body = (await request.json().catch(() => null)) as UpdateJobBody | null;
 
   if (!body || typeof body !== 'object') {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid request body' },
+      { status: 400 },
+    );
   }
 
   const title = asRequiredString(body.title);
@@ -99,7 +102,10 @@ export async function PATCH(
   }
 
   if (body.deadline && !deadline) {
-    return NextResponse.json({ error: 'Invalid deadline date' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid deadline date' },
+      { status: 400 },
+    );
   }
 
   try {
@@ -149,7 +155,10 @@ export async function PATCH(
   } catch (error) {
     console.error('Failed to update job', error);
     return NextResponse.json(
-      { error: 'Unable to update job due to a server error. Please try again later.' },
+      {
+        error:
+          'Unable to update job due to a server error. Please try again later.',
+      },
       { status: 500 },
     );
   }

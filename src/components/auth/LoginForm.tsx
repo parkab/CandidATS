@@ -114,7 +114,10 @@ export default function LoginForm() {
         )}
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-(--foreground)">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-(--foreground)"
+          >
             Email
           </label>
           <input
@@ -131,7 +134,9 @@ export default function LoginForm() {
             }`}
             placeholder="you@example.com"
           />
-          {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+          )}
         </div>
 
         <div>
@@ -160,7 +165,9 @@ export default function LoginForm() {
             }`}
             placeholder="••••••••"
           />
-          {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+          {errors.password && (
+            <p className="mt-1 text-xs text-red-500">{errors.password}</p>
+          )}
         </div>
 
         <button

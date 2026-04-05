@@ -1,6 +1,7 @@
 # AI Prompting and Review Context Document
 
 ## Project Overview
+
 This document defines how AI-generated code is prompted, reviewed, tested, and approved before merging into the repository for the **Candidate-Facing Applicant Tracking System (ATS)**. The system helps job seekers organize and manage their job search activities and is treated as a production-quality internal application.
 
 The goal of this policy is to ensure that AI-assisted development improves productivity **without compromising correctness, security, maintainability, or team understanding of the codebase**.
@@ -8,6 +9,7 @@ The goal of this policy is to ensure that AI-assisted development improves produ
 ---
 
 ## Technical Stack Context
+
 Developers must ensure AI-generated code aligns with the project's architecture:
 
 Framework: Next.js 15 (App Router)
@@ -25,6 +27,7 @@ All AI-generated outputs must respect these constraints.
 ---
 
 ## Approved AI Usage Scope
+
 Developers may use any AI tooling (e.g., ChatGPT, Copilot, Gemini, Claude, Cursor), provided that:
 
 - Only sanitized code snippets are shared externally
@@ -45,13 +48,14 @@ Non-sanitized content must never be shared.
 ---
 
 ## Prompting Standards
+
 When requesting AI-generated code, developers must provide structured prompts that include:
 
 ### Required Prompt Components
 
 1. Objective
-Example:
-"Create a reusable Next.js server action that inserts a job application record using Prisma."
+   Example:
+   "Create a reusable Next.js server action that inserts a job application record using Prisma."
 
 2. Constraints
 
@@ -67,21 +71,21 @@ Example:
 "Use Prisma ORM and ensure strict typing. Do not use client-side database calls."
 
 3. Expected Input/Output Types
-Example:
-"Input: application form data
-Output: Prisma create record response"
+   Example:
+   "Input: application form data
+   Output: Prisma create record response"
 
 4. Error Handling Expectations
-Example:
-"Include validation and safe error handling suitable for production"
+   Example:
+   "Include validation and safe error handling suitable for production"
 
 5. Testing Expectations
-Example:
-"Return code compatible with Jest/Vitest unit testing"
+   Example:
+   "Return code compatible with Jest/Vitest unit testing"
 
 6. Security Constraints
-Example:
-"Assume user authentication is required before insertion"
+   Example:
+   "Assume user authentication is required before insertion"
 
 ---
 
@@ -104,6 +108,7 @@ Return production-quality code only."
 ---
 
 ## AI-Generated Code Identification Requirements
+
 All AI-generated code must be disclosed inside the pull request description.
 
 Include:
@@ -119,6 +124,7 @@ Example PR note:
 ---
 
 ## Developer Responsibility Rule
+
 AI-generated code must never be merged without the author fully understanding:
 
 - what the code does
@@ -132,6 +138,7 @@ If a developer cannot explain the code, it must not be merged.
 ---
 
 ## Mandatory Testing Requirements
+
 All AI-generated code must pass the following before merge:
 
 ### Unit Tests (Required)
@@ -302,4 +309,3 @@ All contributors agree that:
 - generated code must meet production standards
 
 Following this document ensures AI improves delivery speed while maintaining reliability and trust in the codebase.
-
