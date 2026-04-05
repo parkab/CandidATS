@@ -108,6 +108,14 @@ export default async function Dashboard() {
   }
 
   const jobs = await prisma.job.findMany({
+    select: {
+      id: true,
+      company_name: true,
+      title: true,
+      location: true,
+      pipeline_stage: true,
+      last_activity_date: true,
+    },
     where: {
       user_id: session.userId,
     },
@@ -132,7 +140,7 @@ export default async function Dashboard() {
         {jobs.map((job) => (
           <Link
             key={job.id}
-            href={`/jobs/edit?id=${job.id}`}
+            href={{ pathname: '/jobs/edit', query: { id: job.id } }}
             className="block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
           >
             <PolaroidCard
