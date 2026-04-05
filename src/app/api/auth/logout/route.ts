@@ -3,10 +3,10 @@ import { deleteSession } from '@/lib/auth/session';
 
 export async function POST() {
   await deleteSession();
-  
+
   const response = NextResponse.json(
     { message: 'Logged out successfully' },
-    { status: 200 }
+    { status: 200 },
   );
 
   response.cookies.set('sb-access-token', '', { path: '/', maxAge: 0 });

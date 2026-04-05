@@ -1,6 +1,7 @@
 # UI/UX Standards Context Document
 
 ## Project Overview
+
 This document defines UI/UX standards for the **Candidate-Facing Applicant Tracking System (ATS)**. The goal is to ensure the application delivers a consistent, accessible, intuitive, and production-quality user experience aligned with modern web application design practices.
 
 This document applies to all contributors implementing:
@@ -21,6 +22,7 @@ These standards ensure usability, accessibility, and maintainability across the 
 The ATS interface follows five core principles:
 
 ### 1. Clarity
+
 Users should always understand:
 
 - where they are
@@ -30,6 +32,7 @@ Users should always understand:
 Avoid ambiguous navigation or unclear labels.
 
 ### 2. Consistency
+
 Similar interactions must behave the same way across pages.
 
 Example:
@@ -37,6 +40,7 @@ Example:
 All "Add Application" buttons behave identically regardless of location.
 
 ### 3. Feedback
+
 Every user action must generate visible feedback.
 
 Examples:
@@ -47,6 +51,7 @@ Examples:
 - error responses
 
 ### 4. Efficiency
+
 Users should complete common workflows quickly.
 
 Example workflows:
@@ -57,6 +62,7 @@ Example workflows:
 - reviewing saved companies
 
 ### 5. Accessibility
+
 The interface must remain usable for all users, including keyboard-only users.
 
 ---
@@ -494,4 +500,3 @@ AI features must remain transparent
 accessibility must be supported
 
 Following this document ensures the ATS platform provides a reliable and professional user experience suitable for production-quality deployment.
-

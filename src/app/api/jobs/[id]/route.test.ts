@@ -19,7 +19,9 @@ jest.mock('@/lib/supabase', () => ({
 
 const mockedUpdateMany = jest.mocked(prisma.job.updateMany);
 const mockedFindFirst = jest.mocked(prisma.job.findFirst);
-const mockedGetSupabaseUserFromRequest = jest.mocked(getSupabaseUserFromRequest);
+const mockedGetSupabaseUserFromRequest = jest.mocked(
+  getSupabaseUserFromRequest,
+);
 
 function buildRequest(body: Record<string, unknown>) {
   return new Request('http://localhost/api/jobs/job-1', {
@@ -43,7 +45,9 @@ describe('PATCH /api/jobs/[id]', () => {
       error: { message: 'Unauthorized' },
     } as never);
 
-    const response = await PATCH(buildRequest({}), { params: Promise.resolve({ id: 'job-1' }) });
+    const response = await PATCH(buildRequest({}), {
+      params: Promise.resolve({ id: 'job-1' }),
+    });
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'Unauthorized' });
@@ -169,7 +173,9 @@ describe('PATCH /api/jobs/[id]', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'Job not found or access denied' });
+    expect(await response.json()).toEqual({
+      error: 'Job not found or access denied',
+    });
     expect(mockedFindFirst).not.toHaveBeenCalled();
   });
 });

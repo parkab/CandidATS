@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     console.error('supabaseAdmin client is not available; cannot create user');
     return NextResponse.json(
       { error: 'Registration service is currently unavailable' },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
@@ -41,10 +41,13 @@ export async function POST(request: Request) {
       if (error.message?.includes('already registered')) {
         return NextResponse.json(
           { error: 'Email already registered' },
-          { status: 409 }
+          { status: 409 },
         );
       }
-      return NextResponse.json({ error: error.message || 'Registration failed' }, { status: 400 });
+      return NextResponse.json(
+        { error: error.message || 'Registration failed' },
+        { status: 400 },
+      );
     }
 
     try {
@@ -66,10 +69,11 @@ export async function POST(request: Request) {
     }
 
     // Sign the user in immediately after registration
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (signInError || !signInData.session) {
       console.error('Failed to sign in after registration:', signInError);
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
             email: data?.user?.email,
           },
         },
-        { status: 201 }
+        { status: 201 },
       );
     }
 
@@ -95,7 +99,7 @@ export async function POST(request: Request) {
           email: data?.user?.email,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
 
     // Set access token cookie
@@ -111,13 +115,17 @@ export async function POST(request: Request) {
 
     // Set refresh token cookie
     if (signInData.session.refresh_token) {
-      response.cookies.set('sb-refresh-token', signInData.session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        path: '/',
-      });
+      response.cookies.set(
+        'sb-refresh-token',
+        signInData.session.refresh_token,
+        {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/',
+        },
+      );
     }
 
     return response;
@@ -125,7 +133,7 @@ export async function POST(request: Request) {
     console.error('Unexpected registration error:', err);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

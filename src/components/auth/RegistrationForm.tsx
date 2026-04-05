@@ -125,7 +125,9 @@ export default function RegistrationForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-(--foreground)">Create your account</h1>
+        <h1 className="text-3xl font-bold text-(--foreground)">
+          Create your account
+        </h1>
         <p className="mt-2 text-sm text-(--muted-foreground)">
           Get started with CandidATS to manage your hiring process
         </p>
@@ -140,7 +142,10 @@ export default function RegistrationForm() {
 
         <div className="flex gap-4">
           <div className="flex-1">
-            <label htmlFor="firstName" className="block text-sm font-medium text-(--foreground)">
+            <label
+              htmlFor="firstName"
+              className="block text-sm font-medium text-(--foreground)"
+            >
               First Name
             </label>
             <input
@@ -163,7 +168,10 @@ export default function RegistrationForm() {
           </div>
 
           <div className="flex-1">
-            <label htmlFor="lastName" className="block text-sm font-medium text-(--foreground)">
+            <label
+              htmlFor="lastName"
+              className="block text-sm font-medium text-(--foreground)"
+            >
               Last Name
             </label>
             <input
@@ -187,7 +195,10 @@ export default function RegistrationForm() {
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-(--foreground)">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-(--foreground)"
+          >
             Email
           </label>
           <input
@@ -204,11 +215,16 @@ export default function RegistrationForm() {
             }`}
             placeholder="john@example.com"
           />
-          {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+          )}
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-(--foreground)">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-(--foreground)"
+          >
             Password
           </label>
           <input
@@ -225,7 +241,9 @@ export default function RegistrationForm() {
             }`}
             placeholder="At least 8 characters"
           />
-          {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+          {errors.password && (
+            <p className="mt-1 text-xs text-red-500">{errors.password}</p>
+          )}
         </div>
 
         <div>
@@ -250,7 +268,9 @@ export default function RegistrationForm() {
             placeholder="Confirm your password"
           />
           {errors.confirmPassword && (
-            <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>
+            <p className="mt-1 text-xs text-red-500">
+              {errors.confirmPassword}
+            </p>
           )}
         </div>
 

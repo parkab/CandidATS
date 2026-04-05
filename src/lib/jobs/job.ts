@@ -1,9 +1,9 @@
 import type {
-	FollowUpTaskModel,
-	InterviewModel,
-	JobModel,
-	PipelineStageHistoryModel,
-	TimelineEventModel,
+  FollowUpTaskModel,
+  InterviewModel,
+  JobModel,
+  PipelineStageHistoryModel,
+  TimelineEventModel,
 } from '@/generated/prisma/models';
 import { job_activity_type, stage } from '@/generated/prisma/enums';
 
@@ -16,7 +16,7 @@ export type TimelineEvent = TimelineEventModel;
 export { job_activity_type, stage };
 
 export type JobActivityType =
-	(typeof job_activity_type)[keyof typeof job_activity_type];
+  (typeof job_activity_type)[keyof typeof job_activity_type];
 export type PipelineStage = (typeof stage)[keyof typeof stage];
 
 export const PIPELINE_STAGE_VALUES = Object.values(stage);

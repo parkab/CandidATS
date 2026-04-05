@@ -5,13 +5,19 @@ export async function POST(request: Request) {
   const requestBody = await request.json().catch(() => null);
 
   if (!requestBody || typeof requestBody !== 'object') {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid request body' },
+      { status: 400 },
+    );
   }
 
   const { email, password } = requestBody as Record<string, unknown>;
 
   if (typeof email !== 'string' || typeof password !== 'string') {
-    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Email and password are required' },
+      { status: 400 },
+    );
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -26,7 +32,7 @@ export async function POST(request: Request) {
       console.error('Supabase login error:', error);
       return NextResponse.json(
         { error: error?.message || 'Invalid email or password' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -40,7 +46,7 @@ export async function POST(request: Request) {
           lastName: data.user.user_metadata?.last_name,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
 
     // Set Supabase session cookies (both access and refresh tokens)
@@ -69,7 +75,7 @@ export async function POST(request: Request) {
     console.error('Unexpected login error:', err);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

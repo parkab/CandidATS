@@ -3,6 +3,7 @@ import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import Navbar from '@/components/dashboard/navbar';
 
 const mockUseTheme = jest.fn();
+const mockRefresh = jest.fn();
 
 type MockLinkProps = {
   href: string;
@@ -15,6 +16,12 @@ type MockImageProps = {
 
 jest.mock('next-themes', () => ({
   useTheme: () => mockUseTheme(),
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    refresh: mockRefresh,
+  }),
 }));
 
 jest.mock('next/link', () => ({

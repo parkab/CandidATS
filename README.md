@@ -69,7 +69,7 @@ DIRECT_URL=
 by Prisma CLI commands such as migrations and client generation.
 
 2. Generate the Prisma client after installing dependencies or changing the
-schema:
+   schema:
 
 ```bash
 npx prisma generate

@@ -17,7 +17,9 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 const mockedCreate = jest.mocked(prisma.job.create);
-const mockedGetSupabaseUserFromRequest = jest.mocked(getSupabaseUserFromRequest);
+const mockedGetSupabaseUserFromRequest = jest.mocked(
+  getSupabaseUserFromRequest,
+);
 
 function buildRequest(body: Record<string, unknown>) {
   return new Request('http://localhost/api/jobs', {
