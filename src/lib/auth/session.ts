@@ -16,6 +16,12 @@ export async function getSession(): Promise<SessionData | null> {
     return null;
   }
 
+  // Admin client must be available to validate the session token
+  if (!supabaseAdmin) {
+    console.warn('supabaseAdmin client is not available; cannot retrieve session');
+    return null;
+  }
+
   try {
     const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
 

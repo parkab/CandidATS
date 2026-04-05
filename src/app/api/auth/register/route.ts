@@ -14,6 +14,15 @@ export async function POST(request: Request) {
 
   const { email, password, firstName, lastName } = validation.data;
 
+  // Admin client is required for user registration
+  if (!supabaseAdmin) {
+    console.error('supabaseAdmin client is not available; cannot create user');
+    return NextResponse.json(
+      { error: 'Registration service is currently unavailable' },
+      { status: 503 }
+    );
+  }
+
   try {
     // Create user in Supabase Auth with auto-confirmation
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
@@ -31,8 +40,8 @@ export async function POST(request: Request) {
       // Check if user already exists
       if (error.message?.includes('already registered')) {
         return NextResponse.json(
-          { message: 'Registration request received' },
-          { status: 201 }
+          { error: 'Email already registered' },
+          { status: 409 }
         );
       }
       return NextResponse.json({ error: error.message || 'Registration failed' }, { status: 400 });
@@ -45,8 +54,8 @@ export async function POST(request: Request) {
           email, // Use the validated email from the request
           firstName: firstName || null,
           lastName: lastName || null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any,
+          hashedPassword: '', // Supabase manages password; this field stores a sentinel value for Supabase-managed accounts
+        },
       });
     } catch (dbError) {
       console.error('Failed to create user record in database:', dbError);
