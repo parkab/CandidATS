@@ -62,9 +62,8 @@ export default function Settings() {
               </p>
             </div>
 
-            {/* TODO: Add password reset page */}
             <Link
-              href="/settings/reset-password"
+              href="/forgot-password"
               className="rounded-md border border-(--action-border) bg-(--action-bg) px-4 py-2 text-sm font-medium text-(--foreground) transition hover:bg-(--action-hover)"
             >
               Reset
