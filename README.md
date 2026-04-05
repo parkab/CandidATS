@@ -53,6 +53,48 @@ fnm use --install-if-missing
    npm run dev
 ```
 
+## Prisma Setup
+
+Prisma uses the schema in `prisma/schema.prisma` and generates the client into
+`src/generated/prisma`.
+
+1. Make sure your environment file includes both database connection values:
+
+```bash
+DATABASE_URL=
+DIRECT_URL=
+```
+
+`DATABASE_URL` is used by the application at runtime, while `DIRECT_URL` is used
+by Prisma CLI commands such as migrations and client generation.
+
+2. Generate the Prisma client after installing dependencies or changing the
+schema:
+
+```bash
+npx prisma generate
+```
+
+3. Create and apply a new migration when the schema changes:
+
+```bash
+npx prisma migrate dev --name <migration-name>
+```
+
+4. If you only need to sync the schema to the database during local development,
+   you can use:
+
+```bash
+npx prisma db push
+```
+
+5. If you need to inspect the database schema from Supabase, pull it into
+   `prisma/schema.prisma` with:
+
+```bash
+npx prisma db pull
+```
+
 ## Scripts
 
 | Script                  | Description                      |
