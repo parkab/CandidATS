@@ -25,10 +25,6 @@ export interface UpdatePasswordPayload {
   password: string;
 }
 
-export type RegistrationValidationResult =
-  | { valid: true; data: RegistrationPayload }
-  | { valid: false; error: string };
-
 export type ForgotPasswordValidationResult =
   | { valid: true; data: ForgotPasswordPayload }
   | { valid: false; error: string };
