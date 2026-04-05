@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     }
 
     try {
+      const now = new Date();
+
       await prisma.user.create({
         data: {
           id: data.user.id, // Use the Supabase auth user ID as the app user ID
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
           firstName: firstName || null,
           lastName: lastName || null,
           hashedPassword: '', // Supabase manages password; this field stores a sentinel value for Supabase-managed accounts
+          updatedAt: now, // Current timestamp
         },
       });
     } catch (dbError) {
