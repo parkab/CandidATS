@@ -54,7 +54,6 @@ export default async function EditJobApplication({
       <EditJobForm
         initialJob={{
           id: job.id,
-          userId: job.user_id,
           title: job.title,
           company: job.company_name,
           location: job.location,

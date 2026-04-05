@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
+import { getSupabaseUserFromRequest } from '@/lib/supabase';
 
 type UpdateJobBody = Record<string, unknown>;
 
@@ -44,6 +45,13 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { data, error } = await getSupabaseUserFromRequest(request);
+
+  if (error || !data.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const sessionUserId = data.user.id;
   const { id } = await context.params;
   const jobId = asRequiredString(id);
 
@@ -57,7 +65,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const userId = asRequiredString(body.userId);
   const title = asRequiredString(body.title);
   const company = asRequiredString(body.company);
   const location = asRequiredString(body.location);
@@ -72,7 +79,6 @@ export async function PATCH(
   const otherNotes = asRequiredString(body.otherNotes);
 
   if (
-    !userId ||
     !title ||
     !company ||
     !location ||
@@ -97,10 +103,12 @@ export async function PATCH(
   }
 
   try {
-    const updatedJob = await prisma.job.update({
-      where: { id: jobId },
+    const updateResult = await prisma.job.updateMany({
+      where: {
+        id: jobId,
+        user_id: sessionUserId,
+      },
       data: {
-        user_id: userId,
         title,
         company_name: company,
         location,
@@ -116,11 +124,33 @@ export async function PATCH(
       },
     });
 
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        { error: 'Job not found or access denied' },
+        { status: 404 },
+      );
+    }
+
+    const updatedJob = await prisma.job.findFirst({
+      where: {
+        id: jobId,
+        user_id: sessionUserId,
+      },
+    });
+
+    if (!updatedJob) {
+      return NextResponse.json(
+        { error: 'Unable to load updated job.' },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json(updatedJob, { status: 200 });
-  } catch {
+  } catch (error) {
+    console.error('Failed to update job', error);
     return NextResponse.json(
-      { error: 'Unable to update job. Verify Job ID and try again.' },
-      { status: 400 },
+      { error: 'Unable to update job due to a server error. Please try again later.' },
+      { status: 500 },
     );
   }
 }

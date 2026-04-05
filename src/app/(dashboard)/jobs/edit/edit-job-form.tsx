@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 type EditJobFormProps = {
   initialJob: {
     id: string;
-    userId: string;
     title: string;
     company: string;
     location: string;
@@ -48,7 +47,6 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
 
     const formData = new FormData(event.currentTarget);
     const payload = {
-      userId: initialJob.userId,
       title: formData.get('title'),
       company: formData.get('company'),
       location: formData.get('location'),
@@ -96,7 +94,6 @@ export default function EditJobForm({ initialJob }: EditJobFormProps) {
       onSubmit={handleSubmit}
     >
       <input type="hidden" name="jobId" value={initialJob.id} />
-      <input type="hidden" name="userId" value={initialJob.userId} />
 
       <div className="grid gap-2">
         <label htmlFor="title" className="text-sm font-semibold text-(--foreground)">

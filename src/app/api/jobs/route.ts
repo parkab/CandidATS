@@ -42,7 +42,18 @@ function asOptionalDate(value: unknown): Date | null {
 }
 
 export async function POST(request: Request) {
-  const { data, error } = await getSupabaseUserFromRequest(request);
+  let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
+  
+  try {
+    authResult = await getSupabaseUserFromRequest(request);
+  } catch {
+    return NextResponse.json(
+      { error: 'Authentication service unavailable' },
+      { status: 503 },
+    );
+  }
+  
+  const { data, error } = authResult;
 
   if (error || !data.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -112,10 +123,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(createdJob, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error('Failed to create job:', error);
+    
     return NextResponse.json(
       { error: 'Unable to create job right now.' },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }
