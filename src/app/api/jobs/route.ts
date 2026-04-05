@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
+import { getSupabaseUserFromRequest } from '@/lib/supabase';
 
 type CreateJobBody = Record<string, unknown>;
 
@@ -41,13 +42,19 @@ function asOptionalDate(value: unknown): Date | null {
 }
 
 export async function POST(request: Request) {
+  const { data, error } = await getSupabaseUserFromRequest(request);
+
+  if (error || !data.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const userId = data.user.id;
   const body = (await request.json().catch(() => null)) as CreateJobBody | null;
 
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const userId = asRequiredString(body.userId);
   const title = asRequiredString(body.title);
   const company = asRequiredString(body.company);
   const location = asRequiredString(body.location);
@@ -62,7 +69,6 @@ export async function POST(request: Request) {
   const otherNotes = asRequiredString(body.otherNotes);
 
   if (
-    !userId ||
     !title ||
     !company ||
     !location ||
@@ -108,7 +114,7 @@ export async function POST(request: Request) {
     return NextResponse.json(createdJob, { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: 'Unable to create job. Verify User ID and try again.' },
+      { error: 'Unable to create job right now.' },
       { status: 400 },
     );
   }

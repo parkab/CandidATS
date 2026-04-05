@@ -15,7 +15,6 @@ export default function CreateJobForm() {
 
     const formData = new FormData(event.currentTarget);
     const payload = {
-      userId: formData.get('userId'),
       title: formData.get('title'),
       company: formData.get('company'),
       location: formData.get('location'),
@@ -54,26 +53,6 @@ export default function CreateJobForm() {
       className="mx-auto mt-10 grid w-full max-w-2xl gap-5 rounded-xl border border-(--surface-border) bg-(--background) p-6 shadow-sm"
       onSubmit={handleSubmit}
     >
-      <div className="grid gap-2">
-        <label
-          htmlFor="user-id"
-          className="text-sm font-semibold text-(--foreground)"
-        >
-          User ID
-        </label>
-        <input
-          id="user-id"
-          name="userId"
-          type="text"
-          required
-          className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
-          placeholder="User UUID"
-        />
-        <p className="text-xs text-(--text-muted)">
-          Temporary until auth session wiring is added.
-        </p>
-      </div>
-
       <div className="grid gap-2">
         <label htmlFor="title" className="text-sm font-semibold text-(--foreground)">
           Job Position
