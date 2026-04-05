@@ -3,7 +3,40 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function EditJobForm() {
+type EditJobFormProps = {
+  initialJob: {
+    id: string;
+    userId: string;
+    title: string;
+    company: string;
+    location: string;
+    stage: string;
+    lastActivityDate: Date | string | null;
+    deadline: Date | string | null;
+    priority: boolean | null;
+    jobDescription: string;
+    compensation: string | null;
+    applicationDate: Date | string | null;
+    recruiterNotes: string | null;
+    otherNotes: string;
+  };
+};
+
+function toDateInputValue(value: Date | string | null) {
+  if (!value) {
+    return '';
+  }
+
+  const date = typeof value === 'string' ? new Date(value) : value;
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toISOString().split('T')[0];
+}
+
+export default function EditJobForm({ initialJob }: EditJobFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +48,7 @@ export default function EditJobForm() {
 
     const formData = new FormData(event.currentTarget);
     const payload = {
-      userId: formData.get('userId'),
+      userId: initialJob.userId,
       title: formData.get('title'),
       company: formData.get('company'),
       location: formData.get('location'),
@@ -62,39 +95,8 @@ export default function EditJobForm() {
       className="mx-auto mt-10 grid w-full max-w-2xl gap-5 rounded-xl border border-(--surface-border) bg-(--background) p-6 shadow-sm"
       onSubmit={handleSubmit}
     >
-      <div className="grid gap-2">
-        <label htmlFor="job-id" className="text-sm font-semibold text-(--foreground)">
-          Job ID
-        </label>
-        <input
-          id="job-id"
-          name="jobId"
-          type="text"
-          required
-          className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
-          placeholder="Job UUID"
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label
-          htmlFor="user-id"
-          className="text-sm font-semibold text-(--foreground)"
-        >
-          User ID
-        </label>
-        <input
-          id="user-id"
-          name="userId"
-          type="text"
-          required
-          className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
-          placeholder="User UUID"
-        />
-        <p className="text-xs text-(--text-muted)">
-          Temporary until auth session wiring is added.
-        </p>
-      </div>
+      <input type="hidden" name="jobId" value={initialJob.id} />
+      <input type="hidden" name="userId" value={initialJob.userId} />
 
       <div className="grid gap-2">
         <label htmlFor="title" className="text-sm font-semibold text-(--foreground)">
@@ -105,6 +107,7 @@ export default function EditJobForm() {
           name="title"
           type="text"
           required
+          defaultValue={initialJob.title}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="Software Engineer"
         />
@@ -119,6 +122,7 @@ export default function EditJobForm() {
           name="company"
           type="text"
           required
+          defaultValue={initialJob.company}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="Stripe"
         />
@@ -133,6 +137,7 @@ export default function EditJobForm() {
           name="location"
           type="text"
           required
+          defaultValue={initialJob.location}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="San Francisco, CA"
         />
@@ -147,7 +152,7 @@ export default function EditJobForm() {
           name="stage"
           required
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
-          defaultValue="Interested"
+          defaultValue={initialJob.stage}
         >
           <option value="Interested">Interested</option>
           <option value="Applied">Applied</option>
@@ -170,6 +175,7 @@ export default function EditJobForm() {
           name="lastActivityDate"
           type="date"
           required
+          defaultValue={toDateInputValue(initialJob.lastActivityDate)}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
         />
       </div>
@@ -182,6 +188,7 @@ export default function EditJobForm() {
           id="deadline"
           name="deadline"
           type="date"
+          defaultValue={toDateInputValue(initialJob.deadline)}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
         />
       </div>
@@ -194,6 +201,7 @@ export default function EditJobForm() {
           id="priority"
           name="priority"
           type="checkbox"
+          defaultChecked={Boolean(initialJob.priority)}
           className="h-4 w-4 accent-(--foreground)"
         />
         <span className="text-sm font-semibold text-(--foreground)">
@@ -213,6 +221,7 @@ export default function EditJobForm() {
           name="jobDescription"
           rows={4}
           required
+          defaultValue={initialJob.jobDescription}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="Role summary, requirements, and responsibilities"
         />
@@ -229,6 +238,7 @@ export default function EditJobForm() {
           id="compensation"
           name="compensation"
           type="text"
+          defaultValue={initialJob.compensation ?? ''}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="$180,000 base"
         />
@@ -246,6 +256,7 @@ export default function EditJobForm() {
           name="applicationDate"
           type="date"
           required
+          defaultValue={toDateInputValue(initialJob.applicationDate)}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
         />
       </div>
@@ -261,6 +272,7 @@ export default function EditJobForm() {
           id="recruiter-notes"
           name="recruiterNotes"
           rows={3}
+          defaultValue={initialJob.recruiterNotes ?? ''}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="Recruiter contact details and notes"
         />
@@ -278,6 +290,7 @@ export default function EditJobForm() {
           name="otherNotes"
           rows={4}
           required
+          defaultValue={initialJob.otherNotes}
           className="w-full rounded-md border border-(--surface-border) bg-transparent px-3 py-2 text-sm outline-none transition focus:border-(--foreground)"
           placeholder="Anything else worth tracking"
         />
