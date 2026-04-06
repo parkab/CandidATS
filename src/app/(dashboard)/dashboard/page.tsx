@@ -10,6 +10,15 @@ import Link from 'next/link';
 
 const CARD_ANGLES = [-3, -2, -1, 0, 1, 2, 3];
 
+type DashboardJob = {
+  id: string;
+  company_name: string;
+  title: string;
+  location: string;
+  pipeline_stage: string;
+  last_activity_date: Date;
+};
+
 function toApplicationStatus(stage: string): ApplicationStatus {
   const normalizedStage = stage.trim().toLowerCase();
 
@@ -107,7 +116,7 @@ export default async function Dashboard() {
     );
   }
 
-  const jobs = await prisma.job.findMany({
+  const jobs: DashboardJob[] = await prisma.job.findMany({
     select: {
       id: true,
       company_name: true,
@@ -137,7 +146,7 @@ export default async function Dashboard() {
         >
           <PolaroidAddCard />
         </Link>
-        {jobs.map((job) => (
+        {jobs.map((job: DashboardJob) => (
           <Link
             key={job.id}
             href={{ pathname: '/jobs/edit', query: { id: job.id } }}
