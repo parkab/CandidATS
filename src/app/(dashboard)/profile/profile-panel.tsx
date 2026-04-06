@@ -367,9 +367,6 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           <h3 className="text-lg font-semibold text-(--foreground)">
             Professional Details
           </h3>
-          <p className="text-xs font-medium text-(--text-muted)">
-            Professional details are hardcoded for this version.
-          </p>
         </div>
 
         <div className="grid">
@@ -477,9 +474,6 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-sm font-medium text-(--foreground)">
                     Professional Details
-                  </p>
-                  <p className="text-xs font-medium text-(--text-muted)">
-                    Hardcoded preview fields in this version. Not persisted yet.
                   </p>
                 </div>
 
