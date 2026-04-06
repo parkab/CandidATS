@@ -20,14 +20,30 @@ export default async function Profile() {
       lastName: true,
       email: true,
       createdAt: true,
+      Profile: {
+        select: {
+          phone: true,
+          location: true,
+          linkedIn: true,
+          headline: true,
+          bio: true,
+        },
+      },
     },
   });
+
+  const userProfile = user?.Profile?.[0];
 
   const initialProfile = {
     firstName: user?.firstName ?? session.firstName ?? '',
     lastName: user?.lastName ?? session.lastName ?? '',
     email: user?.email ?? session.email,
     createdAt: user?.createdAt ? user.createdAt.toISOString() : null,
+    phone: userProfile?.phone ?? '',
+    location: userProfile?.location ?? '',
+    linkedIn: userProfile?.linkedIn ?? '',
+    headline: userProfile?.headline ?? '',
+    bio: userProfile?.bio ?? '',
   };
 
   return (

@@ -4,20 +4,17 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const PREVIEW_PROFILE_DETAILS = {
-  phone: '(555) 201-4419',
-  location: 'Boston, MA',
-  linkedIn: 'https://www.linkedin.com/in/janedoe',
-  headline: 'Frontend engineer focused on accessibility and product craft',
-  bio: 'I enjoy building reliable UI systems, mentoring engineers, and shipping features that reduce friction for users every week.',
-};
-
 type ProfilePanelProps = {
   initialProfile: {
     firstName: string;
     lastName: string;
     email: string;
     createdAt: string | null;
+    phone: string;
+    location: string;
+    linkedIn: string;
+    headline: string;
+    bio: string;
   };
 };
 
@@ -35,7 +32,6 @@ type EditableFormState = {
 type FormErrors = {
   firstName?: string;
   lastName?: string;
-  email?: string;
   submit?: string;
 };
 
@@ -46,11 +42,11 @@ function buildInitialForm(
     firstName: profile.firstName,
     lastName: profile.lastName,
     email: profile.email,
-    phone: PREVIEW_PROFILE_DETAILS.phone,
-    location: PREVIEW_PROFILE_DETAILS.location,
-    linkedIn: PREVIEW_PROFILE_DETAILS.linkedIn,
-    headline: PREVIEW_PROFILE_DETAILS.headline,
-    bio: PREVIEW_PROFILE_DETAILS.bio,
+    phone: profile.phone,
+    location: profile.location,
+    linkedIn: profile.linkedIn,
+    headline: profile.headline,
+    bio: profile.bio,
   };
 }
 
@@ -63,12 +59,6 @@ function validatePrimaryFields(form: EditableFormState): FormErrors {
 
   if (!form.lastName.trim()) {
     errors.lastName = 'Last name is required.';
-  }
-
-  if (!form.email.trim()) {
-    errors.email = 'Email is required.';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-    errors.email = 'Please enter a valid email address.';
   }
 
   return errors;
@@ -188,13 +178,19 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
 
   const displayedDetails = useMemo(
     () => ({
-      phone: PREVIEW_PROFILE_DETAILS.phone,
-      location: PREVIEW_PROFILE_DETAILS.location,
-      linkedIn: PREVIEW_PROFILE_DETAILS.linkedIn,
-      headline: PREVIEW_PROFILE_DETAILS.headline,
-      bio: PREVIEW_PROFILE_DETAILS.bio,
+      phone: profile.phone,
+      location: profile.location,
+      linkedIn: profile.linkedIn,
+      headline: profile.headline,
+      bio: profile.bio,
     }),
-    [],
+    [
+      profile.bio,
+      profile.headline,
+      profile.linkedIn,
+      profile.location,
+      profile.phone,
+    ],
   );
 
   const resetFromProfile = (nextProfile = profile) => {
@@ -267,6 +263,13 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
         firstName?: string;
         lastName?: string;
         email?: string;
+        Profile?: {
+          phone?: string | null;
+          location?: string | null;
+          linkedIn?: string | null;
+          headline?: string | null;
+          bio?: string | null;
+        };
         error?: string;
       } | null;
 
@@ -284,6 +287,11 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
         firstName: responseBody?.firstName ?? form.firstName.trim(),
         lastName: responseBody?.lastName ?? form.lastName.trim(),
         email: responseBody?.email ?? profile.email,
+        phone: responseBody?.Profile?.phone ?? form.phone.trim(),
+        location: responseBody?.Profile?.location ?? form.location.trim(),
+        linkedIn: responseBody?.Profile?.linkedIn ?? form.linkedIn.trim(),
+        headline: responseBody?.Profile?.headline ?? form.headline.trim(),
+        bio: responseBody?.Profile?.bio ?? form.bio.trim(),
       };
 
       setProfile(updatedProfile);
@@ -292,6 +300,11 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
         firstName: updatedProfile.firstName,
         lastName: updatedProfile.lastName,
         email: updatedProfile.email,
+        phone: updatedProfile.phone,
+        location: updatedProfile.location,
+        linkedIn: updatedProfile.linkedIn,
+        headline: updatedProfile.headline,
+        bio: updatedProfile.bio,
       }));
       setIsEditing(false);
       setSaveMessage('Profile updated.');
@@ -343,23 +356,31 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
         </div>
 
         <div className="grid">
-          <DetailRow label="Phone" value={displayedDetails.phone} subdued />
+          <DetailRow
+            label="Phone"
+            value={displayedDetails.phone || 'Not provided'}
+            subdued
+          />
           <DetailRow
             label="Location"
-            value={displayedDetails.location}
+            value={displayedDetails.location || 'Not provided'}
             subdued
           />
           <DetailRow
             label="LinkedIn"
-            value={displayedDetails.linkedIn}
+            value={displayedDetails.linkedIn || 'Not provided'}
             subdued
           />
           <DetailRow
             label="Headline"
-            value={displayedDetails.headline}
+            value={displayedDetails.headline || 'Not provided'}
             subdued
           />
-          <DetailRow label="Bio" value={displayedDetails.bio} subdued />
+          <DetailRow
+            label="Bio"
+            value={displayedDetails.bio || 'Not provided'}
+            subdued
+          />
         </div>
       </article>
 

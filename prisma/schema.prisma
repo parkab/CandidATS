@@ -77,14 +77,28 @@ model TimelineEvent {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model User {
-  id             String   @id
-  email          String   @unique
+  id             String    @id
+  email          String    @unique
   hashedPassword String
   firstName      String?
   lastName       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   Job            Job[]
+  Profile        Profile[]
+}
+
+model Profile {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?
+  phone     String?
+  location  String?
+  linkedIn  String?
+  headline  String?
+  bio       String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum job_activity_type {
