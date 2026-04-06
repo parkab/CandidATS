@@ -85,12 +85,12 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   Job            Job[]
-  Profile        Profile[]
+  Profile        Profile?
 }
 
 model Profile {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String?
+  userId    String   @unique
   phone     String?
   location  String?
   linkedIn  String?
@@ -98,7 +98,7 @@ model Profile {
   bio       String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  User      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum job_activity_type {

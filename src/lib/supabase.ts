@@ -47,10 +47,7 @@ export async function getSupabaseUserFromRequest(request: Request) {
   }
 
   if (!supabaseAdmin) {
-    return {
-      data: null,
-      error: { message: 'Supabase admin client is not configured' },
-    };
+    throw new Error('Supabase admin client is not configured');
   }
 
   return await supabaseAdmin.auth.getUser(accessToken);
