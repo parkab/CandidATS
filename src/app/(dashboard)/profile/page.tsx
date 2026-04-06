@@ -32,7 +32,7 @@ export default async function Profile() {
     },
   });
 
-  const userProfile = user?.Profile?.[0];
+  const userProfile = user?.Profile;
 
   const initialProfile = {
     firstName: user?.firstName ?? session.firstName ?? '',
