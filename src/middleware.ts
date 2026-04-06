@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
   // Only validate auth for protected and auth routes
   let user = null
   if ((isProtectedRoute || isAuthRoute) && supabaseAdmin) {
-    const accessToken = getAccessTokenFromRequest(request as any)
+    const accessToken = getAccessTokenFromRequest(request)
     if (accessToken) {
       try {
         const { data, error } = await supabaseAdmin.auth.getUser(accessToken)
