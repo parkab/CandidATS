@@ -10,7 +10,7 @@ export async function PATCH(request: Request) {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
     return NextResponse.json(
-      { error: 'Authentication service unavailable' },
+      { error: 'Unable to process request.' },
       { status: 503 },
     );
   }
@@ -25,10 +25,7 @@ export async function PATCH(request: Request) {
   const { payload, error: payloadError } = parseProfileUpdatePayload(body);
 
   if (!payload || payloadError) {
-    return NextResponse.json(
-      { error: payloadError ?? 'Invalid request payload' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
   }
 
   try {
@@ -44,7 +41,10 @@ export async function PATCH(request: Request) {
     });
 
     if (updateResult.count === 0) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Unable to update profile.' },
+        { status: 404 },
+      );
     }
 
     const existingProfile = await prisma.profile.findFirst({
@@ -104,7 +104,7 @@ export async function PATCH(request: Request) {
 
     if (!updatedUser) {
       return NextResponse.json(
-        { error: 'Unable to load updated profile' },
+        { error: 'Unable to process request.' },
         { status: 500 },
       );
     }
@@ -118,23 +118,8 @@ export async function PATCH(request: Request) {
     );
   } catch (routeError) {
     console.error('Failed to update profile', routeError);
-
-    const prismaError = routeError as { code?: string; message?: string };
-    if (
-      prismaError?.code === 'P2021' ||
-      prismaError?.message?.toLowerCase().includes('does not exist')
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            'Profile table is missing in the database. Run Prisma migration or db push for the new Profile model.',
-        },
-        { status: 500 },
-      );
-    }
-
     return NextResponse.json(
-      { error: 'Unable to update profile right now.' },
+      { error: 'Unable to process request.' },
       { status: 500 },
     );
   }

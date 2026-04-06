@@ -74,9 +74,7 @@ describe('PATCH /api/profile', () => {
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
-      error: 'First name and last name are required',
-    });
+    expect(await response.json()).toEqual({ error: 'Invalid request.' });
     expect(mockedUpdateMany).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();
@@ -98,9 +96,7 @@ describe('PATCH /api/profile', () => {
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
-      error: 'LinkedIn URL must be a valid linkedin.com link',
-    });
+    expect(await response.json()).toEqual({ error: 'Invalid request.' });
     expect(mockedUpdateMany).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();
@@ -272,7 +268,9 @@ describe('PATCH /api/profile', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'Profile not found' });
+    expect(await response.json()).toEqual({
+      error: 'Unable to update profile.',
+    });
     expect(mockedFindUnique).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();

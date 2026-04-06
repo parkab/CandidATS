@@ -1,7 +1,7 @@
 'use client';
 
 import type { ChangeEvent, FormEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type ProfilePanelProps = {
@@ -170,6 +170,30 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isSaveMessageVisible, setIsSaveMessageVisible] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    if (!saveMessage) {
+      setIsSaveMessageVisible(false);
+      return;
+    }
+
+    setIsSaveMessageVisible(true);
+
+    const fadeTimer = setTimeout(() => {
+      setIsSaveMessageVisible(false);
+    }, 3200);
+
+    const removeTimer = setTimeout(() => {
+      setSaveMessage(null);
+    }, 3800);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [saveMessage]);
 
   const fullName = useMemo(() => {
     const combined = `${profile.firstName} ${profile.lastName}`.trim();
@@ -275,8 +299,7 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
 
       if (!response.ok) {
         setErrors({
-          submit:
-            responseBody?.error ?? 'Unable to save your profile right now.',
+          submit: 'Unable to save your profile right now.',
         });
         setIsSaving(false);
         return;
@@ -338,12 +361,6 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           </button>
         </div>
       </article>
-
-      {saveMessage ? (
-        <p className="rounded-md border border-(--surface-border) bg-(--surface) px-4 py-3 text-sm font-medium text-(--foreground)">
-          {saveMessage}
-        </p>
-      ) : null}
 
       <article className="rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -549,6 +566,20 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
               ) : null}
             </form>
           </div>
+        </div>
+      ) : null}
+
+      {saveMessage ? (
+        <div
+          className={`pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 transition-opacity duration-500 ${
+            isSaveMessageVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <p className="max-w-md rounded-md border border-(--surface-border) bg-(--surface) px-4 py-3 text-sm font-medium text-(--foreground) shadow-md">
+            {saveMessage}
+          </p>
         </div>
       ) : null}
     </div>
