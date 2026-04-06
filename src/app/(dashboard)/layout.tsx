@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/auth/session';
 import Navbar from '@/components/dashboard/navbar';
+import RedirectHandler from '@/components/dashboard/redirect-handler';
 import { prisma } from '@/lib/prisma';
 
 type DashboardLayoutProps = {
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
 
   return (
     <main className="min-h-screen bg-transparent">
+      <RedirectHandler />
       <Navbar user={user} />
       {children}
     </main>
