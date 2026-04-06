@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
+  
 
   // 1. DASHBOARD IS PUBLIC (It handles its own "Logged In" vs "Logged Out" view)
   const isPublicPage = pathname === '/' || 
@@ -44,9 +45,18 @@ export async function middleware(request: NextRequest) {
                        pathname.startsWith('/dashboard') || 
                        pathname.startsWith('/auth')
 
+  const isApiRoute = pathname.startsWith('/api')
+
   // 2. PROTECT EVERYTHING ELSE (Settings, Profile, Documents, etc.)
   if (!isPublicPage && !user) {
-    // If they try to go to /settings but aren't logged in, send them to login
+
+    //let APIs through
+    if (isApiRoute) {
+    return response 
+  }
+
+
+    // If they try to go to /settings but aren't logged in, send them to dashboard
     const redirectUrl = new URL('/dashboard', request.url)
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
