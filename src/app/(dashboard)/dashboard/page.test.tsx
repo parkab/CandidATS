@@ -101,6 +101,14 @@ describe('Dashboard page', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Sign up now!')).not.toBeInTheDocument();
     expect(prisma.job.findMany).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        company_name: true,
+        title: true,
+        location: true,
+        pipeline_stage: true,
+        last_activity_date: true,
+      },
       where: {
         user_id: 'user-123',
       },

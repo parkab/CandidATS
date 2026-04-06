@@ -77,7 +77,9 @@ export function validateRegistrationPayload(input: unknown): ValidationResult {
   };
 }
 
-export function validateForgotPasswordPayload(input: unknown): ForgotPasswordValidationResult {
+export function validateForgotPasswordPayload(
+  input: unknown,
+): ForgotPasswordValidationResult {
   if (!input || typeof input !== 'object') {
     return { valid: false, error: 'Invalid request body' };
   }
@@ -97,7 +99,9 @@ export function validateForgotPasswordPayload(input: unknown): ForgotPasswordVal
   };
 }
 
-export function validateUpdatePasswordPayload(input: unknown): UpdatePasswordValidationResult {
+export function validateUpdatePasswordPayload(
+  input: unknown,
+): UpdatePasswordValidationResult {
   if (!input || typeof input !== 'object') {
     return { valid: false, error: 'Invalid request body' };
   }
@@ -106,7 +110,10 @@ export function validateUpdatePasswordPayload(input: unknown): UpdatePasswordVal
   const password = typeof payload.password === 'string' ? payload.password : '';
 
   if (!password || password.length < 8) {
-    return { valid: false, error: 'Password must be at least 8 characters long' };
+    return {
+      valid: false,
+      error: 'Password must be at least 8 characters long',
+    };
   }
 
   return {

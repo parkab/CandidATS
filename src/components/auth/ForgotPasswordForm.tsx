@@ -60,14 +60,18 @@ export default function ForgotPasswordForm() {
     setErrors({});
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(form.email.toLowerCase(), {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/update-password`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        form.email.toLowerCase(),
+        {
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/update-password`,
+        },
+      );
 
       if (error) {
         console.error('Reset password error:', error);
         setErrors({
-          submit: error.message || 'Failed to send reset email. Please try again.',
+          submit:
+            error.message || 'Failed to send reset email. Please try again.',
         });
         setIsLoading(false);
         return;
@@ -88,14 +92,17 @@ export default function ForgotPasswordForm() {
     return (
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-(--foreground)">Check your email</h1>
+          <h1 className="text-3xl font-bold text-(--foreground)">
+            Check your email
+          </h1>
           <p className="mt-2 text-sm text-(--muted-foreground)">
             We&apos;ve sent a password reset link to {form.email}
           </p>
         </div>
 
         <div className="rounded-md border border-emerald-500 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          Click the link in the email to reset your password. The link will expire in 24 hours.
+          Click the link in the email to reset your password. The link will
+          expire in 24 hours.
         </div>
 
         <div className="text-center text-sm text-(--muted-foreground)">
@@ -114,7 +121,9 @@ export default function ForgotPasswordForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-(--foreground)">Reset your password</h1>
+        <h1 className="text-3xl font-bold text-(--foreground)">
+          Reset your password
+        </h1>
         <p className="mt-2 text-sm text-(--muted-foreground)">
           Enter your email and we&apos;ll send you a link to reset it
         </p>
@@ -128,7 +137,10 @@ export default function ForgotPasswordForm() {
         )}
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-(--foreground)">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-(--foreground)"
+          >
             Email
           </label>
           <input
@@ -145,7 +157,9 @@ export default function ForgotPasswordForm() {
             }`}
             placeholder="you@example.com"
           />
-          {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+          )}
         </div>
 
         <button

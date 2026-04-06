@@ -37,7 +37,8 @@ export default function UpdatePasswordForm() {
 
         if (!session) {
           setErrors({
-            submit: 'No active session. Please click the password reset link in your email.',
+            submit:
+              'No active session. Please click the password reset link in your email.',
           });
           setIsLoading(false);
           return;
@@ -108,7 +109,8 @@ export default function UpdatePasswordForm() {
       if (error) {
         console.error('Update password error:', error);
         setErrors({
-          submit: error.message || 'Failed to update password. Please try again.',
+          submit:
+            error.message || 'Failed to update password. Please try again.',
         });
         setIsFormSubmitting(false);
         return;
@@ -129,7 +131,9 @@ export default function UpdatePasswordForm() {
     return (
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-(--foreground)">Verifying...</h1>
+          <h1 className="text-3xl font-bold text-(--foreground)">
+            Verifying...
+          </h1>
           <p className="mt-2 text-sm text-(--muted-foreground)">
             Please wait while we verify your reset link
           </p>
@@ -145,7 +149,9 @@ export default function UpdatePasswordForm() {
     return (
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-(--foreground)">Invalid Link</h1>
+          <h1 className="text-3xl font-bold text-(--foreground)">
+            Invalid Link
+          </h1>
           <p className="mt-2 text-sm text-(--muted-foreground)">
             Your password reset link is invalid or has expired
           </p>
@@ -172,7 +178,9 @@ export default function UpdatePasswordForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-(--foreground)">Set your new password</h1>
+        <h1 className="text-3xl font-bold text-(--foreground)">
+          Set your new password
+        </h1>
         <p className="mt-2 text-sm text-(--muted-foreground)">
           Enter a new password for your CandidATS account
         </p>
@@ -186,7 +194,10 @@ export default function UpdatePasswordForm() {
         )}
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-(--foreground)">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-(--foreground)"
+          >
             Password
           </label>
           <input
@@ -203,12 +214,19 @@ export default function UpdatePasswordForm() {
             }`}
             placeholder="••••••••"
           />
-          {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
-          <p className="mt-1 text-xs text-(--muted-foreground)">Must be at least 8 characters</p>
+          {errors.password && (
+            <p className="mt-1 text-xs text-red-500">{errors.password}</p>
+          )}
+          <p className="mt-1 text-xs text-(--muted-foreground)">
+            Must be at least 8 characters
+          </p>
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-(--foreground)">
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-(--foreground)"
+          >
             Confirm password
           </label>
           <input
@@ -225,7 +243,11 @@ export default function UpdatePasswordForm() {
             }`}
             placeholder="••••••••"
           />
-          {errors.confirmPassword && <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>}
+          {errors.confirmPassword && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.confirmPassword}
+            </p>
+          )}
         </div>
 
         <button
