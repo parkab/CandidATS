@@ -10,14 +10,15 @@ export async function middleware(request: NextRequest) {
   }
 
   const protectedRoutes = ['/profile', '/documents', '/settings', '/jobs']
-  const publicAuthRoutes = ['/login', '/register', '/forgot-password', '/update-password']
+  const authOnlyRoutes = ['/login', '/register']
+  const passwordRoutes = ['/forgot-password', '/update-password']
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-  const isAuthRoute = publicAuthRoutes.some(route => pathname.startsWith(route))
+  const isAuthOnlyRoute = authOnlyRoutes.some(route => pathname.startsWith(route))
 
-  // Only validate auth for protected and auth routes
+  // Only validate auth for protected and auth-only routes
   let user = null
-  if ((isProtectedRoute || isAuthRoute) && supabaseAdmin) {
+  if ((isProtectedRoute || isAuthOnlyRoute) && supabaseAdmin) {
     const accessToken = getAccessTokenFromRequest(request)
     if (accessToken) {
       try {
@@ -37,7 +38,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthOnlyRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
