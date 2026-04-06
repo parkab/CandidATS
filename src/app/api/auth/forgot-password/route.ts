@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       console.error('Supabase forgot password error:', error);
       return NextResponse.json(
         { error: error.message || 'Failed to send password reset email' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,13 +30,13 @@ export async function POST(request: Request) {
       {
         message: 'Password reset email sent successfully',
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error('Unexpected error in forgot-password:', err);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

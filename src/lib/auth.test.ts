@@ -1,4 +1,10 @@
-import { hashPassword, verifyPassword, validateRegistrationPayload, validateForgotPasswordPayload, validateUpdatePasswordPayload } from './auth';
+import {
+  hashPassword,
+  verifyPassword,
+  validateRegistrationPayload,
+  validateForgotPasswordPayload,
+  validateUpdatePasswordPayload,
+} from './auth';
 
 describe('auth helpers', () => {
   test('hashPassword and verifyPassword work together', async () => {
@@ -44,8 +50,12 @@ describe('auth helpers', () => {
 
   test('validateForgotPasswordPayload rejects invalid payloads', () => {
     expect(validateForgotPasswordPayload(null)).toMatchObject({ valid: false });
-    expect(validateForgotPasswordPayload({ email: '' })).toMatchObject({ valid: false });
-    expect(validateForgotPasswordPayload({ email: 'bad-email' })).toMatchObject({ valid: false });
+    expect(validateForgotPasswordPayload({ email: '' })).toMatchObject({
+      valid: false,
+    });
+    expect(validateForgotPasswordPayload({ email: 'bad-email' })).toMatchObject(
+      { valid: false },
+    );
   });
 
   test('validateForgotPasswordPayload normalizes a valid email', () => {
@@ -62,8 +72,12 @@ describe('auth helpers', () => {
 
   test('validateUpdatePasswordPayload rejects invalid payloads', () => {
     expect(validateUpdatePasswordPayload(null)).toMatchObject({ valid: false });
-    expect(validateUpdatePasswordPayload({ password: '' })).toMatchObject({ valid: false });
-    expect(validateUpdatePasswordPayload({ password: 'short' })).toMatchObject({ valid: false });
+    expect(validateUpdatePasswordPayload({ password: '' })).toMatchObject({
+      valid: false,
+    });
+    expect(validateUpdatePasswordPayload({ password: 'short' })).toMatchObject({
+      valid: false,
+    });
   });
 
   test('validateUpdatePasswordPayload accepts a valid password', () => {

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       console.error('Supabase update password error:', error);
       return NextResponse.json(
         { error: error.message || 'Failed to update password' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,13 +34,13 @@ export async function POST(request: Request) {
           email: data.user.email,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error('Unexpected error in update-password:', err);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
