@@ -111,7 +111,7 @@ export default function Navbar({ user }: NavbarProps) {
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full text-left block rounded px-3 py-2 text-sm text-(--foreground) hover:bg-(--action-bg) disabled:opacity-50 disabled:cursor-not-allowed"
+              className="block w-full rounded px-3 py-2 text-left text-sm text-(--danger-text) hover:bg-(--danger-bg) disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoggingOut ? 'Signing out...' : 'Sign out'}
             </button>

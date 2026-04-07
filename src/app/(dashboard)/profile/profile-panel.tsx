@@ -3,6 +3,7 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import { calculateProfileBaselineCompletion } from '@/lib/profile/profile';
 
 type ProfilePanelProps = {
@@ -146,7 +147,7 @@ type DetailRowProps = {
 
 function DetailRow({ label, value, subdued }: DetailRowProps) {
   return (
-    <div className="grid gap-1 border-b border-(--surface-divider) py-3 last:border-b-0 md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
+    <div className="-mx-1 grid gap-1 rounded-md border-b border-(--surface-divider) px-1 py-3 transition-colors duration-150 last:border-b-0 hover:bg-(--action-bg) md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
       <p className="text-sm font-medium text-(--foreground)">{label}</p>
       <p
         className={
@@ -355,22 +356,22 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
 
   return (
     <div className="mx-auto mt-10 grid w-full max-w-4xl gap-6">
-      <article className="rounded-2xl border border-black/15 bg-[linear-gradient(to_right,rgba(255,117,195,0.62)_0%,rgba(255,166,71,0.62)_20%,rgba(255,232,63,0.62)_40%,rgba(159,255,91,0.62)_60%,rgba(112,226,255,0.62)_80%,rgba(205,147,255,0.62)_100%)] p-6 shadow-sm">
+      <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-black">
+            <h2 className="text-2xl font-semibold tracking-tight text-(--foreground)">
               {fullName}
             </h2>
-            <p className="mt-1 text-sm font-medium text-black">
+            <p className="mt-1 text-sm font-medium text-(--foreground)">
               {profile.email}
             </p>
 
             <div className="mt-4 grid gap-1.5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-black/80">
+                <p className="text-sm font-semibold text-(--foreground)">
                   Baseline completion
                 </p>
-                <p className="text-sm font-semibold text-black">
+                <p className="text-sm font-semibold text-(--foreground)">
                   {baselineCompletion.percentage}% complete
                 </p>
               </div>
@@ -380,14 +381,14 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={baselineCompletion.percentage}
-                className="h-2 overflow-hidden rounded-full bg-black/20"
+                className="h-2 overflow-hidden rounded-full bg-(--action-bg)"
               >
                 <div
-                  className="h-full rounded-full bg-black transition-[width] duration-500"
+                  className="h-full rounded-full bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] transition-[width] duration-500"
                   style={{ width: `${baselineCompletion.percentage}%` }}
                 />
               </div>
-              <p className="text-xs font-medium text-black/85">
+              <p className="text-xs font-medium text-(--text-muted)">
                 {baselineCompletion.completed} of {baselineCompletion.total}{' '}
                 baseline fields complete
               </p>
@@ -397,14 +398,19 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           <button
             type="button"
             onClick={onStartEditing}
-            className="rounded-md border border-black/25 bg-white/80 px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-white"
+            className="rounded-md border border-(--foreground) bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover)"
           >
             Edit profile
           </button>
         </div>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
+        />
       </article>
 
-      <article className="rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
+      <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-lg font-semibold text-(--foreground)">
             Professional Details
@@ -438,6 +444,11 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
             subdued
           />
         </div>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
+        />
       </article>
 
       {isEditing ? (
@@ -456,9 +467,7 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
             >
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-(--surface-divider) pb-4">
                 <div className="text-left">
-                  <h3 className="text-xl font-semibold text-(--foreground)">
-                    Edit Profile
-                  </h3>
+                  <h3 className={GRADIENT_SUBHEADING_CLASS}>Edit Profile</h3>
                 </div>
 
                 <button

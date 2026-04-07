@@ -11,6 +11,7 @@ import {
 import type { ApplicationStatus } from '@/lib/jobs/status';
 import PolaroidAddCard from '@/components/dashboard/polaroid-add-card';
 import PolaroidCard from '@/components/dashboard/polaroid-card';
+import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import CreateJobForm from '@/app/(dashboard)/jobs/create/create-job-form';
 import EditJobForm from '@/app/(dashboard)/jobs/edit/edit-job-form';
 
@@ -177,10 +178,7 @@ export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
           >
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-(--surface-divider) p-6 pb-4">
               <div className="text-left">
-                <h2
-                  id={dialogTitleId}
-                  className="text-xl font-semibold text-(--foreground)"
-                >
+                <h2 id={dialogTitleId} className={GRADIENT_SUBHEADING_CLASS}>
                   {modalState.type === 'create'
                     ? 'Create a Job Application'
                     : 'Edit Job Application'}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 
 type FormState = {
   email: string;
@@ -125,11 +126,9 @@ export default function RegistrationForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-(--foreground)">
-          Create your account
-        </h1>
+        <h1 className={GRADIENT_SUBHEADING_CLASS}>Create your account</h1>
         <p className="mt-2 text-sm text-(--muted-foreground)">
-          Get started with CandidATS to manage your hiring process
+          Start managing your hiring process with CandidATS
         </p>
       </div>
 
@@ -144,52 +143,58 @@ export default function RegistrationForm() {
           <div className="flex-1">
             <label
               htmlFor="firstName"
-              className="block text-sm font-medium text-(--foreground)"
+              className="block text-sm font-semibold text-(--foreground)"
             >
               First Name
             </label>
-            <input
-              id="firstName"
-              name="firstName"
-              type="text"
-              value={form.firstName}
-              onChange={handleChange}
-              disabled={isLoading}
-              className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
-                errors.firstName
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-(--surface-border) focus:ring-(--accent)'
-              }`}
-              placeholder="John"
-            />
+            <div
+              className="profile-input-wrap"
+              data-error={Boolean(errors.firstName)}
+            >
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={form.firstName}
+                onChange={handleChange}
+                disabled={isLoading}
+                className="profile-input"
+                placeholder="John"
+              />
+            </div>
             {errors.firstName && (
-              <p className="mt-1 text-xs text-red-500">{errors.firstName}</p>
+              <p className="mt-1 text-xs text-(--danger-text)">
+                {errors.firstName}
+              </p>
             )}
           </div>
 
           <div className="flex-1">
             <label
               htmlFor="lastName"
-              className="block text-sm font-medium text-(--foreground)"
+              className="block text-sm font-semibold text-(--foreground)"
             >
               Last Name
             </label>
-            <input
-              id="lastName"
-              name="lastName"
-              type="text"
-              value={form.lastName}
-              onChange={handleChange}
-              disabled={isLoading}
-              className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
-                errors.lastName
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-(--surface-border) focus:ring-(--accent)'
-              }`}
-              placeholder="Doe"
-            />
+            <div
+              className="profile-input-wrap"
+              data-error={Boolean(errors.lastName)}
+            >
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={form.lastName}
+                onChange={handleChange}
+                disabled={isLoading}
+                className="profile-input"
+                placeholder="Doe"
+              />
+            </div>
             {errors.lastName && (
-              <p className="mt-1 text-xs text-red-500">{errors.lastName}</p>
+              <p className="mt-1 text-xs text-(--danger-text)">
+                {errors.lastName}
+              </p>
             )}
           </div>
         </div>
@@ -197,78 +202,83 @@ export default function RegistrationForm() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-(--foreground)"
+            className="block text-sm font-semibold text-(--foreground)"
           >
             Email
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            disabled={isLoading}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
-              errors.email
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-(--surface-border) focus:ring-(--accent)'
-            }`}
-            placeholder="john@example.com"
-          />
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(errors.email)}
+          >
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="profile-input"
+              placeholder="john@example.com"
+            />
+          </div>
           {errors.email && (
-            <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+            <p className="mt-1 text-xs text-(--danger-text)">{errors.email}</p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-(--foreground)"
+            className="block text-sm font-semibold text-(--foreground)"
           >
             Password
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            disabled={isLoading}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
-              errors.password
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-(--surface-border) focus:ring-(--accent)'
-            }`}
-            placeholder="At least 8 characters"
-          />
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(errors.password)}
+          >
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="profile-input"
+              placeholder="At least 8 characters"
+            />
+          </div>
           {errors.password && (
-            <p className="mt-1 text-xs text-red-500">{errors.password}</p>
+            <p className="mt-1 text-xs text-(--danger-text)">
+              {errors.password}
+            </p>
           )}
         </div>
 
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-medium text-(--foreground)"
+            className="block text-sm font-semibold text-(--foreground)"
           >
             Confirm Password
           </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            disabled={isLoading}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
-              errors.confirmPassword
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-(--surface-border) focus:ring-(--accent)'
-            }`}
-            placeholder="Confirm your password"
-          />
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(errors.confirmPassword)}
+          >
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="profile-input"
+              placeholder="Confirm your password"
+            />
+          </div>
           {errors.confirmPassword && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-(--danger-text)">
               {errors.confirmPassword}
             </p>
           )}
