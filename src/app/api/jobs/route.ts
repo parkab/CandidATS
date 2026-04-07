@@ -101,6 +101,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (body.applicationDate && !applicationDate) {
+    return NextResponse.json(
+      { error: 'Invalid application date' },
+      { status: 400 },
+    );
+  }
+
   try {
     const createdJob = await prisma.job.create({
       data: {

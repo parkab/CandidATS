@@ -100,6 +100,13 @@ export async function PATCH(
     );
   }
 
+  if (body.applicationDate && !applicationDate) {
+    return NextResponse.json(
+      { error: 'Invalid application date' },
+      { status: 400 },
+    );
+  }
+
   try {
     const updateResult = await prisma.job.updateMany({
       where: {

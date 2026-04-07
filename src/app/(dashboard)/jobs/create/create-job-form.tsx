@@ -152,7 +152,10 @@ export default function CreateJobForm({
             </span>
             <span className="sr-only"> required</span>
           </label>
-          <div className="profile-input-wrap">
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(fieldErrors.title)}
+          >
             <input
               id="title"
               name="title"
@@ -184,7 +187,10 @@ export default function CreateJobForm({
             </span>
             <span className="sr-only"> required</span>
           </label>
-          <div className="profile-input-wrap">
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(fieldErrors.company)}
+          >
             <input
               id="company"
               name="company"
@@ -216,7 +222,10 @@ export default function CreateJobForm({
             </span>
             <span className="sr-only"> required</span>
           </label>
-          <div className="profile-input-wrap">
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(fieldErrors.location)}
+          >
             <input
               id="location"
               name="location"
@@ -248,7 +257,10 @@ export default function CreateJobForm({
             </span>
             <span className="sr-only"> required</span>
           </label>
-          <div className="profile-input-wrap">
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(fieldErrors.stage)}
+          >
             <select
               id="stage"
               name="stage"
@@ -293,7 +305,10 @@ export default function CreateJobForm({
             </span>
             <span className="sr-only"> required</span>
           </label>
-          <div className="profile-input-wrap">
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(fieldErrors.lastActivityDate)}
+          >
             <input
               id="last-activity-date"
               name="lastActivityDate"

@@ -32,10 +32,14 @@ jest.mock('next/link', () => ({
 
 jest.mock('@/components/dashboard/jobs-modal-grid', () => ({
   __esModule: true,
-  default: ({ jobs }: { jobs: Array<{ company: string; status: string }> }) => (
+  default: ({
+    jobs,
+  }: {
+    jobs: Array<{ company: string; status: string; angle: number }>;
+  }) => (
     <div>
       Mock Jobs Modal Grid: {jobs.length} jobs | first company:{' '}
-      {jobs[0]?.company}
+      {jobs[0]?.company} | first angle: {jobs[0]?.angle}
     </div>
   ),
 }));
@@ -89,7 +93,9 @@ describe('Dashboard page', () => {
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(
-      screen.getByText('Mock Jobs Modal Grid: 1 jobs | first company: Stripe'),
+      screen.getByText(
+        /Mock Jobs Modal Grid: 1 jobs \| first company: Stripe \| first angle: -?\d+/,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Mock Job Card:/)).not.toBeInTheDocument();
     expect(screen.queryByText('Sign up now!')).not.toBeInTheDocument();
@@ -190,7 +196,7 @@ describe('Dashboard page', () => {
 
     expect(
       screen.getByText(
-        'Mock Jobs Modal Grid: 4 jobs | first company: Interview Co',
+        /Mock Jobs Modal Grid: 4 jobs \| first company: Interview Co \| first angle: -?\d+/,
       ),
     ).toBeInTheDocument();
   });
@@ -219,19 +225,21 @@ describe('Dashboard page', () => {
     ]);
 
     render(await Dashboard());
-    expect(
-      screen.getByText(
-        'Mock Jobs Modal Grid: 1 jobs | first company: Stable Co',
-      ),
-    ).toBeInTheDocument();
+    const firstText = screen.getByText(
+      /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
+    ).textContent;
+    const firstAngle = firstText?.match(/first angle:\s*(-?\d+)/)?.[1];
 
     cleanup();
 
     render(await Dashboard());
-    expect(
-      screen.getByText(
-        'Mock Jobs Modal Grid: 1 jobs | first company: Stable Co',
-      ),
-    ).toBeInTheDocument();
+    const secondText = screen.getByText(
+      /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
+    ).textContent;
+    const secondAngle = secondText?.match(/first angle:\s*(-?\d+)/)?.[1];
+
+    expect(firstAngle).toBeDefined();
+    expect(secondAngle).toBeDefined();
+    expect(firstAngle).toBe(secondAngle);
   });
 });
