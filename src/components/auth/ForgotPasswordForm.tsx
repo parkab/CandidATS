@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 
 type ForgotPasswordFormState = {
   email: string;
@@ -121,9 +122,7 @@ export default function ForgotPasswordForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-(--foreground)">
-          Reset your password
-        </h1>
+        <h1 className={GRADIENT_SUBHEADING_CLASS}>Reset your password</h1>
         <p className="mt-2 text-sm text-(--muted-foreground)">
           Enter your email and we&apos;ll send you a link to reset it
         </p>
@@ -139,26 +138,27 @@ export default function ForgotPasswordForm() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-(--foreground)"
+            className="block text-sm font-semibold text-(--foreground)"
           >
             Email
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            disabled={isLoading}
-            className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
-              errors.email
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-(--surface-border) focus:ring-(--accent)'
-            }`}
-            placeholder="you@example.com"
-          />
+          <div
+            className="profile-input-wrap"
+            data-error={Boolean(errors.email)}
+          >
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              disabled={isLoading}
+              className="profile-input"
+              placeholder="you@example.com"
+            />
+          </div>
           {errors.email && (
-            <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+            <p className="mt-1 text-xs text-(--danger-text)">{errors.email}</p>
           )}
         </div>
 
