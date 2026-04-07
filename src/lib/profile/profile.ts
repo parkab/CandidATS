@@ -86,7 +86,8 @@ function normalizeLinkedInUrl(value: string): string | null {
 }
 
 function hasText(value: string | null | undefined): boolean {
-  return typeof value === 'string' && value.trim().length > 0;
+  return asOptionalText(value) == null ? false : true;
+  // return typeof value === 'string' && value.trim().length > 0;
 }
 
 export function calculateProfileBaselineCompletion(
