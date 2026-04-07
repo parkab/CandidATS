@@ -34,6 +34,7 @@ type EditableFormState = {
 type FormErrors = {
   firstName?: string;
   lastName?: string;
+  linkedIn?: string;
   submit?: string;
 };
 
@@ -61,6 +62,28 @@ function validatePrimaryFields(form: EditableFormState): FormErrors {
 
   if (!form.lastName.trim()) {
     errors.lastName = 'Last name is required.';
+  }
+
+  const linkedInValue = form.linkedIn.trim();
+  if (linkedInValue) {
+    const normalizedLinkedIn = /^https?:\/\//i.test(linkedInValue)
+      ? linkedInValue
+      : `https://${linkedInValue}`;
+
+    try {
+      const parsed = new URL(normalizedLinkedIn);
+      const host = parsed.hostname.toLowerCase();
+      const isLinkedInHost =
+        host === 'linkedin.com' ||
+        host === 'www.linkedin.com' ||
+        host.endsWith('.linkedin.com');
+
+      if (!['http:', 'https:'].includes(parsed.protocol) || !isLinkedInHost) {
+        errors.linkedIn = 'Please enter a valid LinkedIn URL (linkedin.com).';
+      }
+    } catch {
+      errors.linkedIn = 'Please enter a valid LinkedIn URL (linkedin.com).';
+    }
   }
 
   return errors;
@@ -463,9 +486,9 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-2xl border border-(--surface-border) bg-(--background) shadow-2xl">
             <form
               onSubmit={handleSubmit}
-              className="grid max-h-[88vh] gap-6 overflow-y-auto p-6"
+              className="grid max-h-[88vh] gap-6 overflow-y-auto px-6 pb-6 pt-0"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-(--surface-divider) pb-4">
+              <div className="sticky top-0 z-10 -mx-6 flex flex-wrap items-center justify-between gap-3 border-b border-(--surface-divider) bg-(--background) px-6 pb-4 pt-6">
                 <div className="text-left">
                   <h3 className={GRADIENT_SUBHEADING_CLASS}>Edit Profile</h3>
                 </div>
@@ -555,6 +578,7 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
                   name="linkedIn"
                   value={form.linkedIn}
                   onChange={onFieldChange}
+                  error={errors.linkedIn}
                   placeholder="https://www.linkedin.com/in/your-handle"
                   disabled={isSaving}
                 />
@@ -583,15 +607,6 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
               </section>
 
               <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  disabled={isSaving}
-                  className="rounded-md border border-(--action-border) px-4 py-2.5 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  Cancel
-                </button>
-
                 <button
                   type="submit"
                   disabled={isSaving}
