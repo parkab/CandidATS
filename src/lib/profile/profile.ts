@@ -10,6 +10,33 @@ export type ParsedProfilePayload = {
   bio: string | null;
 };
 
+export type BaselineProfileCompletionInput = {
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  linkedIn?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+};
+
+export type BaselineProfileCompletion = {
+  total: number;
+  completed: number;
+  percentage: number;
+  isComplete: boolean;
+};
+
+const BASELINE_PROFILE_FIELDS = [
+  'firstName',
+  'lastName',
+  'phone',
+  'location',
+  'linkedIn',
+  'headline',
+  'bio',
+] as const;
+
 function asRecord(value: unknown): ProfileBody | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -56,6 +83,29 @@ function normalizeLinkedInUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function hasText(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+export function calculateProfileBaselineCompletion(
+  input: BaselineProfileCompletionInput,
+): BaselineProfileCompletion {
+  const total = BASELINE_PROFILE_FIELDS.length;
+
+  const completed = BASELINE_PROFILE_FIELDS.reduce((count, field) => {
+    return count + (hasText(input[field]) ? 1 : 0);
+  }, 0);
+
+  const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+  return {
+    total,
+    completed,
+    percentage,
+    isComplete: completed === total,
+  };
 }
 
 export function parseProfileUpdatePayload(rawBody: unknown): {
