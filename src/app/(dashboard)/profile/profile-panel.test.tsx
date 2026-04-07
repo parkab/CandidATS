@@ -26,9 +26,10 @@ describe('ProfilePanel', () => {
 
   beforeEach(() => {
     mockRefresh.mockReset();
+    global.fetch = originalFetch;
   });
 
-  afterAll(() => {
+  afterEach(() => {
     global.fetch = originalFetch;
   });
 
