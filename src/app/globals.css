@@ -1,3 +1,130 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@layer base {
+  :root {
+    --background: #121212;
+    --foreground: #faf9f6;
+    --text-muted: color-mix(in oklab, var(--foreground) 52%, transparent);
+    --surface: color-mix(in oklab, var(--foreground) 4%, var(--background));
+    --surface-border: color-mix(in oklab, var(--foreground) 14%, transparent);
+    --surface-divider: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --action-bg: color-mix(in oklab, var(--foreground) 10%, transparent);
+    --action-border: color-mix(in oklab, var(--foreground) 22%, transparent);
+    --action-hover: color-mix(in oklab, var(--foreground) 16%, transparent);
+    --inverse-hover: color-mix(
+      in oklab,
+      var(--foreground) 88%,
+      var(--background)
+    );
+    --danger-bg: color-mix(in oklab, #ef4444 14%, var(--background));
+    --danger-border: color-mix(in oklab, #ef4444 55%, transparent);
+    --danger-text: color-mix(in oklab, #ef4444 82%, var(--foreground));
+    --danger-hover: color-mix(in oklab, #ef4444 22%, var(--background));
+    --toggle-track: color-mix(in oklab, var(--foreground) 20%, transparent);
+  }
+
+  [data-theme='light'] {
+    --background: #faf9f6;
+    --foreground: #121212;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    margin: 0;
+    padding: 0 0 1.5rem;
+  }
+
+  a,
+  a:visited {
+    color: inherit;
+  }
+
+  .profile-input-wrap {
+    position: relative;
+  }
+
+  .profile-input-wrap::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: color-mix(in oklab, var(--foreground) 46%, transparent);
+    opacity: 1;
+    transition: opacity 180ms ease;
+  }
+
+  .profile-input-wrap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      #ff75c3 0%,
+      #ffa647 20%,
+      #ffe83f 40%,
+      #9fff5b 60%,
+      #70e2ff 80%,
+      #cd93ff 100%
+    );
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 220ms ease;
+  }
+
+  .profile-input-wrap:focus-within::before {
+    opacity: 0;
+  }
+
+  .profile-input-wrap:focus-within::after {
+    transform: scaleX(1);
+  }
+
+  .profile-input {
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--foreground);
+    padding: 0.625rem 0 0.65rem;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    outline: none;
+  }
+
+  .profile-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .profile-input:is(select) {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .profile-input:is(select) option {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .profile-textarea {
+    resize: vertical;
+    min-height: 5.75rem;
+  }
+
+  .profile-input-wrap[data-error='true']::before,
+  .profile-input-wrap[data-error='true']::after {
+    background: var(--danger-text);
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .profile-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
