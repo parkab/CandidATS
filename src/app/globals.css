@@ -101,6 +101,16 @@
     color: var(--text-muted);
   }
 
+  .profile-input:is(select) {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .profile-input:is(select) option {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
   .profile-textarea {
     resize: vertical;
     min-height: 5.75rem;

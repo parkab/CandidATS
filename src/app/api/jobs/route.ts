@@ -60,6 +60,7 @@ export async function POST(request: Request) {
   }
 
   const userId = data.user.id;
+
   const body = (await request.json().catch(() => null)) as CreateJobBody | null;
 
   if (!body || typeof body !== 'object') {
@@ -76,22 +77,13 @@ export async function POST(request: Request) {
   const lastActivityDate = asRequiredDate(body.lastActivityDate);
   const deadline = asOptionalDate(body.deadline);
   const priority = typeof body.priority === 'boolean' ? body.priority : null;
-  const jobDescription = asRequiredString(body.jobDescription);
+  const jobDescription = asOptionalString(body.jobDescription);
   const compensation = asOptionalString(body.compensation);
-  const applicationDate = asRequiredDate(body.applicationDate);
+  const applicationDate = asOptionalDate(body.applicationDate);
   const recruiterNotes = asOptionalString(body.recruiterNotes);
-  const otherNotes = asRequiredString(body.otherNotes);
+  const otherNotes = asOptionalString(body.otherNotes);
 
-  if (
-    !title ||
-    !company ||
-    !location ||
-    !stage ||
-    !lastActivityDate ||
-    !jobDescription ||
-    !applicationDate ||
-    !otherNotes
-  ) {
+  if (!title || !company || !location || !stage || !lastActivityDate) {
     return NextResponse.json(
       { error: 'Missing one or more required fields' },
       { status: 400 },

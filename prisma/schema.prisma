@@ -40,11 +40,11 @@ model Job {
   last_activity_date      DateTime               @db.Date
   deadline                DateTime?              @db.Date
   priority_flag           Boolean?
-  job_description         String
+  job_description         String?
   compensation_notes      String?
-  application_date        DateTime               @db.Date
+  application_date        DateTime?              @db.Date
   recruiter_contact_notes String?
-  custom_notes            String
+  custom_notes            String?
   created_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   FollowUpTask            FollowUpTask[]

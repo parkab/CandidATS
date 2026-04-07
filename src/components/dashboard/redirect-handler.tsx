@@ -19,7 +19,7 @@ export default function RedirectHandler() {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       const next = url.searchParams.get('next');
-      
+
       // URLSearchParams.get() already returns a decoded string
       // Validate the path before redirecting
       if (next && next !== '/dashboard' && isValidInternalPath(next)) {

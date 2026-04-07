@@ -52,6 +52,7 @@ export async function PATCH(
   }
 
   const sessionUserId = data.user.id;
+
   const { id } = await context.params;
   const jobId = asRequiredString(id);
 
@@ -75,22 +76,13 @@ export async function PATCH(
   const lastActivityDate = asRequiredDate(body.lastActivityDate);
   const deadline = asOptionalDate(body.deadline);
   const priority = typeof body.priority === 'boolean' ? body.priority : null;
-  const jobDescription = asRequiredString(body.jobDescription);
+  const jobDescription = asOptionalString(body.jobDescription);
   const compensation = asOptionalString(body.compensation);
-  const applicationDate = asRequiredDate(body.applicationDate);
+  const applicationDate = asOptionalDate(body.applicationDate);
   const recruiterNotes = asOptionalString(body.recruiterNotes);
-  const otherNotes = asRequiredString(body.otherNotes);
+  const otherNotes = asOptionalString(body.otherNotes);
 
-  if (
-    !title ||
-    !company ||
-    !location ||
-    !stage ||
-    !lastActivityDate ||
-    !jobDescription ||
-    !applicationDate ||
-    !otherNotes
-  ) {
+  if (!title || !company || !location || !stage || !lastActivityDate) {
     return NextResponse.json(
       { error: 'Missing one or more required fields' },
       { status: 400 },
@@ -154,6 +146,7 @@ export async function PATCH(
     return NextResponse.json(updatedJob, { status: 200 });
   } catch (error) {
     console.error('Failed to update job', error);
+
     return NextResponse.json(
       {
         error:

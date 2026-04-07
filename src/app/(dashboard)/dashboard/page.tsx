@@ -1,6 +1,5 @@
 import GRADIENT_HEADING_CLASS from '@/components/dashboard/gradient';
-import PolaroidAddCard from '@/components/dashboard/polaroid-add-card';
-import PolaroidCard from '@/components/dashboard/polaroid-card';
+import JobsModalGrid from '@/components/dashboard/jobs-modal-grid';
 import PolaroidLandingCard from '@/components/dashboard/polaroid-landing-card';
 import { getSession } from '@/lib/auth/session';
 import type { ApplicationStatus } from '@/lib/jobs/status';
@@ -17,6 +16,13 @@ type DashboardJob = {
   location: string;
   pipeline_stage: string;
   last_activity_date: Date;
+  deadline: Date | null;
+  priority_flag: boolean | null;
+  job_description: string | null;
+  compensation_notes: string | null;
+  application_date: Date | null;
+  recruiter_contact_notes: string | null;
+  custom_notes: string | null;
 };
 
 function toApplicationStatus(stage: string): ApplicationStatus {
@@ -124,6 +130,13 @@ export default async function Dashboard() {
       location: true,
       pipeline_stage: true,
       last_activity_date: true,
+      deadline: true,
+      priority_flag: true,
+      job_description: true,
+      compensation_notes: true,
+      application_date: true,
+      recruiter_contact_notes: true,
+      custom_notes: true,
     },
     where: {
       user_id: session.userId,
@@ -133,36 +146,40 @@ export default async function Dashboard() {
     },
   });
 
+  const jobsForModal = jobs.map((job: DashboardJob) => ({
+    id: job.id,
+    company: job.company_name,
+    title: job.title,
+    location: job.location,
+    status: toApplicationStatus(job.pipeline_stage),
+    lastActivityDateLabel: formatDate(job.last_activity_date),
+    angle: getStableAngle(job.id),
+    formData: {
+      id: job.id,
+      title: job.title,
+      company: job.company_name,
+      location: job.location,
+      stage: job.pipeline_stage,
+      lastActivityDate: job.last_activity_date.toISOString(),
+      deadline: job.deadline ? job.deadline.toISOString() : null,
+      priority: job.priority_flag,
+      jobDescription: job.job_description,
+      compensation: job.compensation_notes,
+      applicationDate: job.application_date
+        ? job.application_date.toISOString()
+        : null,
+      recruiterNotes: job.recruiter_contact_notes,
+      otherNotes: job.custom_notes,
+    },
+  }));
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
         <h1 className={GRADIENT_HEADING_CLASS}>Dashboard</h1>
       </div>
 
-      <div className="mx-auto mt-12 grid max-w-6xl gap-8 grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">
-        <Link
-          href="/jobs/create"
-          className="block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
-        >
-          <PolaroidAddCard />
-        </Link>
-        {jobs.map((job: DashboardJob) => (
-          <Link
-            key={job.id}
-            href={{ pathname: '/jobs/edit', query: { id: job.id } }}
-            className="block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
-          >
-            <PolaroidCard
-              company={job.company_name}
-              location={job.location}
-              position={job.title}
-              lastActivityDate={formatDate(job.last_activity_date)}
-              status={toApplicationStatus(job.pipeline_stage)}
-              angle={getStableAngle(job.id)}
-            />
-          </Link>
-        ))}
-      </div>
+      <JobsModalGrid jobs={jobsForModal} />
     </section>
   );
 }
