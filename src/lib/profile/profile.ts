@@ -98,7 +98,7 @@ export function calculateProfileBaselineCompletion(
     return count + (hasText(input[field]) ? 1 : 0);
   }, 0);
 
-  const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+  const percentage = Math.round((completed / total) * 100);
 
   return {
     total,
