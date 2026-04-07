@@ -3,6 +3,7 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { calculateProfileBaselineCompletion } from '@/lib/profile/profile';
 
 type ProfilePanelProps = {
   initialProfile: {
@@ -200,6 +201,19 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
     return combined.length > 0 ? combined : 'Your profile';
   }, [profile.firstName, profile.lastName]);
 
+  const baselineCompletion = useMemo(
+    () => calculateProfileBaselineCompletion(profile),
+    [
+      profile.bio,
+      profile.firstName,
+      profile.headline,
+      profile.lastName,
+      profile.linkedIn,
+      profile.location,
+      profile.phone,
+    ],
+  );
+
   const displayedDetails = useMemo(
     () => ({
       phone: profile.phone,
@@ -350,6 +364,34 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
             <p className="mt-1 text-sm font-medium text-black">
               {profile.email}
             </p>
+
+            <div className="mt-4 grid gap-1.5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-black/80">
+                  Baseline completion
+                </p>
+                <p className="text-sm font-semibold text-black">
+                  {baselineCompletion.percentage}% complete
+                </p>
+              </div>
+              <div
+                role="progressbar"
+                aria-label="Baseline profile completion"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={baselineCompletion.percentage}
+                className="h-2 overflow-hidden rounded-full bg-black/20"
+              >
+                <div
+                  className="h-full rounded-full bg-black transition-[width] duration-500"
+                  style={{ width: `${baselineCompletion.percentage}%` }}
+                />
+              </div>
+              <p className="text-xs font-medium text-black/85">
+                {baselineCompletion.completed} of {baselineCompletion.total}{' '}
+                baseline fields complete
+              </p>
+            </div>
           </div>
 
           <button
