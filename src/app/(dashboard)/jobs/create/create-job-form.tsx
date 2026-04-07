@@ -27,6 +27,11 @@ const REQUIRED_FIELD_NAMES = [
 type RequiredFieldName = (typeof REQUIRED_FIELD_NAMES)[number];
 
 const REQUIRED_FIELD_MESSAGE = 'This field is required.';
+const STAGE_COLOR_MIX_RATIO = 75;
+
+function getMixedStageColor(stage: ApplicationStatus) {
+  return `color-mix(in oklab, ${APPLICATION_STATUS_COLOR[stage]} ${STAGE_COLOR_MIX_RATIO}%, var(--foreground))`;
+}
 
 type CreateJobFormProps = {
   inModal?: boolean;
@@ -271,13 +276,13 @@ export default function CreateJobForm({
                 setSelectedStage(event.target.value as ApplicationStatus);
                 clearFieldError('stage');
               }}
-              style={{ color: APPLICATION_STATUS_COLOR[selectedStage] }}
+              style={{ color: getMixedStageColor(selectedStage) }}
             >
               {STAGE_OPTIONS.map((stage) => (
                 <option
                   key={stage}
                   value={stage}
-                  style={{ color: APPLICATION_STATUS_COLOR[stage] }}
+                  style={{ color: getMixedStageColor(stage) }}
                 >
                   {stage}
                 </option>

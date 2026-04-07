@@ -26,7 +26,7 @@ export default function Settings() {
           Accessibility
         </h2>
 
-        <div className="rounded-2xl border border-(--surface-border) bg-(--surface) px-5 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.25)] backdrop-blur">
+        <div className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) px-5 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.25)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-base font-semibold text-(--foreground)">
@@ -48,13 +48,18 @@ export default function Settings() {
               <span className="pointer-events-none absolute left-1 h-5 w-5 rounded-full border border-(--action-border) bg-(--background) shadow transition-transform duration-200 peer-checked:translate-x-5" />
             </label>
           </div>
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
+          />
         </div>
 
         <h2 className="mb-3 mt-10 text-left text-xl font-semibold text-(--foreground)">
           Account Settings
         </h2>
 
-        <div className="rounded-2xl border border-(--surface-border) bg-(--surface) px-5 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.25)] backdrop-blur">
+        <div className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) px-5 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.25)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-base font-semibold text-(--foreground)">
@@ -86,6 +91,11 @@ export default function Settings() {
               Delete
             </button>
           </div>
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
+          />
         </div>
       </div>
     </section>
