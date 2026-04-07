@@ -178,4 +178,67 @@ describe('PATCH /api/jobs/[id]', () => {
     });
     expect(mockedFindFirst).not.toHaveBeenCalled();
   });
+
+  it('stores nullable optional fields as null when omitted', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValue({
+      id: 'job-1',
+      user_id: 'session-user-id',
+    } as never);
+
+    const response = await PATCH(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Applied',
+        lastActivityDate: '2026-04-01',
+        deadline: '',
+        priority: false,
+      }),
+      { params: Promise.resolve({ id: 'job-1' }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'job-1',
+        user_id: 'session-user-id',
+      },
+      data: expect.objectContaining({
+        job_description: null,
+        application_date: null,
+        custom_notes: null,
+      }),
+    });
+  });
+
+  it('returns 400 for invalid deadline date', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    const response = await PATCH(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Applied',
+        lastActivityDate: '2026-04-01',
+        deadline: 'not-a-date',
+        priority: false,
+      }),
+      { params: Promise.resolve({ id: 'job-1' }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Invalid deadline date' });
+    expect(mockedUpdateMany).not.toHaveBeenCalled();
+  });
 });

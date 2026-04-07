@@ -30,24 +30,16 @@ jest.mock('next/link', () => ({
   ),
 }));
 
-jest.mock('@/components/dashboard/polaroid-add-card', () => ({
-  __esModule: true,
-  default: () => <div>Mock Add Card</div>,
-}));
-
-jest.mock('@/components/dashboard/polaroid-card', () => ({
+jest.mock('@/components/dashboard/jobs-modal-grid', () => ({
   __esModule: true,
   default: ({
-    company,
-    status,
-    angle,
+    jobs,
   }: {
-    company: string;
-    status: string;
-    angle: number;
+    jobs: Array<{ company: string; status: string; angle: number }>;
   }) => (
     <div>
-      Mock Job Card: {company} | status: {status} | angle: {angle}
+      Mock Jobs Modal Grid: {jobs.length} jobs | first company:{' '}
+      {jobs[0]?.company} | first angle: {jobs[0]?.angle}
     </div>
   ),
 }));
@@ -87,18 +79,25 @@ describe('Dashboard page', () => {
         title: 'Software Engineer',
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: 'Applied',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
       },
     ]);
 
     render(await Dashboard());
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Mock Add Card')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Mock Job Card:\s*Stripe\s*\|\s*status:\s*Applied\s*\|\s*angle:\s*-?\d+/,
+        /Mock Jobs Modal Grid: 1 jobs \| first company: Stripe \| first angle: -?\d+/,
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Mock Job Card:/)).not.toBeInTheDocument();
     expect(screen.queryByText('Sign up now!')).not.toBeInTheDocument();
     expect(prisma.job.findMany).toHaveBeenCalledWith({
       select: {
@@ -108,6 +107,13 @@ describe('Dashboard page', () => {
         location: true,
         pipeline_stage: true,
         last_activity_date: true,
+        deadline: true,
+        priority_flag: true,
+        job_description: true,
+        compensation_notes: true,
+        application_date: true,
+        recruiter_contact_notes: true,
+        custom_notes: true,
       },
       where: {
         user_id: 'user-123',
@@ -131,6 +137,13 @@ describe('Dashboard page', () => {
         title: 'Frontend Engineer',
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: ' interviewing ',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
       },
       {
         id: 'job-offered',
@@ -139,6 +152,13 @@ describe('Dashboard page', () => {
         title: 'Backend Engineer',
         last_activity_date: new Date('2026-03-29T00:00:00.000Z'),
         pipeline_stage: 'offered',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
       },
       {
         id: 'job-archive',
@@ -147,6 +167,13 @@ describe('Dashboard page', () => {
         title: 'Fullstack Engineer',
         last_activity_date: new Date('2026-03-28T00:00:00.000Z'),
         pipeline_stage: 'archive',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
       },
       {
         id: 'job-unknown',
@@ -155,30 +182,22 @@ describe('Dashboard page', () => {
         title: 'QA Engineer',
         last_activity_date: new Date('2026-03-27T00:00:00.000Z'),
         pipeline_stage: 'mystery-stage',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
       },
     ]);
 
     render(await Dashboard());
 
     expect(
-      screen.getByText('Mock Job Card: Interview Co | status: Interview', {
-        exact: false,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Mock Job Card: Offer Co | status: Offer', {
-        exact: false,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Mock Job Card: Archive Co | status: Archived', {
-        exact: false,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Mock Job Card: Unknown Co | status: Interested', {
-        exact: false,
-      }),
+      screen.getByText(
+        /Mock Jobs Modal Grid: 4 jobs \| first company: Interview Co \| first angle: -?\d+/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -195,25 +214,29 @@ describe('Dashboard page', () => {
         title: 'Platform Engineer',
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: 'Applied',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
       },
     ]);
 
-    const getAngleFromCard = () => {
-      const text = screen.getByText('Mock Job Card: Stable Co', {
-        exact: false,
-      }).textContent;
-      const matched = text?.match(/angle:\s*(-?\d+)/);
-
-      return matched?.[1];
-    };
-
     render(await Dashboard());
-    const firstAngle = getAngleFromCard();
+    const firstText = screen.getByText(
+      /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
+    ).textContent;
+    const firstAngle = firstText?.match(/first angle:\s*(-?\d+)/)?.[1];
 
     cleanup();
 
     render(await Dashboard());
-    const secondAngle = getAngleFromCard();
+    const secondText = screen.getByText(
+      /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
+    ).textContent;
+    const secondAngle = secondText?.match(/first angle:\s*(-?\d+)/)?.[1];
 
     expect(firstAngle).toBeDefined();
     expect(secondAngle).toBeDefined();

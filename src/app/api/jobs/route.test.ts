@@ -37,6 +37,18 @@ describe('POST /api/jobs', () => {
     jest.clearAllMocks();
   });
 
+  it('returns 503 when auth service throws', async () => {
+    mockedGetSupabaseUserFromRequest.mockRejectedValue(new Error('boom'));
+
+    const response = await POST(buildRequest({}));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: 'Authentication service unavailable',
+    });
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when the session is missing', async () => {
     mockedGetSupabaseUserFromRequest.mockResolvedValue({
       data: null,
@@ -158,6 +170,62 @@ describe('POST /api/jobs', () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: 'Invalid stage value' });
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it('stores nullable optional fields as null when omitted', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    mockedCreate.mockResolvedValue({
+      id: 'job-2',
+      user_id: 'session-user-id',
+    } as never);
+
+    const response = await POST(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Applied',
+        lastActivityDate: '2026-04-01',
+        deadline: '',
+        priority: false,
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockedCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        job_description: null,
+        application_date: null,
+        custom_notes: null,
+      }),
+    });
+  });
+
+  it('returns 400 for invalid deadline date', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    const response = await POST(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Applied',
+        lastActivityDate: '2026-04-01',
+        deadline: 'not-a-date',
+        priority: false,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Invalid deadline date' });
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 });
