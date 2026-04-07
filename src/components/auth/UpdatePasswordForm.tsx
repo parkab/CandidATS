@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 
 type UpdatePasswordFormState = {
   password: string;
@@ -179,7 +178,9 @@ export default function UpdatePasswordForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <h1 className={GRADIENT_SUBHEADING_CLASS}>Set your new password</h1>
+        <h1 className="text-3xl font-bold text-(--foreground)">
+          Set your new password
+        </h1>
         <p className="mt-2 text-sm text-(--muted-foreground)">
           Enter a new password for your CandidATS account
         </p>
@@ -195,27 +196,26 @@ export default function UpdatePasswordForm() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-semibold text-(--foreground)"
+            className="block text-sm font-medium text-(--foreground)"
           >
             Password
           </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(errors.password)}
-          >
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              disabled={isFormSubmitting}
-              className="profile-input"
-              placeholder="••••••••"
-            />
-          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            value={form.password}
+            onChange={handleChange}
+            disabled={isFormSubmitting}
+            className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
+              errors.password
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-(--surface-border) focus:ring-(--accent)'
+            }`}
+            placeholder="••••••••"
+          />
           {errors.password && (
-            <p className="mt-1 text-xs text-(--danger-text)">{errors.password}</p>
+            <p className="mt-1 text-xs text-red-500">{errors.password}</p>
           )}
           <p className="mt-1 text-xs text-(--muted-foreground)">
             Must be at least 8 characters
@@ -225,27 +225,26 @@ export default function UpdatePasswordForm() {
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-semibold text-(--foreground)"
+            className="block text-sm font-medium text-(--foreground)"
           >
             Confirm password
           </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(errors.confirmPassword)}
-          >
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              disabled={isFormSubmitting}
-              className="profile-input"
-              placeholder="••••••••"
-            />
-          </div>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            disabled={isFormSubmitting}
+            className={`mt-1 block w-full rounded-md border px-3 py-2 text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:ring-2 ${
+              errors.confirmPassword
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-(--surface-border) focus:ring-(--accent)'
+            }`}
+            placeholder="••••••••"
+          />
           {errors.confirmPassword && (
-            <p className="mt-1 text-xs text-(--danger-text)">
+            <p className="mt-1 text-xs text-red-500">
               {errors.confirmPassword}
             </p>
           )}

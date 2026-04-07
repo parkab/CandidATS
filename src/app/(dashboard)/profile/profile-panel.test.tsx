@@ -37,9 +37,7 @@ describe('ProfilePanel', () => {
     render(<ProfilePanel initialProfile={initialProfile} />);
 
     expect(screen.getByText('29% complete')).toBeInTheDocument();
-    expect(
-      screen.getByText('2 of 7 baseline fields complete'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('2 of 7 baseline fields complete')).toBeInTheDocument();
 
     const progress = screen.getByRole('progressbar', {
       name: 'Baseline profile completion',
@@ -84,13 +82,9 @@ describe('ProfilePanel', () => {
       expect(screen.getByText('57% complete')).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText('4 of 7 baseline fields complete'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('4 of 7 baseline fields complete')).toBeInTheDocument();
     expect(mockRefresh).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profile',
-      expect.objectContaining({ method: 'PATCH' }),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile',
+      expect.objectContaining({ method: 'PATCH' }));
   });
 });

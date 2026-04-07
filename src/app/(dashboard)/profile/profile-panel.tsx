@@ -3,7 +3,6 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import { calculateProfileBaselineCompletion } from '@/lib/profile/profile';
 
 type ProfilePanelProps = {
@@ -34,7 +33,6 @@ type EditableFormState = {
 type FormErrors = {
   firstName?: string;
   lastName?: string;
-  linkedIn?: string;
   submit?: string;
 };
 
@@ -62,28 +60,6 @@ function validatePrimaryFields(form: EditableFormState): FormErrors {
 
   if (!form.lastName.trim()) {
     errors.lastName = 'Last name is required.';
-  }
-
-  const linkedInValue = form.linkedIn.trim();
-  if (linkedInValue) {
-    const normalizedLinkedIn = /^https?:\/\//i.test(linkedInValue)
-      ? linkedInValue
-      : `https://${linkedInValue}`;
-
-    try {
-      const parsed = new URL(normalizedLinkedIn);
-      const host = parsed.hostname.toLowerCase();
-      const isLinkedInHost =
-        host === 'linkedin.com' ||
-        host === 'www.linkedin.com' ||
-        host.endsWith('.linkedin.com');
-
-      if (!['http:', 'https:'].includes(parsed.protocol) || !isLinkedInHost) {
-        errors.linkedIn = 'Please enter a valid LinkedIn URL (linkedin.com).';
-      }
-    } catch {
-      errors.linkedIn = 'Please enter a valid LinkedIn URL (linkedin.com).';
-    }
   }
 
   return errors;
@@ -170,7 +146,7 @@ type DetailRowProps = {
 
 function DetailRow({ label, value, subdued }: DetailRowProps) {
   return (
-    <div className="-mx-1 grid gap-1 rounded-md border-b border-(--surface-divider) px-1 py-3 transition-colors duration-150 last:border-b-0 hover:bg-(--action-bg) md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
+    <div className="grid gap-1 border-b border-(--surface-divider) py-3 last:border-b-0 md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
       <p className="text-sm font-medium text-(--foreground)">{label}</p>
       <p
         className={
@@ -379,22 +355,22 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
 
   return (
     <div className="mx-auto mt-10 grid w-full max-w-4xl gap-6">
-      <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
+      <article className="rounded-2xl border border-black/15 bg-[linear-gradient(to_right,rgba(255,117,195,0.62)_0%,rgba(255,166,71,0.62)_20%,rgba(255,232,63,0.62)_40%,rgba(159,255,91,0.62)_60%,rgba(112,226,255,0.62)_80%,rgba(205,147,255,0.62)_100%)] p-6 shadow-sm">
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-(--foreground)">
+            <h2 className="text-2xl font-semibold tracking-tight text-black">
               {fullName}
             </h2>
-            <p className="mt-1 text-sm font-medium text-(--foreground)">
+            <p className="mt-1 text-sm font-medium text-black">
               {profile.email}
             </p>
 
             <div className="mt-4 grid gap-1.5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-(--foreground)">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-black/80">
                   Baseline completion
                 </p>
-                <p className="text-sm font-semibold text-(--foreground)">
+                <p className="text-sm font-semibold text-black">
                   {baselineCompletion.percentage}% complete
                 </p>
               </div>
@@ -404,14 +380,14 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={baselineCompletion.percentage}
-                className="h-2 overflow-hidden rounded-full bg-(--action-bg)"
+                className="h-2 overflow-hidden rounded-full bg-black/20"
               >
                 <div
-                  className="h-full rounded-full bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] transition-[width] duration-500"
+                  className="h-full rounded-full bg-black transition-[width] duration-500"
                   style={{ width: `${baselineCompletion.percentage}%` }}
                 />
               </div>
-              <p className="text-xs font-medium text-(--text-muted)">
+              <p className="text-xs font-medium text-black/85">
                 {baselineCompletion.completed} of {baselineCompletion.total}{' '}
                 baseline fields complete
               </p>
@@ -421,19 +397,14 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           <button
             type="button"
             onClick={onStartEditing}
-            className="rounded-md border border-(--foreground) bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover)"
+            className="rounded-md border border-black/25 bg-white/80 px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-white"
           >
             Edit profile
           </button>
         </div>
-
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
-        />
       </article>
 
-      <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
+      <article className="rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-lg font-semibold text-(--foreground)">
             Professional Details
@@ -467,11 +438,6 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
             subdued
           />
         </div>
-
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
-        />
       </article>
 
       {isEditing ? (
@@ -486,11 +452,13 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-2xl border border-(--surface-border) bg-(--background) shadow-2xl">
             <form
               onSubmit={handleSubmit}
-              className="grid max-h-[88vh] gap-6 overflow-y-auto px-6 pb-6 pt-0"
+              className="grid max-h-[88vh] gap-6 overflow-y-auto p-6"
             >
-              <div className="sticky top-0 z-10 -mx-6 flex flex-wrap items-center justify-between gap-3 border-b border-(--surface-divider) bg-(--background) px-6 pb-4 pt-6">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-(--surface-divider) pb-4">
                 <div className="text-left">
-                  <h3 className={GRADIENT_SUBHEADING_CLASS}>Edit Profile</h3>
+                  <h3 className="text-xl font-semibold text-(--foreground)">
+                    Edit Profile
+                  </h3>
                 </div>
 
                 <button
@@ -578,7 +546,6 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
                   name="linkedIn"
                   value={form.linkedIn}
                   onChange={onFieldChange}
-                  error={errors.linkedIn}
                   placeholder="https://www.linkedin.com/in/your-handle"
                   disabled={isSaving}
                 />
@@ -607,6 +574,15 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
               </section>
 
               <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={isSaving}
+                  className="rounded-md border border-(--action-border) px-4 py-2.5 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Cancel
+                </button>
+
                 <button
                   type="submit"
                   disabled={isSaving}
