@@ -77,15 +77,19 @@ model TimelineEvent {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model User {
-  id             String    @id
-  email          String    @unique
-  hashedPassword String
-  firstName      String?
-  lastName       String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  Job            Job[]
-  Profile        Profile?
+  id                String             @id
+  email             String             @unique
+  hashedPassword    String
+  firstName         String?
+  lastName          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  Job               Job[]
+  Profile           Profile?
+  Experience        Experience[]
+  Skill             Skill[]
+  Education         Education[]
+  CareerPreferences CareerPreferences?
 }
 
 model Profile {
@@ -99,6 +103,62 @@ model Profile {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Experience {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String
+  type            String
+  title           String
+  organization    String
+  role            String?
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  description     String?
+  accomplishments String?
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String
+  name             String
+  category         String?
+  proficiencyLabel String?  @map("proficiency_label")
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String
+  institution  String
+  degree       String
+  fieldOfStudy String    @map("field_of_study")
+  startDate    DateTime  @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  honors       String?
+  gpa          String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CareerPreferences {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @unique
+  targetRoles      String?  @map("target_roles")
+  targetLocations  String?  @map("target_locations")
+  workMode         String?  @map("work_mode")
+  salaryPreference String?  @map("salary_preference")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum job_activity_type {
