@@ -10,6 +10,13 @@ export type ParsedCareerPreferencesPayload = {
   salaryPreference: string | null;
 };
 
+export type ParsedCareerPreferencesUpdatePayload = {
+  targetRoles?: string | null;
+  targetLocations?: string | null;
+  workMode?: WorkMode | null;
+  salaryPreference?: string | null;
+};
+
 function asRecord(value: unknown): RawBody | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -65,4 +72,42 @@ export function parseCareerPreferencesPayload(rawBody: unknown): {
       salaryPreference: asOptionalText(body.salaryPreference),
     },
   };
+}
+
+export function parseCareerPreferencesUpdatePayload(rawBody: unknown): {
+  payload?: ParsedCareerPreferencesUpdatePayload;
+  error?: string;
+} {
+  const body = asRecord(rawBody);
+  if (!body) return { error: 'Invalid request body' };
+
+  const result: ParsedCareerPreferencesUpdatePayload = {};
+
+  if (body.targetRoles !== undefined) {
+    result.targetRoles = asOptionalText(body.targetRoles);
+  }
+
+  if (body.targetLocations !== undefined) {
+    result.targetLocations = asOptionalText(body.targetLocations);
+  }
+
+  if (body.workMode !== undefined) {
+    if (body.workMode === null || body.workMode === '') {
+      result.workMode = null;
+    } else {
+      const workMode = asWorkMode(body.workMode);
+      if (!workMode) return { error: 'workMode must be "Remote", "Hybrid", or "On-site"' };
+      result.workMode = workMode;
+    }
+  }
+
+  if (body.salaryPreference !== undefined) {
+    result.salaryPreference = asOptionalText(body.salaryPreference);
+  }
+
+  if (Object.keys(result).length === 0) {
+    return { error: 'No updatable fields provided' };
+  }
+
+  return { payload: result };
 }

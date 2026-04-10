@@ -156,6 +156,10 @@ export function parseExperienceUpdatePayload(rawBody: unknown): {
     }
   }
 
+  if (result.startDate && result.endDate && result.endDate < result.startDate) {
+    return { error: 'endDate must not be before startDate' };
+  }
+
   if (body.description !== undefined) {
     result.description = asOptionalText(body.description);
   }
@@ -165,7 +169,14 @@ export function parseExperienceUpdatePayload(rawBody: unknown): {
   }
 
   if (body.sortOrder !== undefined) {
-    result.sortOrder = asSortOrder(body.sortOrder);
+    if (
+      typeof body.sortOrder !== 'number' ||
+      !Number.isInteger(body.sortOrder) ||
+      body.sortOrder < 0
+    ) {
+      return { error: 'sortOrder must be a non-negative integer' };
+    }
+    result.sortOrder = body.sortOrder;
   }
 
   if (Object.keys(result).length === 0) {

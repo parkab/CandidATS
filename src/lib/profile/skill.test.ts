@@ -14,9 +14,11 @@ describe('parseSkillCreatePayload', () => {
 });
 
 describe('parseSkillUpdatePayload', () => {
-  it('rejects an empty update and invalid field values', () => {
+  it('rejects an empty update, invalid name, and invalid sortOrder', () => {
     expect(parseSkillUpdatePayload({})).toEqual({ error: 'No updatable fields provided' });
     expect(parseSkillUpdatePayload({ name: '' })).toEqual({ error: 'name must not be empty' });
+    expect(parseSkillUpdatePayload({ sortOrder: -1 })).toEqual({ error: 'sortOrder must be a non-negative integer' });
+    expect(parseSkillUpdatePayload({ sortOrder: 1.5 })).toEqual({ error: 'sortOrder must be a non-negative integer' });
   });
 
   it('parses a partial update and only includes provided fields', () => {

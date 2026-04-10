@@ -129,6 +129,10 @@ export function parseEducationUpdatePayload(rawBody: unknown): {
     }
   }
 
+  if (result.startDate && result.endDate && result.endDate < result.startDate) {
+    return { error: 'endDate must not be before startDate' };
+  }
+
   if (body.honors !== undefined) {
     result.honors = asOptionalText(body.honors);
   }

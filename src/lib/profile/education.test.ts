@@ -36,9 +36,12 @@ describe('parseEducationCreatePayload', () => {
 });
 
 describe('parseEducationUpdatePayload', () => {
-  it('rejects an empty update and invalid field values', () => {
+  it('rejects an empty update, invalid field values, and out-of-order dates when both are provided', () => {
     expect(parseEducationUpdatePayload({})).toEqual({ error: 'No updatable fields provided' });
     expect(parseEducationUpdatePayload({ institution: '' })).toEqual({ error: 'institution must not be empty' });
+    expect(parseEducationUpdatePayload({ startDate: '2022-01-01', endDate: '2021-01-01' })).toEqual({
+      error: 'endDate must not be before startDate',
+    });
   });
 
   it('parses a partial update and only includes provided fields', () => {

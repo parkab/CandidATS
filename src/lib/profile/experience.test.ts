@@ -41,9 +41,13 @@ describe('parseExperienceCreatePayload', () => {
 });
 
 describe('parseExperienceUpdatePayload', () => {
-  it('rejects an empty update and invalid field values', () => {
+  it('rejects an empty update, invalid field values, and out-of-order dates when both are provided', () => {
     expect(parseExperienceUpdatePayload({})).toEqual({ error: 'No updatable fields provided' });
     expect(parseExperienceUpdatePayload({ title: '' })).toEqual({ error: 'title must not be empty' });
+    expect(parseExperienceUpdatePayload({ sortOrder: -1 })).toEqual({ error: 'sortOrder must be a non-negative integer' });
+    expect(parseExperienceUpdatePayload({ startDate: '2023-06-01', endDate: '2023-01-01' })).toEqual({
+      error: 'endDate must not be before startDate',
+    });
   });
 
   it('parses a partial update and only includes provided fields', () => {
