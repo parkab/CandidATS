@@ -12,8 +12,8 @@ import type { ApplicationStatus } from '@/lib/jobs/status';
 import PolaroidAddCard from '@/components/dashboard/polaroid-add-card';
 import PolaroidCard from '@/components/dashboard/polaroid-card';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
-import CreateJobForm from '../../app/(dashboard)/jobs/create/create-job-form';
-import EditJobForm from '../../app/(dashboard)/jobs/edit/edit-job-form';
+import CreateJobForm from '@/app/(dashboard)/jobs/create/create-job-form';
+import EditJobForm from '@/app/(dashboard)/jobs/edit/edit-job-form';
 
 type DashboardJobForModal = {
   id: string;

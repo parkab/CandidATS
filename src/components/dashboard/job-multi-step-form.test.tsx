@@ -27,6 +27,12 @@ const EMPTY_REQUIRED_OVERVIEW: JobOverviewDraft = {
 };
 
 describe('JobMultiStepForm', () => {
+  const revokeObjectURL = URL.revokeObjectURL;
+
+  afterEach(() => {
+    URL.revokeObjectURL = revokeObjectURL;
+  });
+
   it('shows required field errors and blocks Next when overview is incomplete', async () => {
     const onStepSave = jest.fn();
     const onFinalSave = jest.fn();
@@ -135,5 +141,79 @@ describe('JobMultiStepForm', () => {
     expect(
       screen.getByRole('heading', { level: 3, name: 'Overview' }),
     ).toBeInTheDocument();
+  });
+
+  it('surfaces onStepSave server error message', async () => {
+    const onStepSave = jest
+      .fn()
+      .mockRejectedValue(new Error('Step save failed from server'));
+
+    render(
+      <JobMultiStepForm
+        initialOverview={VALID_OVERVIEW}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        onStepSave={onStepSave}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(
+      await screen.findByText('Step save failed from server'),
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces onFinalSave server error message', async () => {
+    const onFinalSave = jest
+      .fn()
+      .mockRejectedValue(new Error('Final save failed from server'));
+
+    render(
+      <JobMultiStepForm
+        initialOverview={VALID_OVERVIEW}
+        onCancel={() => undefined}
+        onFinalSave={onFinalSave}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(
+      await screen.findByText('Final save failed from server'),
+    ).toBeInTheDocument();
+  });
+
+  it('revokes remaining document object URLs on unmount', () => {
+    const revokeSpy = jest.fn();
+    URL.revokeObjectURL = revokeSpy;
+
+    const { unmount } = render(
+      <JobMultiStepForm
+        initialOverview={VALID_OVERVIEW}
+        initialDraft={{
+          documents: {
+            files: [
+              {
+                id: 'doc-1',
+                title: 'Resume',
+                date: '2026-04-10',
+                notes: '',
+                name: 'resume.pdf',
+                size: 2048,
+                mimeType: 'application/pdf',
+                objectUrl: 'blob:resume-preview',
+              },
+            ],
+          },
+        }}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+      />,
+    );
+
+    unmount();
+
+    expect(revokeSpy).toHaveBeenCalledWith('blob:resume-preview');
   });
 });

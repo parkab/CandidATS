@@ -98,7 +98,7 @@ export default function CreateJobForm({
   return (
     <JobMultiStepForm
       initialOverview={EMPTY_OVERVIEW_DRAFT}
-      submitLabel="Save changes"
+      submitLabel="Create job"
       onCancel={handleCancel}
       onFinalSave={handleFinalSave}
       stickyFooter={inModal}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import JobFormStepper from '@/components/dashboard/job-form-stepper';
 import {
   JOB_FORM_STEPS,
@@ -99,6 +99,7 @@ export default function JobMultiStepForm({
   >({});
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const documentObjectUrlsRef = useRef<string[]>([]);
 
   const activeStepIndex = JOB_FORM_STEPS.findIndex(
     (step) => step.id === activeStep,
@@ -185,8 +186,13 @@ export default function JobMultiStepForm({
       if (nextStep) {
         setActiveStep(nextStep.id);
       }
-    } catch {
-      setError('Unable to save this step right now.');
+    } catch (caughtError) {
+      const fallbackMessage = 'Unable to save this step right now.';
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : fallbackMessage;
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -203,8 +209,13 @@ export default function JobMultiStepForm({
     try {
       setIsSaving(true);
       await onFinalSave(draft);
-    } catch {
-      setError('Unable to save changes right now.');
+    } catch (caughtError) {
+      const fallbackMessage = 'Unable to save changes right now.';
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : fallbackMessage;
+      setError(message);
     } finally {
       setIsSaving(false);
     }
@@ -478,6 +489,21 @@ export default function JobMultiStepForm({
   const sectionTitle = useMemo(() => {
     return JOB_FORM_STEPS.find((step) => step.id === activeStep)?.label;
   }, [activeStep]);
+
+  useEffect(() => {
+    documentObjectUrlsRef.current = draft.documents.files
+      .map((file) => file.objectUrl)
+      .filter((value): value is string => Boolean(value));
+  }, [draft.documents.files]);
+
+  useEffect(() => {
+    return () => {
+      const uniqueObjectUrls = new Set(documentObjectUrlsRef.current);
+      uniqueObjectUrls.forEach((objectUrl) => {
+        URL.revokeObjectURL(objectUrl);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     setComposerOpenByStep({

@@ -20,7 +20,7 @@ describe('CreateJobForm', () => {
   it('shows inline required messages and clears one when field is updated', async () => {
     render(<CreateJobForm />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create job' }));
 
     expect(screen.getAllByText('This field is required.')).toHaveLength(4);
 
@@ -60,7 +60,7 @@ describe('CreateJobForm', () => {
       target: { value: '  Recruiter reached out  ' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create job' }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
