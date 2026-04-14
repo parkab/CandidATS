@@ -154,6 +154,7 @@ export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
               lastActivityDate={job.lastActivityDateLabel}
               status={job.status}
               angle={job.angle}
+              highPriority={Boolean(job.formData.priority)}
             />
           </button>
         ))}
