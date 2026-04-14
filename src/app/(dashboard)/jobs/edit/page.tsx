@@ -43,6 +43,30 @@ export default async function EditJobApplication({
     redirect('/dashboard');
   }
 
+  const timelineEvents = await prisma.timelineEvent.findMany({
+    where: { job_id: jobId },
+    orderBy: { occurred_at: 'desc' },
+  });
+
+  const timelineItems = timelineEvents.map((event) => {
+    let dateString = '';
+    if (event.occurred_at) {
+      // Handle both Date objects and date strings from Prisma
+      const dateObj = typeof event.occurred_at === 'string' 
+        ? new Date(event.occurred_at)
+        : event.occurred_at;
+      if (!Number.isNaN(dateObj.getTime())) {
+        dateString = dateObj.toISOString().split('T')[0];
+      }
+    }
+    return {
+      id: event.id,
+      title: event.event_type || '',
+      date: dateString,
+      notes: event.notes || '',
+    };
+  });
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
@@ -67,6 +91,7 @@ export default async function EditJobApplication({
           recruiterNotes: job.recruiter_contact_notes,
           otherNotes: job.custom_notes,
         }}
+        initialTimeline={timelineItems}
       />
     </section>
   );

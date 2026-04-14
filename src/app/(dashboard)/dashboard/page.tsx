@@ -146,32 +146,75 @@ export default async function Dashboard() {
     },
   });
 
-  const jobsForModal = jobs.map((job: DashboardJob) => ({
-    id: job.id,
-    company: job.company_name,
-    title: job.title,
-    location: job.location,
-    status: toApplicationStatus(job.pipeline_stage),
-    lastActivityDateLabel: formatDate(job.last_activity_date),
-    angle: getStableAngle(job.id),
-    formData: {
-      id: job.id,
-      title: job.title,
-      company: job.company_name,
-      location: job.location,
-      stage: job.pipeline_stage,
-      lastActivityDate: job.last_activity_date.toISOString(),
-      deadline: job.deadline ? job.deadline.toISOString() : null,
-      priority: job.priority_flag,
-      jobDescription: job.job_description,
-      compensation: job.compensation_notes,
-      applicationDate: job.application_date
-        ? job.application_date.toISOString()
-        : null,
-      recruiterNotes: job.recruiter_contact_notes,
-      otherNotes: job.custom_notes,
+  // Fetch timeline events for all jobs
+  const timelineEventsByJobId = await prisma.timelineEvent.findMany({
+    where: {
+      job_id: {
+        in: jobs.map((job) => job.id),
+      },
     },
-  }));
+    orderBy: {
+      occurred_at: 'desc',
+    },
+  }).then((events) => {
+    const grouped: Record<string, typeof events> = {};
+    for (const event of events) {
+      if (!grouped[event.job_id]) {
+        grouped[event.job_id] = [];
+      }
+      grouped[event.job_id].push(event);
+    }
+    return grouped;
+  });
+
+  const jobsForModal = jobs.map((job: DashboardJob) => {
+    const timelineEvents = timelineEventsByJobId[job.id] ?? [];
+    const timeline = timelineEvents.map((event) => {
+      let dateString = '';
+      if (event.occurred_at) {
+        const dateObj = typeof event.occurred_at === 'string'
+          ? new Date(event.occurred_at)
+          : event.occurred_at;
+        if (!Number.isNaN(dateObj.getTime())) {
+          dateString = dateObj.toISOString().split('T')[0];
+        }
+      }
+      return {
+        id: event.id,
+        title: event.event_type || '',
+        date: dateString,
+        notes: event.notes || '',
+      };
+    });
+
+    return {
+      id: job.id,
+      company: job.company_name,
+      title: job.title,
+      location: job.location,
+      status: toApplicationStatus(job.pipeline_stage),
+      lastActivityDateLabel: formatDate(job.last_activity_date),
+      angle: getStableAngle(job.id),
+      timeline,
+      formData: {
+        id: job.id,
+        title: job.title,
+        company: job.company_name,
+        location: job.location,
+        stage: job.pipeline_stage,
+        lastActivityDate: job.last_activity_date.toISOString(),
+        deadline: job.deadline ? job.deadline.toISOString() : null,
+        priority: job.priority_flag,
+        jobDescription: job.job_description,
+        compensation: job.compensation_notes,
+        applicationDate: job.application_date
+          ? job.application_date.toISOString()
+          : null,
+        recruiterNotes: job.recruiter_contact_notes,
+        otherNotes: job.custom_notes,
+      },
+    };
+  });
 
   return (
     <section className="px-6 py-12">

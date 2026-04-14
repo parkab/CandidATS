@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import type {
   JobMultiStepDraft,
   JobOverviewDraft,
+  JobSectionItemDraft,
 } from '@/lib/jobs/multi-step-form';
 import type { ApplicationStatus } from '@/lib/jobs/status';
 
@@ -27,6 +29,7 @@ type EditJobFormProps = {
     recruiterNotes: string | null;
     otherNotes: string | null;
   };
+  initialTimeline?: JobSectionItemDraft[];
 };
 
 const STAGE_OPTIONS: ApplicationStatus[] = [
@@ -88,8 +91,10 @@ export default function EditJobForm({
   onSuccess,
   onCancel,
   initialJob,
+  initialTimeline = [],
 }: EditJobFormProps) {
   const router = useRouter();
+  const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(initialTimeline);
 
   function handleCancel() {
     if (onCancel) {
@@ -145,6 +150,9 @@ export default function EditJobForm({
       throw new Error(responseBody?.error ?? 'Unable to update job right now.');
     }
 
+    // Fetch fresh timeline data from the server
+    await fetchFreshTimeline(jobId);
+
     onSuccess?.();
     if (!inModal) {
       router.push('/dashboard');
@@ -152,9 +160,52 @@ export default function EditJobForm({
     router.refresh();
   }
 
+  async function fetchFreshTimeline(jobId: string) {
+    try {
+      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/timeline`);
+      if (!response.ok) {
+        console.error(`Failed to fetch timeline: ${response.status}`);
+        return;
+      }
+
+      const timelineEvents = await response.json() as Array<{
+        id: string;
+        event_type: string;
+        occurred_at: string | Date;
+        notes: string | null;
+      }>;
+
+      const timelineItems = timelineEvents.map((event) => {
+        let dateString = '';
+        if (event.occurred_at) {
+          const dateObj = typeof event.occurred_at === 'string' 
+            ? new Date(event.occurred_at)
+            : event.occurred_at;
+          if (!Number.isNaN(dateObj.getTime())) {
+            dateString = dateObj.toISOString().split('T')[0];
+          }
+        }
+        return {
+          id: event.id,
+          title: event.event_type || '',
+          date: dateString,
+          notes: event.notes || '',
+        };
+      });
+
+      setTimelineData(timelineItems);
+    } catch (error) {
+      console.error('Failed to fetch fresh timeline data:', error);
+    }
+  }
+
   return (
     <JobMultiStepForm
+      key={timelineData.length}
       initialOverview={toOverviewDraft(initialJob)}
+      initialDraft={{
+        timeline: timelineData,
+      }}
       submitLabel="Save changes"
       onCancel={handleCancel}
       onFinalSave={handleFinalSave}

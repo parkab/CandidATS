@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
+import { createStageChangeEvent } from '@/lib/jobs/timeline';
 
 type UpdateJobBody = Record<string, unknown>;
 
@@ -108,6 +109,20 @@ export async function PATCH(
   }
 
   try {
+    const currentJob = await prisma.job.findFirst({
+      where: {
+        id: jobId,
+        user_id: sessionUserId,
+      },
+    });
+
+    if (!currentJob) {
+      return NextResponse.json(
+        { error: 'Job not found or access denied' },
+        { status: 404 },
+      );
+    }
+
     const updateResult = await prisma.job.updateMany({
       where: {
         id: jobId,
@@ -134,6 +149,74 @@ export async function PATCH(
         { error: 'Job not found or access denied' },
         { status: 404 },
       );
+    }
+
+    if (currentJob.pipeline_stage !== stage) {
+      await createStageChangeEvent(jobId, currentJob.pipeline_stage, stage);
+    }
+
+    if (Array.isArray(body.timeline)) {
+      const existingEvents = await prisma.timelineEvent.findMany({
+        where: { job_id: jobId },
+      });
+
+      const existingEventIds = new Set(existingEvents.map((event) => event.id));
+      const incomingEventIds = new Set<string>();
+
+      for (const timelineItem of body.timeline as Array<
+        Record<string, unknown>
+      >) {
+        const itemId = timelineItem.id;
+        const itemTitle = timelineItem.title;
+        const itemDate = timelineItem.date;
+        const itemNotes = timelineItem.notes;
+
+        if (typeof itemTitle !== 'string' || !itemTitle.trim()) {
+          continue; // Skip items without a title
+        }
+
+        let parsedDate = new Date();
+        if (typeof itemDate === 'string' && itemDate.trim()) {
+          const parsed = new Date(itemDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        if (itemId && typeof itemId === 'string' && existingEventIds.has(itemId)) {
+          incomingEventIds.add(itemId);
+          await prisma.timelineEvent.update({
+            where: { id: itemId },
+            data: {
+              event_type: itemTitle.trim(),
+              notes: typeof itemNotes === 'string' ? itemNotes.trim() : null,
+              occurred_at: parsedDate,
+            },
+          });
+        } else {
+          if (itemId && typeof itemId === 'string') {
+            incomingEventIds.add(itemId);
+          }
+          await prisma.timelineEvent.create({
+            data: {
+              job_id: jobId,
+              event_type: itemTitle.trim(),
+              notes: typeof itemNotes === 'string' ? itemNotes.trim() : null,
+              occurred_at: parsedDate,
+            },
+          });
+        }
+      }
+
+      // Delete events that were removed from the form
+      const eventsToDelete = Array.from(existingEventIds).filter(
+        (id) => !incomingEventIds.has(id),
+      );
+      for (const eventId of eventsToDelete) {
+        await prisma.timelineEvent.delete({
+          where: { id: eventId },
+        });
+      }
     }
 
     const updatedJob = await prisma.job.findFirst({

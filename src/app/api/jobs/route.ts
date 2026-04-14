@@ -127,6 +127,39 @@ export async function POST(request: Request) {
       },
     });
 
+    // Handle timeline events from form data
+    if (Array.isArray(body.timeline)) {
+      for (const timelineItem of body.timeline as Array<
+        Record<string, unknown>
+      >) {
+        const itemTitle = timelineItem.title;
+        const itemDate = timelineItem.date;
+        const itemNotes = timelineItem.notes;
+
+        if (typeof itemTitle !== 'string' || !itemTitle.trim()) {
+          continue; // Skip items without a title
+        }
+
+        // Use provided date or default to now if not provided or invalid
+        let parsedDate = new Date();
+        if (typeof itemDate === 'string' && itemDate.trim()) {
+          const parsed = new Date(itemDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        await prisma.timelineEvent.create({
+          data: {
+            job_id: createdJob.id,
+            event_type: itemTitle.trim(),
+            notes: typeof itemNotes === 'string' ? itemNotes.trim() : null,
+            occurred_at: parsedDate,
+          },
+        });
+      }
+    }
+
     return NextResponse.json(createdJob, { status: 201 });
   } catch (error) {
     console.error('Failed to create job:', error);
