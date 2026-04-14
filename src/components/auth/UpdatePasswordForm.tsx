@@ -215,7 +215,9 @@ export default function UpdatePasswordForm() {
             />
           </div>
           {errors.password && (
-            <p className="mt-1 text-xs text-(--danger-text)">{errors.password}</p>
+            <p className="mt-1 text-xs text-(--danger-text)">
+              {errors.password}
+            </p>
           )}
           <p className="mt-1 text-xs text-(--muted-foreground)">
             Must be at least 8 characters
