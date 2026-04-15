@@ -151,10 +151,6 @@ export async function PATCH(
       );
     }
 
-    if (currentJob.pipeline_stage !== stage) {
-      await createStageChangeEvent(jobId, currentJob.pipeline_stage, stage);
-    }
-
     if (Array.isArray(body.timeline)) {
       const existingEvents = await prisma.timelineEvent.findMany({
         where: { job_id: jobId },
@@ -171,9 +167,12 @@ export async function PATCH(
         const itemDate = timelineItem.date;
         const itemNotes = timelineItem.notes;
 
-        if (typeof itemTitle !== 'string' || !itemTitle.trim()) {
-          continue; // Skip items without a title
+        // Validate: require either title or notes
+        if (!itemTitle && !itemNotes) {
+          continue; // Skip items without title or notes
         }
+
+        const titleValue = typeof itemTitle === 'string' ? itemTitle.trim() : '';
 
         let parsedDate = new Date();
         if (typeof itemDate === 'string' && itemDate.trim()) {
@@ -188,27 +187,33 @@ export async function PATCH(
           await prisma.timelineEvent.update({
             where: { id: itemId },
             data: {
-              event_type: itemTitle.trim(),
+              event_type: titleValue || 'Event',
               notes: typeof itemNotes === 'string' ? itemNotes.trim() : null,
               occurred_at: parsedDate,
             },
           });
         } else {
-          if (itemId && typeof itemId === 'string') {
-            incomingEventIds.add(itemId);
+          // Create new event - use client-provided ID if valid, otherwise let Prisma generate
+          const eventId = itemId && typeof itemId === 'string' && !existingEventIds.has(itemId) ? itemId : undefined;
+          if (eventId) {
+            incomingEventIds.add(eventId);
           }
-          await prisma.timelineEvent.create({
+          const createdEvent = await prisma.timelineEvent.create({
             data: {
+              id: eventId,
               job_id: jobId,
-              event_type: itemTitle.trim(),
+              event_type: titleValue || 'Event',
               notes: typeof itemNotes === 'string' ? itemNotes.trim() : null,
               occurred_at: parsedDate,
             },
           });
+          // Track the actual created ID for deletion tracking
+          if (!eventId) {
+            incomingEventIds.add(createdEvent.id);
+          }
         }
       }
 
-      // Delete events that were removed from the form
       const eventsToDelete = Array.from(existingEventIds).filter(
         (id) => !incomingEventIds.has(id),
       );
@@ -217,6 +222,11 @@ export async function PATCH(
           where: { id: eventId },
         });
       }
+    }
+
+    // Create stage change event AFTER timeline sync to avoid race conditions
+    if (currentJob.pipeline_stage !== stage) {
+      await createStageChangeEvent(jobId, currentJob.pipeline_stage, stage);
     }
 
     const updatedJob = await prisma.job.findFirst({

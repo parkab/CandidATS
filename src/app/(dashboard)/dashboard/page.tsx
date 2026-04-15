@@ -146,46 +146,34 @@ export default async function Dashboard() {
     },
   });
 
-  // Fetch timeline events for all jobs
-  const timelineEventsByJobId = await prisma.timelineEvent.findMany({
+  // Fetch all timeline events for jobs
+  const allTimelineEvents = await prisma.timelineEvent.findMany({
     where: {
       job_id: {
         in: jobs.map((job) => job.id),
       },
     },
-    orderBy: {
-      occurred_at: 'desc',
-    },
-  }).then((events) => {
-    const grouped: Record<string, typeof events> = {};
-    for (const event of events) {
-      if (!grouped[event.job_id]) {
-        grouped[event.job_id] = [];
-      }
-      grouped[event.job_id].push(event);
-    }
-    return grouped;
   });
 
+  const timelineByJobId = new Map<
+    string,
+    Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>
+  >();
+  for (const event of allTimelineEvents) {
+    if (!timelineByJobId.has(event.job_id)) {
+      timelineByJobId.set(event.job_id, []);
+    }
+    timelineByJobId.get(event.job_id)?.push(event);
+  }
+
   const jobsForModal = jobs.map((job: DashboardJob) => {
-    const timelineEvents = timelineEventsByJobId[job.id] ?? [];
-    const timeline = timelineEvents.map((event) => {
-      let dateString = '';
-      if (event.occurred_at) {
-        const dateObj = typeof event.occurred_at === 'string'
-          ? new Date(event.occurred_at)
-          : event.occurred_at;
-        if (!Number.isNaN(dateObj.getTime())) {
-          dateString = dateObj.toISOString().split('T')[0];
-        }
-      }
-      return {
-        id: event.id,
-        title: event.event_type || '',
-        date: dateString,
-        notes: event.notes || '',
-      };
-    });
+    const timelineEvents = timelineByJobId.get(job.id) ?? [];
+    const timeline = timelineEvents.map((event) => ({
+      id: event.id,
+      title: event.event_type,
+      date: event.occurred_at.toISOString().split('T')[0],
+      notes: event.notes ?? '',
+    }));
 
     return {
       id: job.id,

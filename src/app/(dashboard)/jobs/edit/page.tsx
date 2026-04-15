@@ -43,6 +43,7 @@ export default async function EditJobApplication({
     redirect('/dashboard');
   }
 
+  // Only fetch timeline for the single job being edited (not all jobs like dashboard does)
   const timelineEvents = await prisma.timelineEvent.findMany({
     where: { job_id: jobId },
     orderBy: { occurred_at: 'desc' },
@@ -51,7 +52,6 @@ export default async function EditJobApplication({
   const timelineItems = timelineEvents.map((event) => {
     let dateString = '';
     if (event.occurred_at) {
-      // Handle both Date objects and date strings from Prisma
       const dateObj = typeof event.occurred_at === 'string' 
         ? new Date(event.occurred_at)
         : event.occurred_at;
