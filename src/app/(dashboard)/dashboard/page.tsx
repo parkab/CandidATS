@@ -160,10 +160,18 @@ export default async function Dashboard() {
     Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>
   >();
   for (const event of allTimelineEvents) {
+    // Filter out events with null event_type or occurred_at
+    if (!event.event_type || !event.occurred_at) continue;
+    
     if (!timelineByJobId.has(event.job_id)) {
       timelineByJobId.set(event.job_id, []);
     }
-    timelineByJobId.get(event.job_id)?.push(event);
+    timelineByJobId.get(event.job_id)?.push({
+      id: event.id,
+      event_type: event.event_type,
+      occurred_at: event.occurred_at,
+      notes: event.notes,
+    });
   }
 
   const jobsForModal = jobs.map((job: DashboardJob) => {
