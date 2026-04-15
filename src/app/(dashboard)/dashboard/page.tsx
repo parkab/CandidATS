@@ -179,7 +179,7 @@ export default async function Dashboard() {
         <h1 className={GRADIENT_HEADING_CLASS}>Dashboard</h1>
       </div>
 
-      <JobsModalGrid jobs={jobsForModal} />
+      <JobsModalGrid initialJobs={jobsForModal} />
     </section>
   );
 }
