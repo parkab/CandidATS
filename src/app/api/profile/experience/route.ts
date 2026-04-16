@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   try {
     const experiences = await prisma.experience.findMany({
       where: { userId: data.user.id },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
 
     return NextResponse.json(experiences, { status: 200 });
@@ -66,6 +66,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    const last = await prisma.experience.findFirst({
+      where: { userId: data.user.id },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+    const nextSortOrder = (last?.sortOrder ?? -1) + 1;
+
     const experience = await prisma.experience.create({
       data: {
         userId: data.user.id,
@@ -77,7 +84,7 @@ export async function POST(request: Request) {
         endDate: payload.endDate,
         description: payload.description,
         accomplishments: payload.accomplishments,
-        sortOrder: payload.sortOrder,
+        sortOrder: nextSortOrder,
       },
     });
 

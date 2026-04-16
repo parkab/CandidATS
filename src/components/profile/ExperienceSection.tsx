@@ -144,6 +144,7 @@ export default function ExperienceSection({
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
 
@@ -289,6 +290,7 @@ export default function ExperienceSection({
   }
 
   async function handleReorder(id: string, direction: 'up' | 'down') {
+    if (isReordering) return;
     const index = experiences.findIndex((e) => e.id === id);
     if (index === -1) return;
     if (direction === 'up' && index === 0) return;
@@ -300,22 +302,34 @@ export default function ExperienceSection({
     // Swap positions in the array
     [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
 
-    // Reassign sortOrder by position so values are always unique
+    // Reassign sortOrder by position so values are always unique and contiguous
     const reordered = next.map((e, i) => ({ ...e, sortOrder: i }));
+    const previous = experiences;
     setExperiences(reordered);
+    setIsReordering(true);
 
-    await Promise.all([
-      fetch(`/api/profile/experience/${reordered[index].id}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sortOrder: reordered[index].sortOrder }),
-      }),
-      fetch(`/api/profile/experience/${reordered[swapIndex].id}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sortOrder: reordered[swapIndex].sortOrder }),
-      }),
-    ]);
+    try {
+      // Persist all entries so DB never drifts from client state
+      const results = await Promise.all(
+        reordered.map((e) =>
+          fetch(`/api/profile/experience/${e.id}`, {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ sortOrder: e.sortOrder }),
+          }),
+        ),
+      );
+
+      if (results.some((r) => !r.ok)) {
+        setExperiences(previous);
+        setToast('Unable to save new order. Please try again.');
+      }
+    } catch {
+      setExperiences(previous);
+      setToast('Network issue. Please try again.');
+    } finally {
+      setIsReordering(false);
+    }
   }
 
   return (
@@ -369,7 +383,7 @@ export default function ExperienceSection({
                   <button
                     type="button"
                     onClick={() => handleReorder(entry.id, 'up')}
-                    disabled={index === 0}
+                    disabled={index === 0 || isReordering}
                     aria-label="Move up"
                     className="rounded px-1.5 py-1 text-xs text-(--text-muted) transition hover:bg-(--action-bg) disabled:opacity-30"
                   >
@@ -378,7 +392,7 @@ export default function ExperienceSection({
                   <button
                     type="button"
                     onClick={() => handleReorder(entry.id, 'down')}
-                    disabled={index === experiences.length - 1}
+                    disabled={index === experiences.length - 1 || isReordering}
                     aria-label="Move down"
                     className="rounded px-1.5 py-1 text-xs text-(--text-muted) transition hover:bg-(--action-bg) disabled:opacity-30"
                   >
@@ -414,18 +428,31 @@ export default function ExperienceSection({
             aria-label="Close modal"
             className="absolute inset-0 bg-black/55"
           />
-          <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-(--surface-border) bg-(--background) shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="experience-modal-title"
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                closeModal();
+              }
+            }}
+            className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-(--surface-border) bg-(--background) shadow-2xl"
+          >
             <form
               onSubmit={handleSubmit}
               className="grid max-h-[88vh] gap-5 overflow-y-auto px-6 pb-6 pt-0"
             >
               <div className="sticky top-0 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-(--surface-divider) bg-(--background) px-6 pb-4 pt-6">
-                <h3 className={GRADIENT_SUBHEADING_CLASS}>
+                <h3 id="experience-modal-title" className={GRADIENT_SUBHEADING_CLASS}>
                   {editingId ? 'Edit Experience' : 'Add Experience'}
                 </h3>
                 <button
                   type="button"
                   onClick={closeModal}
+                  autoFocus
                   className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
                 >
                   Cancel
@@ -574,8 +601,20 @@ export default function ExperienceSection({
             aria-label="Cancel delete"
             className="absolute inset-0 bg-black/55"
           />
-          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-(--surface-border) bg-(--background) p-6 shadow-2xl">
-            <p className="text-sm font-semibold text-(--foreground)">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirm-title"
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setDeleteConfirmId(null);
+              }
+            }}
+            className="relative z-10 w-full max-w-sm rounded-2xl border border-(--surface-border) bg-(--background) p-6 shadow-2xl"
+          >
+            <p id="delete-confirm-title" className="text-sm font-semibold text-(--foreground)">
               Remove this experience?
             </p>
             <p className="mt-1 text-sm text-(--text-muted)">

@@ -7,7 +7,14 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { data, error } = await getSupabaseUserFromRequest(request);
+  let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
+  try {
+    authResult = await getSupabaseUserFromRequest(request);
+  } catch {
+    return NextResponse.json({ error: 'Unable to process request.' }, { status: 503 });
+  }
+
+  const { data, error } = authResult;
 
   if (error || !data.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -59,7 +66,14 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { data, error } = await getSupabaseUserFromRequest(request);
+  let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
+  try {
+    authResult = await getSupabaseUserFromRequest(request);
+  } catch {
+    return NextResponse.json({ error: 'Unable to process request.' }, { status: 503 });
+  }
+
+  const { data, error } = authResult;
 
   if (error || !data.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

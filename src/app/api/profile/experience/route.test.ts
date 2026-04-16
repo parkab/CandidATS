@@ -8,6 +8,7 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     experience: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
     },
   },
@@ -18,6 +19,7 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 const mockedFindMany = jest.mocked(prisma.experience.findMany);
+const mockedFindFirst = jest.mocked(prisma.experience.findFirst);
 const mockedCreate = jest.mocked(prisma.experience.create);
 const mockedAuth = jest.mocked(getSupabaseUserFromRequest);
 
@@ -61,7 +63,7 @@ describe('GET /api/profile/experience', () => {
     expect(response.status).toBe(200);
     expect(mockedFindMany).toHaveBeenCalledWith({
       where: { userId: 'session-user-id' },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
     const body = await response.json();
     expect(body).toHaveLength(2);
@@ -69,7 +71,10 @@ describe('GET /api/profile/experience', () => {
 });
 
 describe('POST /api/profile/experience', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedFindFirst.mockResolvedValue(null as never);
+  });
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
@@ -85,18 +90,17 @@ describe('POST /api/profile/experience', () => {
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 
-  it('creates an experience scoped to the session user and returns 201', async () => {
+  it('creates an experience with server-computed sortOrder and returns 201', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const created = { id: 'exp-new', userId: 'session-user-id', ...validCreateBody };
+    mockedFindFirst.mockResolvedValue({ sortOrder: 2 } as never);
+    const created = { id: 'exp-new', userId: 'session-user-id', sortOrder: 3, ...validCreateBody };
     mockedCreate.mockResolvedValue(created as never);
 
     const response = await POST(buildRequest('POST', validCreateBody));
     expect(response.status).toBe(201);
     expect(mockedCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ userId: 'session-user-id', title: 'Software Engineer' }),
+      data: expect.objectContaining({ userId: 'session-user-id', title: 'Software Engineer', sortOrder: 3 }),
     });
-    const body = await response.json();
-    expect(body.userId).toBe('session-user-id');
   });
 
   it('ignores any userId in the request body and uses the session userId', async () => {
