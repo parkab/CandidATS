@@ -3,12 +3,16 @@
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { PATCH } from './route';
+import * as timelineModule from '@/lib/jobs/timeline';
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     job: {
       updateMany: jest.fn(),
       findFirst: jest.fn(),
+    },
+    timelineEvent: {
+      create: jest.fn(),
     },
   },
 }));
@@ -17,10 +21,17 @@ jest.mock('@/lib/supabase', () => ({
   getSupabaseUserFromRequest: jest.fn(),
 }));
 
+jest.mock('@/lib/jobs/timeline', () => ({
+  createStageChangeEvent: jest.fn(),
+}));
+
 const mockedUpdateMany = jest.mocked(prisma.job.updateMany);
 const mockedFindFirst = jest.mocked(prisma.job.findFirst);
 const mockedGetSupabaseUserFromRequest = jest.mocked(
   getSupabaseUserFromRequest,
+);
+const mockedCreateStageChangeEvent = jest.mocked(
+  timelineModule.createStageChangeEvent,
 );
 
 function buildRequest(body: Record<string, unknown>) {
@@ -81,8 +92,7 @@ describe('PATCH /api/jobs/[id]', () => {
       error: null,
     } as never);
 
-    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
-    mockedFindFirst.mockResolvedValue({
+    const currentJob = {
       id: 'job-1',
       user_id: 'session-user-id',
       title: 'Software Engineer',
@@ -97,7 +107,17 @@ describe('PATCH /api/jobs/[id]', () => {
       application_date: new Date('2026-04-02T00:00:00.000Z'),
       recruiter_contact_notes: null,
       custom_notes: 'Updated notes',
-    } as never);
+    };
+
+    const updatedJob = {
+      ...currentJob,
+      custom_notes: 'Updated notes',
+    };
+
+    mockedFindFirst.mockResolvedValueOnce(currentJob as never);
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateStageChangeEvent.mockResolvedValue(null);
 
     const response = await PATCH(
       buildRequest({
@@ -119,6 +139,13 @@ describe('PATCH /api/jobs/[id]', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(mockedFindFirst).toHaveBeenCalledTimes(2);
+    expect(mockedFindFirst).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 'job-1',
+        user_id: 'session-user-id',
+      },
+    });
     expect(mockedUpdateMany).toHaveBeenCalledWith({
       where: {
         id: 'job-1',
@@ -135,12 +162,6 @@ describe('PATCH /api/jobs/[id]', () => {
         custom_notes: 'Updated notes',
       }),
     });
-    expect(mockedFindFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'job-1',
-        user_id: 'session-user-id',
-      },
-    });
 
     const responseBody = await response.json();
     expect(responseBody.user_id).toBe('session-user-id');
@@ -152,7 +173,7 @@ describe('PATCH /api/jobs/[id]', () => {
       error: null,
     } as never);
 
-    mockedUpdateMany.mockResolvedValue({ count: 0 } as never);
+    mockedFindFirst.mockResolvedValue(null);
 
     const response = await PATCH(
       buildRequest({
@@ -176,7 +197,14 @@ describe('PATCH /api/jobs/[id]', () => {
     expect(await response.json()).toEqual({
       error: 'Job not found or access denied',
     });
-    expect(mockedFindFirst).not.toHaveBeenCalled();
+    // findFirst should be called once to check job ownership
+    expect(mockedFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'job-1',
+        user_id: 'session-user-id',
+      },
+    });
+    expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
 
   it('stores nullable optional fields as null when omitted', async () => {
@@ -185,11 +213,20 @@ describe('PATCH /api/jobs/[id]', () => {
       error: null,
     } as never);
 
-    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
-    mockedFindFirst.mockResolvedValue({
+    const currentJob = {
       id: 'job-1',
       user_id: 'session-user-id',
-    } as never);
+      pipeline_stage: 'Applied',
+    };
+
+    const updatedJob = {
+      ...currentJob,
+    };
+
+    mockedFindFirst.mockResolvedValueOnce(currentJob as never);
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateStageChangeEvent.mockResolvedValue(null);
 
     const response = await PATCH(
       buildRequest({
@@ -241,4 +278,96 @@ describe('PATCH /api/jobs/[id]', () => {
     expect(await response.json()).toEqual({ error: 'Invalid deadline date' });
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
+
+  it('creates a timeline event when job stage changes', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    const currentJob = {
+      id: 'job-1',
+      user_id: 'session-user-id',
+      title: 'Software Engineer',
+      company_name: 'Acme',
+      location: 'Remote',
+      pipeline_stage: 'Applied',
+      last_activity_date: new Date('2026-04-01T00:00:00.000Z'),
+    };
+
+    const updatedJob = {
+      ...currentJob,
+      pipeline_stage: 'Interview',
+    };
+
+    mockedFindFirst.mockResolvedValueOnce(currentJob as never);
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateStageChangeEvent.mockResolvedValue({
+      id: 'event-1',
+      job_id: 'job-1',
+      event_type: 'stage_changed',
+      notes: 'Changed from Applied to Interview',
+      occurred_at: new Date(),
+    } as never);
+
+    const response = await PATCH(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Interview',
+        lastActivityDate: '2026-04-01',
+      }),
+      { params: Promise.resolve({ id: 'job-1' }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedCreateStageChangeEvent).toHaveBeenCalledWith(
+      'job-1',
+      'Applied',
+      'Interview',
+    );
+  });
+
+  it('does not create a timeline event when job stage does not change', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    const currentJob = {
+      id: 'job-1',
+      user_id: 'session-user-id',
+      title: 'Software Engineer',
+      company_name: 'Acme',
+      location: 'Remote',
+      pipeline_stage: 'Interview',
+      last_activity_date: new Date('2026-04-01T00:00:00.000Z'),
+    };
+
+    const updatedJob = {
+      ...currentJob,
+      title: 'Senior Software Engineer',
+    };
+
+    mockedFindFirst.mockResolvedValueOnce(currentJob as never);
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+
+    const response = await PATCH(
+      buildRequest({
+        title: 'Senior Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Interview',
+        lastActivityDate: '2026-04-01',
+      }),
+      { params: Promise.resolve({ id: 'job-1' }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedCreateStageChangeEvent).not.toHaveBeenCalled();
+  });
 });
+

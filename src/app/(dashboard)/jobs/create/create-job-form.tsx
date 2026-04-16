@@ -88,9 +88,18 @@ export default function CreateJobForm({
       throw new Error(responseBody?.error ?? 'Unable to create job right now.');
     }
 
+    const createdJob = (await response.json()) as { id?: string } | null;
+
     onSuccess?.();
     if (!inModal) {
-      router.push('/dashboard');
+      // Redirect to edit page so user can see the created job with timeline
+      if (createdJob?.id) {
+        router.push(`/dashboard/jobs/edit?id=${encodeURIComponent(createdJob.id)}`);
+        return; // Return early to avoid calling refresh after navigation
+      } else {
+        router.push('/dashboard');
+        return; // Return early to avoid calling refresh after navigation
+      }
     }
     router.refresh();
   }
