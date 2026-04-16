@@ -490,6 +490,14 @@ export default function JobMultiStepForm({
     return JOB_FORM_STEPS.find((step) => step.id === activeStep)?.label;
   }, [activeStep]);
 
+  // Re-initialize draft only when job ID changes (switching between different jobs)
+  // We watch initialOverview.id to detect when user switches to a different job
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setDraft(buildInitialDraft(initialOverview, initialDraft));
+    setActiveStep('overview');
+  }, [initialOverview.id]);
+
   useEffect(() => {
     documentObjectUrlsRef.current = draft.documents.files
       .map((file) => file.objectUrl)

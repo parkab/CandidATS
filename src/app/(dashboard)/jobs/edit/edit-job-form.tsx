@@ -5,6 +5,7 @@ import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import type {
   JobMultiStepDraft,
   JobOverviewDraft,
+  JobSectionItemDraft,
 } from '@/lib/jobs/multi-step-form';
 import type { ApplicationStatus } from '@/lib/jobs/status';
 
@@ -27,6 +28,7 @@ type EditJobFormProps = {
     recruiterNotes: string | null;
     otherNotes: string | null;
   };
+  initialTimeline?: JobSectionItemDraft[];
 };
 
 const STAGE_OPTIONS: ApplicationStatus[] = [
@@ -88,6 +90,7 @@ export default function EditJobForm({
   onSuccess,
   onCancel,
   initialJob,
+  initialTimeline = [],
 }: EditJobFormProps) {
   const router = useRouter();
 
@@ -155,6 +158,9 @@ export default function EditJobForm({
   return (
     <JobMultiStepForm
       initialOverview={toOverviewDraft(initialJob)}
+      initialDraft={{
+        timeline: initialTimeline,
+      }}
       submitLabel="Save changes"
       onCancel={handleCancel}
       onFinalSave={handleFinalSave}

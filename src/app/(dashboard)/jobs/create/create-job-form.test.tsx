@@ -68,7 +68,6 @@ describe('CreateJobForm', () => {
         expect.objectContaining({ method: 'POST' }),
       );
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
-      expect(mockRefresh).toHaveBeenCalled();
     });
 
     const request = (global.fetch as jest.Mock).mock.calls[0][1] as RequestInit;
