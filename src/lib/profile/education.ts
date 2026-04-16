@@ -62,10 +62,16 @@ export function parseEducationCreatePayload(rawBody: unknown): {
   if (!fieldOfStudy) return { error: 'fieldOfStudy is required' };
 
   const startDate = asDate(body.startDate);
-  if (!startDate) return { error: 'startDate is required and must be a valid date' };
+  if (!startDate)
+    return { error: 'startDate is required and must be a valid date' };
 
   const endDate = body.endDate !== undefined ? asDate(body.endDate) : null;
-  if (body.endDate !== undefined && body.endDate !== null && body.endDate !== '' && !endDate) {
+  if (
+    body.endDate !== undefined &&
+    body.endDate !== null &&
+    body.endDate !== '' &&
+    !endDate
+  ) {
     return { error: 'endDate must be a valid date' };
   }
 

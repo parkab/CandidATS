@@ -53,6 +53,16 @@ describe('EditJobForm', () => {
 
     render(<EditJobForm initialJob={initialJob} />);
 
+    fireEvent.change(screen.getByLabelText(/Compensation/i), {
+      target: { value: '  base + bonus  ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Recruiter Notes/i), {
+      target: { value: '  recruiter pinged me  ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Other Notes/i), {
+      target: { value: '  custom details  ' },
+    });
+
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
@@ -62,6 +72,28 @@ describe('EditJobForm', () => {
       );
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
       expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    const request = (global.fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+    const payload = JSON.parse(request.body as string);
+
+    expect(payload).toMatchObject({
+      title: 'Backend Engineer',
+      company: 'Acme',
+      location: 'Remote',
+      stage: 'Applied',
+      lastActivityDate: '2026-04-06',
+      deadline: null,
+      priority: false,
+      jobDescription: null,
+      compensation: 'base + bonus',
+      applicationDate: null,
+      recruiterNotes: 'recruiter pinged me',
+      otherNotes: 'custom details',
+      timeline: [],
+      interviews: [],
+      followUps: [],
+      documents: { files: [] },
     });
   });
 });

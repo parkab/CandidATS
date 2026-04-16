@@ -96,7 +96,8 @@ export function parseCareerPreferencesUpdatePayload(rawBody: unknown): {
       result.workMode = null;
     } else {
       const workMode = asWorkMode(body.workMode);
-      if (!workMode) return { error: 'workMode must be "Remote", "Hybrid", or "On-site"' };
+      if (!workMode)
+        return { error: 'workMode must be "Remote", "Hybrid", or "On-site"' };
       result.workMode = workMode;
     }
   }

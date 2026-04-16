@@ -53,6 +53,12 @@ describe('CreateJobForm', () => {
     fireEvent.change(screen.getByLabelText(/Last Activity Date/i), {
       target: { value: '2026-04-06' },
     });
+    fireEvent.change(screen.getByLabelText(/Compensation/i), {
+      target: { value: '  $200k  ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Recruiter Notes/i), {
+      target: { value: '  Recruiter reached out  ' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Create job' }));
 
@@ -63,6 +69,28 @@ describe('CreateJobForm', () => {
       );
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
       expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    const request = (global.fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+    const payload = JSON.parse(request.body as string);
+
+    expect(payload).toMatchObject({
+      title: 'Frontend Engineer',
+      company: 'Acme',
+      location: 'Remote',
+      stage: 'Interested',
+      lastActivityDate: '2026-04-06',
+      deadline: null,
+      priority: false,
+      jobDescription: null,
+      compensation: '$200k',
+      applicationDate: null,
+      recruiterNotes: 'Recruiter reached out',
+      otherNotes: null,
+      timeline: [],
+      interviews: [],
+      followUps: [],
+      documents: { files: [] },
     });
   });
 });
