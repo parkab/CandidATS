@@ -160,6 +160,39 @@ export async function POST(request: Request) {
       }
     }
 
+    // Handle interviews from form data
+    if (Array.isArray(body.interviews)) {
+      for (const interviewItem of body.interviews as Array<
+        Record<string, unknown>
+      >) {
+        const roundType = interviewItem.title;
+        const scheduledDate = interviewItem.date;
+        const notes = interviewItem.notes;
+
+        if (typeof roundType !== 'string' || !roundType.trim()) {
+          continue; // Skip items without a round type
+        }
+
+        // Use provided date or default to now if not provided or invalid
+        let parsedDate = new Date();
+        if (typeof scheduledDate === 'string' && scheduledDate.trim()) {
+          const parsed = new Date(scheduledDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        await prisma.interview.create({
+          data: {
+            job_id: createdJob.id,
+            round_type: roundType.trim(),
+            scheduled_at: parsedDate,
+            notes: typeof notes === 'string' ? notes.trim() : null,
+          },
+        });
+      }
+    }
+
     return NextResponse.json(createdJob, { status: 201 });
   } catch (error) {
     console.error('Failed to create job:', error);

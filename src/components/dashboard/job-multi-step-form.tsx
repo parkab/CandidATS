@@ -17,6 +17,7 @@ import {
 } from '@/lib/jobs/multi-step-form';
 import DocumentsStepSection from './job-documents-step-section';
 import ItemStepSection from './job-item-step-section';
+import InterviewStepSection from './interview-step-section';
 import type {
   SectionComposerMode,
   SectionStep,
@@ -581,10 +582,8 @@ export default function JobMultiStepForm({
           ) : null}
 
           {activeStep === 'interviews' ? (
-            <ItemStepSection
+            <InterviewStepSection
               stepId="interviews"
-              addButtonLabel="+ Add Interview"
-              itemLabel="interview"
               items={draft.interviews}
               itemDraft={itemDraftByStep.interviews}
               isComposerOpen={composerOpenByStep.interviews}

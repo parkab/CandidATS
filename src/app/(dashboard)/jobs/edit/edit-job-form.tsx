@@ -29,6 +29,7 @@ type EditJobFormProps = {
     otherNotes: string | null;
   };
   initialTimeline?: JobSectionItemDraft[];
+  initialInterviews?: JobSectionItemDraft[];
 };
 
 const STAGE_OPTIONS: ApplicationStatus[] = [
@@ -91,6 +92,7 @@ export default function EditJobForm({
   onCancel,
   initialJob,
   initialTimeline = [],
+  initialInterviews = [],
 }: EditJobFormProps) {
   const router = useRouter();
 
@@ -128,7 +130,6 @@ export default function EditJobForm({
       applicationDate: toOptionalString(draft.overview.applicationDate),
       recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
       otherNotes: toOptionalString(draft.overview.otherNotes),
-      // These frontend-only section arrays are intentionally left for backend integration.
       timeline: draft.timeline,
       interviews: draft.interviews,
       followUps: draft.followUps,
@@ -160,6 +161,7 @@ export default function EditJobForm({
       initialOverview={toOverviewDraft(initialJob)}
       initialDraft={{
         timeline: initialTimeline,
+        interviews: initialInterviews,
       }}
       submitLabel="Save changes"
       onCancel={handleCancel}
