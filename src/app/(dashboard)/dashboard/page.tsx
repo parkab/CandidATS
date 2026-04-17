@@ -174,6 +174,34 @@ export default async function Dashboard() {
     });
   }
 
+  // Fetch all interviews for jobs
+  const allInterviews = await prisma.interview.findMany({
+    where: {
+      job_id: {
+        in: jobs.map((job) => job.id),
+      },
+    },
+    orderBy: {
+      scheduled_at: 'asc',
+    },
+  });
+
+  const interviewsByJobId = new Map<
+    string,
+    Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
+  >();
+  for (const interview of allInterviews) {
+    if (!interviewsByJobId.has(interview.job_id)) {
+      interviewsByJobId.set(interview.job_id, []);
+    }
+    interviewsByJobId.get(interview.job_id)?.push({
+      id: interview.id,
+      round_type: interview.round_type,
+      scheduled_at: interview.scheduled_at,
+      notes: interview.notes,
+    });
+  }
+
   const jobsForModal = jobs.map((job: DashboardJob) => {
     const timelineEvents = timelineByJobId.get(job.id) ?? [];
     const timeline = timelineEvents.map((event) => ({
@@ -181,6 +209,14 @@ export default async function Dashboard() {
       title: event.event_type,
       date: event.occurred_at.toISOString().split('T')[0],
       notes: event.notes ?? '',
+    }));
+
+    const interviewsForJob = interviewsByJobId.get(job.id) ?? [];
+    const interviews = interviewsForJob.map((interview) => ({
+      id: interview.id,
+      title: interview.round_type,
+      date: interview.scheduled_at.toISOString().split('T')[0],
+      notes: interview.notes ?? '',
     }));
 
     return {
@@ -192,6 +228,7 @@ export default async function Dashboard() {
       lastActivityDateLabel: formatDate(job.last_activity_date),
       angle: getStableAngle(job.id),
       timeline,
+      interviews,
       formData: {
         id: job.id,
         title: job.title,

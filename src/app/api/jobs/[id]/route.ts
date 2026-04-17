@@ -224,6 +224,84 @@ export async function PATCH(
       }
     }
 
+    // Handle interviews similar to timeline events
+    if (Array.isArray(body.interviews)) {
+      const existingInterviews = await prisma.interview.findMany({
+        where: { job_id: jobId },
+      });
+
+      const existingInterviewIds = new Set(existingInterviews.map((interview) => interview.id));
+      const incomingInterviewIds = new Set<string>();
+
+      for (const interviewItem of body.interviews as Array<
+        Record<string, unknown>
+      >) {
+        const itemId = interviewItem.id;
+        const roundType = interviewItem.title;
+        const scheduledDate = interviewItem.date;
+        const notes = interviewItem.notes;
+
+        // Validate: require either round type or notes
+        if (!roundType && !notes) {
+          continue; // Skip items without round type or notes
+        }
+
+        const roundTypeValue = typeof roundType === 'string' ? roundType.trim() : '';
+
+        let parsedDate = new Date();
+        if (typeof scheduledDate === 'string' && scheduledDate.trim()) {
+          const parsed = new Date(scheduledDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        if (itemId && typeof itemId === 'string' && existingInterviewIds.has(itemId)) {
+          incomingInterviewIds.add(itemId);
+          // Only update scheduled_at if a valid date was provided; preserve existing date if empty
+          const updateData: Record<string, unknown> = {
+            round_type: roundTypeValue || 'Interview',
+            notes: typeof notes === 'string' ? notes.trim() : null,
+          };
+          if (scheduledDate && typeof scheduledDate === 'string' && scheduledDate.trim()) {
+            updateData.scheduled_at = parsedDate;
+          }
+          await prisma.interview.update({
+            where: { id: itemId },
+            data: updateData,
+          });
+        } else {
+          // Create new interview
+          const interviewId = itemId && typeof itemId === 'string' && !existingInterviewIds.has(itemId) ? itemId : undefined;
+          if (interviewId) {
+            incomingInterviewIds.add(interviewId);
+          }
+          const createdInterview = await prisma.interview.create({
+            data: {
+              id: interviewId,
+              job_id: jobId,
+              round_type: roundTypeValue || 'Interview',
+              scheduled_at: parsedDate,
+              notes: typeof notes === 'string' ? notes.trim() : null,
+            },
+          });
+          // Track the actual created ID for deletion tracking
+          if (!interviewId) {
+            incomingInterviewIds.add(createdInterview.id);
+          }
+        }
+      }
+
+      const interviewsToDelete = Array.from(existingInterviewIds).filter(
+        (id) => !incomingInterviewIds.has(id),
+      );
+      for (const interviewId of interviewsToDelete) {
+        await prisma.interview.delete({
+          where: { id: interviewId },
+        });
+      }
+    }
+
     // Create stage change event AFTER timeline sync to avoid race conditions
     if (currentJob.pipeline_stage !== stage) {
       await createStageChangeEvent(jobId, currentJob.pipeline_stage, stage);

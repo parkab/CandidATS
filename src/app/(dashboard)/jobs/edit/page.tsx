@@ -67,6 +67,30 @@ export default async function EditJobApplication({
     };
   });
 
+  // Fetch interviews for the job
+  const interviews = await prisma.interview.findMany({
+    where: { job_id: jobId },
+    orderBy: { scheduled_at: 'asc' },
+  });
+
+  const interviewItems = interviews.map((interview) => {
+    let dateString = '';
+    if (interview.scheduled_at) {
+      const dateObj = typeof interview.scheduled_at === 'string' 
+        ? new Date(interview.scheduled_at)
+        : interview.scheduled_at;
+      if (!Number.isNaN(dateObj.getTime())) {
+        dateString = dateObj.toISOString().split('T')[0];
+      }
+    }
+    return {
+      id: interview.id,
+      title: interview.round_type || '',
+      date: dateString,
+      notes: interview.notes || '',
+    };
+  });
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
@@ -92,6 +116,7 @@ export default async function EditJobApplication({
           otherNotes: job.custom_notes,
         }}
         initialTimeline={timelineItems}
+        initialInterviews={interviewItems}
       />
     </section>
   );
