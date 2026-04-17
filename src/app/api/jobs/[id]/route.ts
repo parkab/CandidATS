@@ -258,13 +258,17 @@ export async function PATCH(
 
         if (itemId && typeof itemId === 'string' && existingInterviewIds.has(itemId)) {
           incomingInterviewIds.add(itemId);
+          // Only update scheduled_at if a valid date was provided; preserve existing date if empty
+          const updateData: Record<string, unknown> = {
+            round_type: roundTypeValue || 'Interview',
+            notes: typeof notes === 'string' ? notes.trim() : null,
+          };
+          if (scheduledDate && typeof scheduledDate === 'string' && scheduledDate.trim()) {
+            updateData.scheduled_at = parsedDate;
+          }
           await prisma.interview.update({
             where: { id: itemId },
-            data: {
-              round_type: roundTypeValue || 'Interview',
-              scheduled_at: parsedDate,
-              notes: typeof notes === 'string' ? notes.trim() : null,
-            },
+            data: updateData,
           });
         } else {
           // Create new interview

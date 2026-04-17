@@ -49,7 +49,7 @@ export default function InterviewItemComposer({
           htmlFor={dateId}
           className="text-sm font-semibold text-(--foreground)"
         >
-          Date/Time
+          Date
         </label>
         <div className="profile-input-wrap">
           <input

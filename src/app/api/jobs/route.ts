@@ -169,9 +169,12 @@ export async function POST(request: Request) {
         const scheduledDate = interviewItem.date;
         const notes = interviewItem.notes;
 
-        if (typeof roundType !== 'string' || !roundType.trim()) {
-          continue; // Skip items without a round type
+        // Require either round type or notes
+        if (!roundType && !notes) {
+          continue; // Skip items without round type or notes
         }
+
+        const roundTypeValue = typeof roundType === 'string' ? roundType.trim() : '';
 
         // Use provided date or default to now if not provided or invalid
         let parsedDate = new Date();
@@ -185,7 +188,7 @@ export async function POST(request: Request) {
         await prisma.interview.create({
           data: {
             job_id: createdJob.id,
-            round_type: roundType.trim(),
+            round_type: roundTypeValue || 'Interview',
             scheduled_at: parsedDate,
             notes: typeof notes === 'string' ? notes.trim() : null,
           },

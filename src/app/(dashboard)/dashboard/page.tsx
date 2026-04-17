@@ -181,6 +181,9 @@ export default async function Dashboard() {
         in: jobs.map((job) => job.id),
       },
     },
+    orderBy: {
+      scheduled_at: 'asc',
+    },
   });
 
   const interviewsByJobId = new Map<
@@ -188,9 +191,6 @@ export default async function Dashboard() {
     Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
   >();
   for (const interview of allInterviews) {
-    // Filter out interviews with null round_type or scheduled_at
-    if (!interview.round_type || !interview.scheduled_at) continue;
-
     if (!interviewsByJobId.has(interview.job_id)) {
       interviewsByJobId.set(interview.job_id, []);
     }
