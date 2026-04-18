@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
-import Dashboard from './page';
+import Dashboard, { type DashboardPageProps } from './page';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 
@@ -63,7 +63,7 @@ describe('Dashboard page', () => {
   it('renders landing experience when session does not exist', async () => {
     (getSession as jest.Mock).mockResolvedValue(null);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
 
     expect(screen.getByText('The ATS for Candidates.')).toBeInTheDocument();
     expect(screen.getByText('Organize your jobs.')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();    expect(screen.getByText('Total applications')).toBeInTheDocument();
     expect(screen.getByText('Open opportunities')).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({ sort: 'company' }) } as any));
+    render(await Dashboard({ searchParams: Promise.resolve({ sort: 'company' }) } as unknown as DashboardPageProps));
 
     expect(prisma.job.findMany).toHaveBeenCalledWith({
       select: {
@@ -220,7 +220,7 @@ describe('Dashboard page', () => {
           location: 'Austin',
           deadlineState: 'upcoming',
         }),
-      } as any),
+      } as unknown as DashboardPageProps),
     );
 
     expect(prisma.job.findMany).toHaveBeenCalledWith({
@@ -331,7 +331,7 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
 
     expect(
       screen.getByText(
@@ -365,7 +365,7 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
     const firstText = screen.getByText(
       /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
     ).textContent;
@@ -373,7 +373,7 @@ describe('Dashboard page', () => {
 
     cleanup();
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
     const secondText = screen.getByText(
       /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
     ).textContent;

@@ -66,7 +66,7 @@ type DeadlineState = 'any' | 'upcoming' | 'past' | 'noDeadline';
 
 type StageFilter = 'all' | 'Interested' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Archived';
 
-type DashboardPageProps = {
+export type DashboardPageProps = {
   searchParams: Promise<{
     sort?: string | string[];
     q?: string | string[];
@@ -147,7 +147,7 @@ function getJobWhere(
   locationFilter: string,
   deadlineState: DeadlineState,
 ) {
-  const where: any = {
+  const where: Record<string, unknown> = {
     user_id: userId,
   };
 
