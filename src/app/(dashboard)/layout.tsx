@@ -1,19 +1,44 @@
+import { getSession } from '@/lib/auth/session';
 import Navbar from '@/components/dashboard/navbar';
+import RedirectHandler from '@/components/dashboard/redirect-handler';
+import { prisma } from '@/lib/prisma';
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  // TODO: Replace with real auth user once backend auth integration is ready.
-  // ADD MOCK_USER=true to .env.local to test logged-in state (user name in navbar, access profile/settings/documents pages)
-  const useMockUser = process.env.MOCK_USER === 'true';
-  const mockUser = useMockUser ? { name: 'Job Applicant' } : null;
+export default async function DashboardLayout({
+  children,
+}: DashboardLayoutProps) {
+  const session = await getSession();
+
+  const dbUser = session
+    ? await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      })
+    : null;
+
+  // Prefer canonical user fields from Prisma; fall back to session metadata.
+  const user = session
+    ? {
+        name:
+          dbUser?.firstName || dbUser?.lastName
+            ? `${dbUser?.firstName || ''} ${dbUser?.lastName || ''}`.trim()
+            : session.firstName || session.lastName
+              ? `${session.firstName || ''} ${session.lastName || ''}`.trim()
+              : dbUser?.email || session.email,
+      }
+    : null;
 
   return (
-    // Set MOCK_USER=false or remove it from .env.local to test logged-out state (login/register buttons)
     <main className="min-h-screen bg-transparent">
-      <Navbar user={mockUser} />
+      <RedirectHandler />
+      <Navbar user={user} />
       {children}
     </main>
   );
