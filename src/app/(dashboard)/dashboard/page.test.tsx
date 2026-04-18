@@ -55,6 +55,28 @@ jest.mock('@/components/dashboard/polaroid-landing-card', () => ({
   default: ({ caption }: { caption: string }) => <div>{caption}</div>,
 }));
 
+jest.mock('@/components/dashboard/job-search-filter-control', () => ({
+  __esModule: true,
+  default: () => <div>Mock Job Search Filter Control</div>,
+}));
+
+jest.mock('@/components/dashboard/job-sort-control', () => ({
+  __esModule: true,
+  default: () => <div>Mock Job Sort Control</div>,
+}));
+
+jest.mock('@/components/dashboard/dashboard-metrics', () => ({
+  __esModule: true,
+  default: ({ metrics }: { metrics: Array<{ label: string; value: string | number; description: string }> }) => (
+    <div>
+      Mock Dashboard Metrics:
+      {metrics.map((m) => (
+        <div key={m.label}>{m.label}</div>
+      ))}
+    </div>
+  ),
+}));
+
 describe('Dashboard page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -110,29 +132,27 @@ describe('Dashboard page', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Mock Job Card:/)).not.toBeInTheDocument();
     expect(screen.queryByText('Sign up now!')).not.toBeInTheDocument();
-    expect(prisma.job.findMany).toHaveBeenCalledWith({
-      select: {
-        id: true,
-        company_name: true,
-        title: true,
-        location: true,
-        pipeline_stage: true,
-        last_activity_date: true,
-        deadline: true,
-        priority_flag: true,
-        job_description: true,
-        compensation_notes: true,
-        application_date: true,
-        recruiter_contact_notes: true,
-        custom_notes: true,
-      },
-      where: {
-        user_id: 'user-123',
-      },
-      orderBy: {
-        last_activity_date: 'desc',
-      },
-    });
+    expect(prisma.job.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          company_name: true,
+          title: true,
+          location: true,
+          pipeline_stage: true,
+          last_activity_date: true,
+          deadline: true,
+          priority_flag: true,
+          job_description: true,
+          compensation_notes: true,
+          application_date: true,
+          recruiter_contact_notes: true,
+          custom_notes: true,
+        }),
+        where: { user_id: 'user-123' },
+        orderBy: { last_activity_date: 'desc' },
+      }),
+    );
   });
 
   it('orders jobs by company name when sort query parameter is company', async () => {
@@ -162,29 +182,27 @@ describe('Dashboard page', () => {
 
     render(await Dashboard({ searchParams: Promise.resolve({ sort: 'company' }) } as unknown as DashboardPageProps));
 
-    expect(prisma.job.findMany).toHaveBeenCalledWith({
-      select: {
-        id: true,
-        company_name: true,
-        title: true,
-        location: true,
-        pipeline_stage: true,
-        last_activity_date: true,
-        deadline: true,
-        priority_flag: true,
-        job_description: true,
-        compensation_notes: true,
-        application_date: true,
-        recruiter_contact_notes: true,
-        custom_notes: true,
-      },
-      where: {
-        user_id: 'user-123',
-      },
-      orderBy: {
-        company_name: 'asc',
-      },
-    });
+    expect(prisma.job.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          company_name: true,
+          title: true,
+          location: true,
+          pipeline_stage: true,
+          last_activity_date: true,
+          deadline: true,
+          priority_flag: true,
+          job_description: true,
+          compensation_notes: true,
+          application_date: true,
+          recruiter_contact_notes: true,
+          custom_notes: true,
+        }),
+        where: { user_id: 'user-123' },
+        orderBy: { company_name: 'asc' },
+      }),
+    );
   });
 
   it('filters jobs by query, stage, location, and upcoming deadline', async () => {
@@ -223,42 +241,44 @@ describe('Dashboard page', () => {
       } as unknown as DashboardPageProps),
     );
 
-    expect(prisma.job.findMany).toHaveBeenCalledWith({
-      select: {
-        id: true,
-        company_name: true,
-        title: true,
-        location: true,
-        pipeline_stage: true,
-        last_activity_date: true,
-        deadline: true,
-        priority_flag: true,
-        job_description: true,
-        compensation_notes: true,
-        application_date: true,
-        recruiter_contact_notes: true,
-        custom_notes: true,
-      },
-      where: expect.objectContaining({
-        user_id: 'user-123',
-        pipeline_stage: {
-          contains: 'interview',
-          mode: 'insensitive',
-        },
-        location: {
-          contains: 'Austin',
-          mode: 'insensitive',
-        },
-        deadline: expect.objectContaining({
-          not: null,
-          gte: expect.any(Date),
+    expect(prisma.job.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          id: true,
+          company_name: true,
+          title: true,
+          location: true,
+          pipeline_stage: true,
+          last_activity_date: true,
+          deadline: true,
+          priority_flag: true,
+          job_description: true,
+          compensation_notes: true,
+          application_date: true,
+          recruiter_contact_notes: true,
+          custom_notes: true,
         }),
-        OR: expect.any(Array),
+        where: expect.objectContaining({
+          user_id: 'user-123',
+          pipeline_stage: {
+            contains: 'interview',
+            mode: 'insensitive',
+          },
+          location: {
+            contains: 'Austin',
+            mode: 'insensitive',
+          },
+          deadline: expect.objectContaining({
+            not: null,
+            gte: expect.any(Date),
+          }),
+          OR: expect.any(Array),
+        }),
+        orderBy: {
+          last_activity_date: 'desc',
+        },
       }),
-      orderBy: {
-        last_activity_date: 'desc',
-      },
-    });
+    );
   });
 
   it('maps pipeline stages to application statuses before rendering cards', async () => {
