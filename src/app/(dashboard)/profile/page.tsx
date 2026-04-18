@@ -1,7 +1,7 @@
 import GRADIENT_HEADING_CLASS from '@/components/dashboard/gradient';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaAny } from '@/lib/prisma';
 import ProfilePanel from './profile-panel';
 import ExperienceSection from '@/components/profile/ExperienceSection';
 import type { ExperienceEntry } from '@/components/profile/ExperienceSection';
@@ -63,7 +63,7 @@ export default async function Profile() {
 
   const userProfile = user?.Profile;
 
-  const initialExperiences: ExperienceEntry[] = (user?.Experience ?? []).map((e) => ({
+  const initialExperiences: ExperienceEntry[] = (user?.Experience ?? []).map((e): ExperienceEntry => ({
     id: e.id,
     type: e.type,
     title: e.title,
@@ -76,7 +76,7 @@ export default async function Profile() {
     sortOrder: e.sortOrder,
   }));
 
-  const initialSkills: SkillEntry[] = (user?.Skill ?? []).map((s) => ({
+  const initialSkills: SkillEntry[] = (user?.Skill ?? []).map((s): SkillEntry => ({
     id: s.id,
     name: s.name,
     category: s.category,

@@ -14,13 +14,13 @@ function asRequiredString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function asOptionalString(value: unknown): string | null {
+function asOptionalString(value: unknown): string | undefined {
   if (typeof value !== 'string') {
-    return null;
+    return undefined;
   }
 
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 function asRequiredDate(value: unknown): Date | null {
@@ -32,13 +32,13 @@ function asRequiredDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function asOptionalDate(value: unknown): Date | null {
+function asOptionalDate(value: unknown): Date | undefined {
   if (typeof value !== 'string' || value.trim().length === 0) {
-    return null;
+    return undefined;
   }
 
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 export async function POST(request: Request) {
@@ -117,13 +117,13 @@ export async function POST(request: Request) {
         location,
         pipeline_stage: stage,
         last_activity_date: lastActivityDate,
-        deadline,
-        priority_flag: priority,
-        job_description: jobDescription,
-        compensation_notes: compensation,
-        application_date: applicationDate,
-        recruiter_contact_notes: recruiterNotes,
-        custom_notes: otherNotes,
+        deadline: deadline ?? undefined,
+        priority_flag: priority ?? undefined,
+        job_description: jobDescription ?? undefined,
+        compensation_notes: compensation ?? undefined,
+        application_date: applicationDate ?? undefined,
+        recruiter_contact_notes: recruiterNotes ?? undefined,
+        custom_notes: otherNotes ?? undefined,
       },
     });
 
