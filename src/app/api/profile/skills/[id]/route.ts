@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
-import { parseExperienceUpdatePayload } from '@/lib/profile/experience';
+import { parseSkillUpdatePayload } from '@/lib/profile/skill';
 
 export async function PATCH(
   request: Request,
@@ -22,11 +22,11 @@ export async function PATCH(
 
   const { id } = await context.params;
   if (!id) {
-    return NextResponse.json({ error: 'Experience id is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Skill id is required' }, { status: 400 });
   }
 
   const body = await request.json().catch(() => null);
-  const { payload, error: payloadError } = parseExperienceUpdatePayload(body);
+  const { payload, error: payloadError } = parseSkillUpdatePayload(body);
 
   if (!payload || payloadError) {
     return NextResponse.json(
@@ -36,19 +36,19 @@ export async function PATCH(
   }
 
   try {
-    const updateResult = await prisma.experience.updateMany({
+    const updateResult = await prisma.skill.updateMany({
       where: { id, userId: data.user.id },
       data: payload,
     });
 
     if (updateResult.count === 0) {
       return NextResponse.json(
-        { error: 'Experience not found or access denied' },
+        { error: 'Skill not found or access denied' },
         { status: 404 },
       );
     }
 
-    const updated = await prisma.experience.findFirst({
+    const updated = await prisma.skill.findFirst({
       where: { id, userId: data.user.id },
     });
 
@@ -58,7 +58,7 @@ export async function PATCH(
 
     return NextResponse.json(updated, { status: 200 });
   } catch (routeError) {
-    console.error('Failed to update experience', routeError);
+    console.error('Failed to update skill', routeError);
     return NextResponse.json(
       { error: 'Unable to process request.' },
       { status: 500 },
@@ -85,24 +85,24 @@ export async function DELETE(
 
   const { id } = await context.params;
   if (!id) {
-    return NextResponse.json({ error: 'Experience id is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Skill id is required' }, { status: 400 });
   }
 
   try {
-    const deleteResult = await prisma.experience.deleteMany({
+    const deleteResult = await prisma.skill.deleteMany({
       where: { id, userId: data.user.id },
     });
 
     if (deleteResult.count === 0) {
       return NextResponse.json(
-        { error: 'Experience not found or access denied' },
+        { error: 'Skill not found or access denied' },
         { status: 404 },
       );
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (routeError) {
-    console.error('Failed to delete experience', routeError);
+    console.error('Failed to delete skill', routeError);
     return NextResponse.json(
       { error: 'Unable to process request.' },
       { status: 500 },

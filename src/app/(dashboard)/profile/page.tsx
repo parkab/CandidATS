@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import ProfilePanel from './profile-panel';
 import ExperienceSection from '@/components/profile/ExperienceSection';
 import type { ExperienceEntry } from '@/components/profile/ExperienceSection';
+import SkillsSection from '@/components/profile/SkillsSection';
+import type { SkillEntry } from '@/components/profile/SkillsSection';
 
 export default async function Profile() {
   const session = await getSession();
@@ -46,6 +48,16 @@ export default async function Profile() {
           sortOrder: true,
         },
       },
+      Skill: {
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          proficiencyLabel: true,
+          sortOrder: true,
+        },
+      },
     },
   });
 
@@ -62,6 +74,14 @@ export default async function Profile() {
     description: e.description,
     accomplishments: e.accomplishments,
     sortOrder: e.sortOrder,
+  }));
+
+  const initialSkills: SkillEntry[] = (user?.Skill ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    category: s.category,
+    proficiencyLabel: s.proficiencyLabel,
+    sortOrder: s.sortOrder,
   }));
 
   const initialProfile = {
@@ -85,6 +105,9 @@ export default async function Profile() {
       <ProfilePanel initialProfile={initialProfile} />
       <div className="mx-auto mt-8 w-full max-w-4xl">
         <ExperienceSection initialExperiences={initialExperiences} />
+      </div>
+      <div className="mx-auto mt-6 w-full max-w-4xl">
+        <SkillsSection initialSkills={initialSkills} />
       </div>
     </section>
   );
