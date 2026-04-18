@@ -52,6 +52,10 @@ export async function PATCH(
       where: { id, userId: data.user.id },
     });
 
+    if (!updated) {
+      return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
+    }
+
     return NextResponse.json(updated, { status: 200 });
   } catch (routeError) {
     console.error('Failed to update skill', routeError);

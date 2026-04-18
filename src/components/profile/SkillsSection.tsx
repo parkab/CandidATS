@@ -305,10 +305,9 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
       {/* Add / Edit modal */}
       {isModalOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
-          <button
-            type="button"
+          <div
             onClick={closeModal}
-            aria-label="Close modal"
+            aria-hidden="true"
             className="absolute inset-0 bg-black/55"
           />
           <div
@@ -440,10 +439,9 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
       {/* Delete confirmation */}
       {deleteConfirmId ? (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
-          <button
-            type="button"
+          <div
             onClick={() => setDeleteConfirmId(null)}
-            aria-label="Cancel delete"
+            aria-hidden="true"
             className="absolute inset-0 bg-black/55"
           />
           <div

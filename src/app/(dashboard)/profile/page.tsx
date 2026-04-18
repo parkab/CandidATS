@@ -49,7 +49,7 @@ export default async function Profile() {
         },
       },
       Skill: {
-        orderBy: { sortOrder: 'asc' },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
         select: {
           id: true,
           name: true,
