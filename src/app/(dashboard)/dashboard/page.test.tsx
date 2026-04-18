@@ -13,6 +13,12 @@ jest.mock('@/lib/prisma', () => ({
     job: {
       findMany: jest.fn(),
     },
+    timelineEvent: {
+      findMany: jest.fn(),
+    },
+    interview: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -88,6 +94,8 @@ describe('Dashboard page', () => {
         custom_notes: null,
       },
     ]);
+    (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
     render(await Dashboard());
 
@@ -191,6 +199,8 @@ describe('Dashboard page', () => {
         custom_notes: null,
       },
     ]);
+    (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
     render(await Dashboard());
 
@@ -223,6 +233,8 @@ describe('Dashboard page', () => {
         custom_notes: null,
       },
     ]);
+    (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
     render(await Dashboard());
     const firstText = screen.getByText(

@@ -43,6 +43,54 @@ export default async function EditJobApplication({
     redirect('/dashboard');
   }
 
+  // Only fetch timeline for the single job being edited (not all jobs like dashboard does)
+  const timelineEvents = await prisma.timelineEvent.findMany({
+    where: { job_id: jobId },
+    orderBy: { occurred_at: 'desc' },
+  });
+
+  const timelineItems = timelineEvents.map((event) => {
+    let dateString = '';
+    if (event.occurred_at) {
+      const dateObj = typeof event.occurred_at === 'string' 
+        ? new Date(event.occurred_at)
+        : event.occurred_at;
+      if (!Number.isNaN(dateObj.getTime())) {
+        dateString = dateObj.toISOString().split('T')[0];
+      }
+    }
+    return {
+      id: event.id,
+      title: event.event_type || '',
+      date: dateString,
+      notes: event.notes || '',
+    };
+  });
+
+  // Fetch interviews for the job
+  const interviews = await prisma.interview.findMany({
+    where: { job_id: jobId },
+    orderBy: { scheduled_at: 'asc' },
+  });
+
+  const interviewItems = interviews.map((interview) => {
+    let dateString = '';
+    if (interview.scheduled_at) {
+      const dateObj = typeof interview.scheduled_at === 'string' 
+        ? new Date(interview.scheduled_at)
+        : interview.scheduled_at;
+      if (!Number.isNaN(dateObj.getTime())) {
+        dateString = dateObj.toISOString().split('T')[0];
+      }
+    }
+    return {
+      id: interview.id,
+      title: interview.round_type || '',
+      date: dateString,
+      notes: interview.notes || '',
+    };
+  });
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
@@ -67,6 +115,8 @@ export default async function EditJobApplication({
           recruiterNotes: job.recruiter_contact_notes,
           otherNotes: job.custom_notes,
         }}
+        initialTimeline={timelineItems}
+        initialInterviews={interviewItems}
       />
     </section>
   );

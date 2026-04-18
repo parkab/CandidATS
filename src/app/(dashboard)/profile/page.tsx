@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import ProfilePanel from './profile-panel';
+import ExperienceSection from '@/components/profile/ExperienceSection';
+import type { ExperienceEntry } from '@/components/profile/ExperienceSection';
+import SkillsSection from '@/components/profile/SkillsSection';
+import type { SkillEntry } from '@/components/profile/SkillsSection';
 
 export default async function Profile() {
   const session = await getSession();
@@ -29,10 +33,56 @@ export default async function Profile() {
           bio: true,
         },
       },
+      Experience: {
+        orderBy: { sortOrder: 'asc' },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          organization: true,
+          role: true,
+          startDate: true,
+          endDate: true,
+          description: true,
+          accomplishments: true,
+          sortOrder: true,
+        },
+      },
+      Skill: {
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          proficiencyLabel: true,
+          sortOrder: true,
+        },
+      },
     },
   });
 
   const userProfile = user?.Profile;
+
+  const initialExperiences: ExperienceEntry[] = (user?.Experience ?? []).map((e) => ({
+    id: e.id,
+    type: e.type,
+    title: e.title,
+    organization: e.organization,
+    role: e.role,
+    startDate: e.startDate.toISOString(),
+    endDate: e.endDate ? e.endDate.toISOString() : null,
+    description: e.description,
+    accomplishments: e.accomplishments,
+    sortOrder: e.sortOrder,
+  }));
+
+  const initialSkills: SkillEntry[] = (user?.Skill ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    category: s.category,
+    proficiencyLabel: s.proficiencyLabel,
+    sortOrder: s.sortOrder,
+  }));
 
   const initialProfile = {
     firstName: user?.firstName ?? session.firstName ?? '',
@@ -53,6 +103,12 @@ export default async function Profile() {
       </div>
 
       <ProfilePanel initialProfile={initialProfile} />
+      <div className="mx-auto mt-8 w-full max-w-4xl">
+        <ExperienceSection initialExperiences={initialExperiences} />
+      </div>
+      <div className="mx-auto mt-6 w-full max-w-4xl">
+        <SkillsSection initialSkills={initialSkills} />
+      </div>
     </section>
   );
 }

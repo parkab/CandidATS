@@ -84,12 +84,12 @@ model User {
   lastName          String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  CareerPreferences CareerPreferences?
+  Education         Education[]
+  Experience        Experience[]
   Job               Job[]
   Profile           Profile?
-  Experience        Experience[]
   Skill             Skill[]
-  Education         Education[]
-  CareerPreferences CareerPreferences?
 }
 
 model Profile {
