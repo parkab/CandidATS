@@ -13,8 +13,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Auth service unavailable' }, { status: 503 });
   }
 
-  const record = await prisma.careerPreferences.findUnique({ where: { userId } });
-  return NextResponse.json(record ?? null);
+  try {
+    const record = await prisma.careerPreferences.findUnique({ where: { userId } });
+    return NextResponse.json(record ?? null);
+  } catch {
+    return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -29,13 +33,16 @@ export async function PATCH(request: Request) {
 
   const rawBody = await request.json().catch(() => null);
   const { payload, error } = parseCareerPreferencesUpdatePayload(rawBody);
-  if (error) return NextResponse.json({ error }, { status: 400 });
+  if (!payload || error) return NextResponse.json({ error: error ?? 'Invalid payload' }, { status: 400 });
 
-  const updated = await prisma.careerPreferences.upsert({
-    where: { userId },
-    update: payload!,
-    create: { userId, ...payload! },
-  });
-
-  return NextResponse.json(updated);
+  try {
+    const updated = await prisma.careerPreferences.upsert({
+      where: { userId },
+      update: payload,
+      create: { userId, ...payload },
+    });
+    return NextResponse.json(updated);
+  } catch {
+    return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
+  }
 }

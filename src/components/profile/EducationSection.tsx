@@ -52,6 +52,14 @@ function toDateInputValue(value: string | null | undefined): string {
   return value.slice(0, 10);
 }
 
+function sortEducation(list: EducationEntry[]): EducationEntry[] {
+  return [...list].sort((a, b) => {
+    const dateDiff = b.startDate.localeCompare(a.startDate);
+    if (dateDiff !== 0) return dateDiff;
+    return a.id.localeCompare(b.id);
+  });
+}
+
 function validateForm(form: FormState): FormErrors {
   const errors: FormErrors = {};
   if (!form.institution.trim()) errors.institution = 'Institution is required.';
@@ -169,11 +177,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
       const saved = (await response.json()) as EducationEntry;
 
       if (editingId) {
-        setEducation((prev) => prev.map((e) => (e.id === editingId ? saved : e)));
+        setEducation((prev) => sortEducation(prev.map((e) => (e.id === editingId ? saved : e))));
         setToast('Education updated.');
       } else {
-        // Insert at the front since the list is most-recent-first
-        setEducation((prev) => [saved, ...prev]);
+        setEducation((prev) => sortEducation([...prev, saved]));
         setToast('Education added.');
       }
 
