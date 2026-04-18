@@ -44,6 +44,12 @@ type DashboardJobForModal = {
     date: string;
     notes: string;
   }>;
+  interviews: Array<{
+    id: string;
+    title: string;
+    date: string;
+    notes: string;
+  }>;
 };
 
 type JobsModalGridProps = {
@@ -216,6 +222,7 @@ export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
                   onCancel={closeModal}
                   initialJob={selectedJob.formData}
                   initialTimeline={selectedJob.timeline}
+                  initialInterviews={selectedJob.interviews}
                 />
               ) : null}
             </div>
