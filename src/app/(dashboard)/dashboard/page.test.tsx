@@ -63,7 +63,7 @@ describe('Dashboard page', () => {
   it('renders landing experience when session does not exist', async () => {
     (getSession as jest.Mock).mockResolvedValue(null);
 
-    render(await Dashboard());
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
 
     expect(screen.getByText('The ATS for Candidates.')).toBeInTheDocument();
     expect(screen.getByText('Organize your jobs.')).toBeInTheDocument();
@@ -97,10 +97,13 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard());
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();    expect(screen.getByText('Total applications')).toBeInTheDocument();
+    expect(screen.getByText('Open opportunities')).toBeInTheDocument();
+    expect(screen.getByText('Offers received')).toBeInTheDocument();
+    expect(screen.getByText('Past due deadlines')).toBeInTheDocument();
+    expect(screen.getByText('Interviews scheduled')).toBeInTheDocument();    expect(
       screen.getByText(
         /Mock Jobs Modal Grid: 1 jobs \| first company: Stripe \| first angle: -?\d+/,
       ),
@@ -126,6 +129,132 @@ describe('Dashboard page', () => {
       where: {
         user_id: 'user-123',
       },
+      orderBy: {
+        last_activity_date: 'desc',
+      },
+    });
+  });
+
+  it('orders jobs by company name when sort query parameter is company', async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      userId: 'user-123',
+      email: 'test@example.com',
+    });
+    (prisma.job.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'job-1',
+        company_name: 'Stripe',
+        location: 'San Francisco, CA',
+        title: 'Software Engineer',
+        last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
+        pipeline_stage: 'Applied',
+        deadline: null,
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
+      },
+    ]);
+    (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
+
+    render(await Dashboard({ searchParams: Promise.resolve({ sort: 'company' }) } as any));
+
+    expect(prisma.job.findMany).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        company_name: true,
+        title: true,
+        location: true,
+        pipeline_stage: true,
+        last_activity_date: true,
+        deadline: true,
+        priority_flag: true,
+        job_description: true,
+        compensation_notes: true,
+        application_date: true,
+        recruiter_contact_notes: true,
+        custom_notes: true,
+      },
+      where: {
+        user_id: 'user-123',
+      },
+      orderBy: {
+        company_name: 'asc',
+      },
+    });
+  });
+
+  it('filters jobs by query, stage, location, and upcoming deadline', async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      userId: 'user-123',
+      email: 'test@example.com',
+    });
+    (prisma.job.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'job-1',
+        company_name: 'Stripe',
+        location: 'Austin, TX',
+        title: 'Frontend Engineer',
+        last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
+        pipeline_stage: 'Interview',
+        deadline: new Date('2026-04-30T00:00:00.000Z'),
+        priority_flag: false,
+        job_description: null,
+        compensation_notes: null,
+        application_date: null,
+        recruiter_contact_notes: null,
+        custom_notes: null,
+      },
+    ]);
+    (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
+
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({
+          q: 'engineer',
+          stage: 'Interview',
+          location: 'Austin',
+          deadlineState: 'upcoming',
+        }),
+      } as any),
+    );
+
+    expect(prisma.job.findMany).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        company_name: true,
+        title: true,
+        location: true,
+        pipeline_stage: true,
+        last_activity_date: true,
+        deadline: true,
+        priority_flag: true,
+        job_description: true,
+        compensation_notes: true,
+        application_date: true,
+        recruiter_contact_notes: true,
+        custom_notes: true,
+      },
+      where: expect.objectContaining({
+        user_id: 'user-123',
+        pipeline_stage: {
+          contains: 'interview',
+          mode: 'insensitive',
+        },
+        location: {
+          contains: 'Austin',
+          mode: 'insensitive',
+        },
+        deadline: expect.objectContaining({
+          not: null,
+          gte: expect.any(Date),
+        }),
+        OR: expect.any(Array),
+      }),
       orderBy: {
         last_activity_date: 'desc',
       },
@@ -202,7 +331,7 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard());
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
 
     expect(
       screen.getByText(
@@ -236,7 +365,7 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard());
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
     const firstText = screen.getByText(
       /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
     ).textContent;
@@ -244,7 +373,7 @@ describe('Dashboard page', () => {
 
     cleanup();
 
-    render(await Dashboard());
+    render(await Dashboard({ searchParams: Promise.resolve({}) } as any));
     const secondText = screen.getByText(
       /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
     ).textContent;
