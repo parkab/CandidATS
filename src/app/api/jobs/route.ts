@@ -198,6 +198,50 @@ export async function POST(request: Request) {
       }
     }
 
+    // Handle follow-up tasks from form data
+    if (Array.isArray(body.followUps)) {
+      for (const followUpItem of body.followUps as Array<
+        Record<string, unknown>
+      >) {
+        const title = followUpItem.title;
+        const dueDate = followUpItem.date;
+        const notes = followUpItem.notes;
+
+        // Require title for follow-up tasks
+        if (!title) {
+          continue; // Skip items without a title
+        }
+
+        const titleValue =
+          typeof title === 'string' ? title.trim() : '';
+        // Require a non-empty string title for follow-up tasks
+        if (titleValue.length === 0) {
+          continue; // Skip items without a valid title
+        }
+        // Use provided date or default to null if not provided or invalid
+        let parsedDate = null;
+        if (typeof dueDate === 'string' && dueDate.trim()) {
+          const parsed = new Date(dueDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        const notesValue =
+          typeof notes === 'string' ? notes.trim() : null;
+
+        await prisma.followUpTask.create({
+          data: {
+            job_id: createdJob.id,
+            title: titleValue,
+            due_date: parsedDate,
+            completed: false,
+            notes: notesValue,
+          },
+        });
+      }
+    }
+
     return NextResponse.json(createdJob, { status: 201 });
   } catch (error) {
     console.error('Failed to create job:', error);
