@@ -100,9 +100,7 @@ export default async function EditJobApplication({
   const followUpItems = followUps.map((followUp) => {
     let dateString = '';
     if (followUp.due_date) {
-      const dateObj = typeof followUp.due_date === 'string' 
-        ? new Date(followUp.due_date)
-        : followUp.due_date;
+      const dateObj = followUp.due_date as Date;
       if (!Number.isNaN(dateObj.getTime())) {
         dateString = dateObj.toISOString().split('T')[0];
       }
@@ -111,7 +109,7 @@ export default async function EditJobApplication({
       id: followUp.id,
       title: followUp.title || '',
       date: dateString,
-      notes: followUp.completed ? 'Completed' : '',
+      notes: followUp.notes || '',
     };
   });
 

@@ -366,6 +366,11 @@ export async function PATCH(
         const titleValue =
           typeof title === 'string' ? title.trim() : '';
 
+        // Require a non-empty string title for follow-up tasks
+        if (titleValue.length === 0) {
+          continue; // Skip items without a valid title
+        }
+
         let parsedDate: Date | null = null;
         if (typeof dueDate === 'string' && dueDate.trim()) {
           const parsed = new Date(dueDate);
@@ -380,12 +385,14 @@ export async function PATCH(
           existingFollowUpIds.has(itemId)
         ) {
           incomingFollowUpIds.add(itemId);
+          const notesValue =
+            typeof notes === 'string' ? notes.trim() : null;
           await prisma.followUpTask.update({
             where: { id: itemId },
             data: {
               title: titleValue,
               due_date: parsedDate,
-              completed: typeof notes === 'boolean' ? notes : undefined,
+              notes: notesValue,
             },
           });
         } else {
@@ -399,6 +406,8 @@ export async function PATCH(
           if (followUpId) {
             incomingFollowUpIds.add(followUpId);
           }
+          const notesValue =
+            typeof notes === 'string' ? notes.trim() : null;
           const createdFollowUp = await prisma.followUpTask.create({
             data: {
               id: followUpId,
@@ -406,6 +415,7 @@ export async function PATCH(
               title: titleValue,
               due_date: parsedDate,
               completed: false,
+              notes: notesValue,
             },
           });
           // Track the actual created ID for deletion tracking

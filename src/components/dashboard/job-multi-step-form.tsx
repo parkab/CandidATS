@@ -37,9 +37,6 @@ type JobMultiStepFormProps = {
   onFinalSave: FinalSaveAdapter;
   onStepSave?: StepSaveAdapter;
   onDelete?: () => void;
-  jobId?: string;
-  jobTitle?: string;
-  jobCompany?: string;
   deleteError?: string | null;
   isDeleting?: boolean;
   initialDraft?: Partial<JobMultiStepDraft>;
@@ -54,9 +51,6 @@ export default function JobMultiStepForm({
   onFinalSave,
   onStepSave,
   onDelete,
-  jobId,
-  jobTitle,
-  jobCompany,
   deleteError,
   isDeleting = false,
   initialDraft,
@@ -657,7 +651,7 @@ export default function JobMultiStepForm({
         }
       >
         <div className="flex gap-2">
-          {onDelete && jobId ? (
+          {onDelete ? (
             <button
               type="button"
               onClick={onDelete}

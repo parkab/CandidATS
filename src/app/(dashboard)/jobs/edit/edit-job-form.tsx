@@ -223,9 +223,6 @@ export default function EditJobForm({
         onCancel={handleCancel}
         onFinalSave={handleFinalSave}
         onDelete={() => setIsDeleteDialogOpen(true)}
-        jobId={initialJob.id}
-        jobTitle={initialJob.title}
-        jobCompany={initialJob.company}
         stickyFooter={inModal}
         showFooterCancel={!inModal}
         deleteError={deleteError}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 type DeleteJobDialogProps = {
   jobId: string;
@@ -20,6 +20,8 @@ export default function DeleteJobDialog({
   companyName,
 }: DeleteJobDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -29,17 +31,30 @@ export default function DeleteJobDialog({
 
     if (isOpen) {
       dialog.showModal();
-    } else if (dialog.close) {
+    } else if (dialog.open) {
       dialog.close();
     }
   }, [isOpen]);
 
+  function handleEscape(e: React.KeyboardEvent<HTMLDialogElement>) {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }
+
   async function handleConfirm() {
+    setError(null);
+    setIsDeleting(true);
+    
     try {
       await onConfirm();
+      setIsDeleting(false);
       onClose();
-    } catch (error) {
-      // Error handling is done in the parent component
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setError(errorMessage);
+      setIsDeleting(false);
     }
   }
 
@@ -48,7 +63,11 @@ export default function DeleteJobDialog({
   return (
     <dialog
       ref={dialogRef}
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="delete-dialog-title"
       className="fixed inset-0 m-auto w-96 overflow-hidden rounded-lg border border-(--surface-divider) bg-(--background) shadow-xl backdrop:bg-black/50"
+      onKeyDown={handleEscape}
       onClick={(e) => {
         if (e.target === dialogRef.current) {
           onClose();
@@ -56,7 +75,7 @@ export default function DeleteJobDialog({
       }}
     >
       <div className="w-96 p-6">
-        <h2 className="text-lg font-semibold text-(--foreground)">
+        <h2 id="delete-dialog-title" className="text-lg font-semibold text-(--foreground)">
           Delete Job Application?
         </h2>
         <p className="mt-3 text-sm text-(--text-muted)">
@@ -66,6 +85,7 @@ export default function DeleteJobDialog({
           <button
             type="button"
             onClick={onClose}
+            disabled={isDeleting}
             className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
           >
             Cancel
@@ -73,11 +93,17 @@ export default function DeleteJobDialog({
           <button
             type="button"
             onClick={handleConfirm}
+            disabled={isDeleting}
             className="rounded-md bg-(--danger-bg) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-(--background) disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Delete
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
+        {error && (
+          <p className="mt-4 text-sm font-medium text-(--danger-text)" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     </dialog>
   );

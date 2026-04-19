@@ -214,7 +214,10 @@ export async function POST(request: Request) {
 
         const titleValue =
           typeof title === 'string' ? title.trim() : '';
-
+        // Require a non-empty string title for follow-up tasks
+        if (titleValue.length === 0) {
+          continue; // Skip items without a valid title
+        }
         // Use provided date or default to null if not provided or invalid
         let parsedDate = null;
         if (typeof dueDate === 'string' && dueDate.trim()) {
@@ -224,12 +227,16 @@ export async function POST(request: Request) {
           }
         }
 
+        const notesValue =
+          typeof notes === 'string' ? notes.trim() : null;
+
         await prisma.followUpTask.create({
           data: {
             job_id: createdJob.id,
             title: titleValue,
             due_date: parsedDate,
             completed: false,
+            notes: notesValue,
           },
         });
       }

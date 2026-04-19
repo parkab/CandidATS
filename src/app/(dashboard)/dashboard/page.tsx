@@ -309,6 +309,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           title: true,
           due_date: true,
           completed: true,
+          notes: true,
         },
         orderBy: {
           due_date: 'asc',
@@ -494,7 +495,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
         id: followUp.id,
         title: followUp.title ?? '',
         date: dateString,
-        notes: followUp.completed ? 'Completed' : '',
+        notes: followUp.notes ?? '',
       };
     });
 
