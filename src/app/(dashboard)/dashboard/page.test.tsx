@@ -39,13 +39,13 @@ jest.mock('next/link', () => ({
 jest.mock('@/components/dashboard/jobs-modal-grid', () => ({
   __esModule: true,
   default: ({
-    jobs,
+    initialJobs,
   }: {
-    jobs: Array<{ company: string; status: string; angle: number }>;
+    initialJobs: Array<{ company: string; status: string; angle: number }>;
   }) => (
     <div>
-      Mock Jobs Modal Grid: {jobs.length} jobs | first company:{' '}
-      {jobs[0]?.company} | first angle: {jobs[0]?.angle}
+      Mock Jobs Modal Grid: {initialJobs.length} jobs | first company:{' '}
+      {initialJobs[0]?.company} | first angle: {initialJobs[0]?.angle}
     </div>
   ),
 }));

@@ -1,5 +1,6 @@
 import { ApplicationStatus, APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import PolaroidShell from '@/components/dashboard/polaroid-shell';
+import PipelineStageDropdown from '@/components/dashboard/pipeline-stage-dropdown';
 
 type PolaroidCardProps = {
   company: string;
@@ -8,6 +9,8 @@ type PolaroidCardProps = {
   lastActivityDate: string;
   status: ApplicationStatus;
   angle?: number;
+  jobId?: string;
+  onStageChange?: (newStage: ApplicationStatus) => Promise<void>;
   highPriority?: boolean;
 };
 
@@ -18,6 +21,8 @@ export default function PolaroidCard({
   lastActivityDate,
   status,
   angle = 0,
+  jobId,
+  onStageChange,
   highPriority = false,
 }: PolaroidCardProps) {
   return (
@@ -56,12 +61,22 @@ export default function PolaroidCard({
         <p className="text-left italic leading-none opacity-80">
           {lastActivityDate}
         </p>
-        <p
-          className="rounded-md px-2.5 py-1 text-right leading-none font-bold text-(--background)"
-          style={{ backgroundColor: `${APPLICATION_STATUS_COLOR[status]}8C` }}
-        >
-          {status}
-        </p>
+        {jobId && onStageChange ? (
+          <div className="flex-1 max-w-xs">
+            <PipelineStageDropdown
+              currentStage={status}
+              jobId={jobId}
+              onStageChange={onStageChange}
+            />
+          </div>
+        ) : (
+          <p
+            className="rounded-md px-2.5 py-1 text-right leading-none font-bold text-(--background)"
+            style={{ backgroundColor: `${APPLICATION_STATUS_COLOR[status]}8C` }}
+          >
+            {status}
+          </p>
+        )}
       </div>
     </PolaroidShell>
   );
