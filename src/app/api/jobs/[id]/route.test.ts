@@ -14,6 +14,9 @@ jest.mock('@/lib/prisma', () => ({
     timelineEvent: {
       create: jest.fn(),
     },
+    pipelineStageHistory: {
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -22,7 +25,9 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 jest.mock('@/lib/jobs/timeline', () => ({
+  createArchiveStateEvent: jest.fn(),
   createStageChangeEvent: jest.fn(),
+  createStageTransitionHistory: jest.fn(),
 }));
 
 const mockedUpdateMany = jest.mocked(prisma.job.updateMany);
@@ -32,6 +37,12 @@ const mockedGetSupabaseUserFromRequest = jest.mocked(
 );
 const mockedCreateStageChangeEvent = jest.mocked(
   timelineModule.createStageChangeEvent,
+);
+const mockedCreateStageTransitionHistory = jest.mocked(
+  timelineModule.createStageTransitionHistory,
+);
+const mockedCreateArchiveStateEvent = jest.mocked(
+  timelineModule.createArchiveStateEvent,
 );
 
 function buildRequest(body: Record<string, unknown>) {
@@ -303,6 +314,9 @@ describe('PATCH /api/jobs/[id]', () => {
     mockedFindFirst.mockResolvedValueOnce(currentJob as never);
     mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
     mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateStageTransitionHistory.mockResolvedValue({
+      id: 'history-1',
+    } as never);
     mockedCreateStageChangeEvent.mockResolvedValue({
       id: 'event-1',
       job_id: 'job-1',
@@ -327,6 +341,13 @@ describe('PATCH /api/jobs/[id]', () => {
       'job-1',
       'Applied',
       'Interview',
+      expect.any(Date),
+    );
+    expect(mockedCreateStageTransitionHistory).toHaveBeenCalledWith(
+      'job-1',
+      'Applied',
+      'Interview',
+      expect.any(Date),
     );
   });
 
@@ -367,7 +388,105 @@ describe('PATCH /api/jobs/[id]', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(mockedCreateStageTransitionHistory).not.toHaveBeenCalled();
     expect(mockedCreateStageChangeEvent).not.toHaveBeenCalled();
   });
-});
 
+  it('creates an archive event when archived state changes to true', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    const currentJob = {
+      id: 'job-1',
+      user_id: 'session-user-id',
+      title: 'Software Engineer',
+      company_name: 'Acme',
+      location: 'Remote',
+      pipeline_stage: 'Interview',
+      archived: false,
+      last_activity_date: new Date('2026-04-01T00:00:00.000Z'),
+    };
+
+    const updatedJob = {
+      ...currentJob,
+      archived: true,
+    };
+
+    mockedFindFirst.mockResolvedValueOnce(currentJob as never);
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateArchiveStateEvent.mockResolvedValue({
+      id: 'event-archive',
+    } as never);
+
+    const response = await PATCH(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Interview',
+        lastActivityDate: '2026-04-01',
+        archived: true,
+      }),
+      { params: Promise.resolve({ id: 'job-1' }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedCreateArchiveStateEvent).toHaveBeenCalledWith(
+      'job-1',
+      true,
+      expect.any(Date),
+    );
+  });
+
+  it('creates a restore event when archived state changes to false', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'session-user-id' } },
+      error: null,
+    } as never);
+
+    const currentJob = {
+      id: 'job-1',
+      user_id: 'session-user-id',
+      title: 'Software Engineer',
+      company_name: 'Acme',
+      location: 'Remote',
+      pipeline_stage: 'Interview',
+      archived: true,
+      last_activity_date: new Date('2026-04-01T00:00:00.000Z'),
+    };
+
+    const updatedJob = {
+      ...currentJob,
+      archived: false,
+    };
+
+    mockedFindFirst.mockResolvedValueOnce(currentJob as never);
+    mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
+    mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateArchiveStateEvent.mockResolvedValue({
+      id: 'event-restore',
+    } as never);
+
+    const response = await PATCH(
+      buildRequest({
+        title: 'Software Engineer',
+        company: 'Acme',
+        location: 'Remote',
+        stage: 'Interview',
+        lastActivityDate: '2026-04-01',
+        archived: false,
+      }),
+      { params: Promise.resolve({ id: 'job-1' }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedCreateArchiveStateEvent).toHaveBeenCalledWith(
+      'job-1',
+      false,
+      expect.any(Date),
+    );
+  });
+});

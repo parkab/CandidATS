@@ -20,6 +20,7 @@ type DashboardJobForModal = {
   company: string;
   title: string;
   location: string;
+  archived: boolean;
   status: ApplicationStatus;
   lastActivityDateLabel: string;
   angle: number;
@@ -37,6 +38,7 @@ type DashboardJobForModal = {
     applicationDate: string | null;
     recruiterNotes: string | null;
     otherNotes: string | null;
+    archived: boolean;
   };
   timeline: Array<{
     id: string;
@@ -60,6 +62,7 @@ export default function JobsModalGrid({
   initialJobs: DashboardJobForModal[];
 }) {
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
+  const [showArchived, setShowArchived] = useState(false);
   const [modalState, setModalState] = useState<ModalState>(null);
 
   // Keep jobs in sync when the parent re-fetches (e.g. after router.refresh())
@@ -78,6 +81,11 @@ export default function JobsModalGrid({
 
     return jobs.find((job) => job.id === modalState.jobId) ?? null;
   }, [jobs, modalState]);
+
+  const visibleJobs = useMemo(
+    () => (showArchived ? jobs : jobs.filter((job) => !job.archived)),
+    [jobs, showArchived],
+  );
 
   function closeModal() {
     setModalState(null);
@@ -154,6 +162,63 @@ export default function JobsModalGrid({
     }
   }
 
+  async function handleArchiveStateChange(
+    jobId: string,
+    nextArchived: boolean,
+  ) {
+    const oldJob = jobs.find((job) => job.id === jobId);
+    if (!oldJob) {
+      throw new Error('Job not found');
+    }
+
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              archived: nextArchived,
+              formData: { ...job.formData, archived: nextArchived },
+            }
+          : job,
+      ),
+    );
+
+    try {
+      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: oldJob.formData.title,
+          company: oldJob.formData.company,
+          location: oldJob.formData.location,
+          stage: oldJob.formData.stage,
+          lastActivityDate: oldJob.formData.lastActivityDate,
+          deadline: oldJob.formData.deadline,
+          priority: oldJob.formData.priority,
+          jobDescription: oldJob.formData.jobDescription,
+          compensation: oldJob.formData.compensation,
+          applicationDate: oldJob.formData.applicationDate,
+          recruiterNotes: oldJob.formData.recruiterNotes,
+          otherNotes: oldJob.formData.otherNotes,
+          archived: nextArchived,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          nextArchived ? 'Failed to archive job' : 'Failed to restore job',
+        );
+      }
+    } catch (error) {
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => (job.id === jobId ? oldJob : job)),
+      );
+      throw error;
+    }
+  }
+
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -203,6 +268,15 @@ export default function JobsModalGrid({
 
   return (
     <>
+      <div className="mx-auto mt-10 flex max-w-6xl items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setShowArchived((current) => !current)}
+          className="cursor-pointer rounded-md border border-(--surface-border) bg-[linear-gradient(110deg,var(--background)_0%,var(--background)_48%,#ffa647_66%,#70e2ff_84%,#cd93ff_100%)] bg-size-[220%_100%] bg-position-[0%_0%] px-4 py-2 text-sm font-semibold text-(--foreground) transition-[background-position,color] duration-500 hover:bg-position-[100%_0%] hover:text-[#111111]"
+        >
+          {showArchived ? 'Hide archived cards' : 'Show archived cards'}
+        </button>
+      </div>
       <div className="mx-auto mt-12 grid max-w-6xl gap-8 grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">
         <button
           type="button"
@@ -212,7 +286,7 @@ export default function JobsModalGrid({
           <PolaroidAddCard />
         </button>
 
-        {jobs.map((job) => (
+        {visibleJobs.map((job) => (
           <div
             key={job.id}
             role="button"
@@ -232,10 +306,13 @@ export default function JobsModalGrid({
               position={job.title}
               lastActivityDate={job.lastActivityDateLabel}
               status={job.status}
+              archived={job.archived}
               angle={job.angle}
               jobId={job.id}
               onStageChange={(newStage) => handleStageChange(job.id, newStage)}
-              highPriority={Boolean(job.formData.priority)}
+              onToggleArchive={(nextArchived) =>
+                handleArchiveStateChange(job.id, nextArchived)
+              }
             />
           </div>
         ))}
