@@ -84,11 +84,11 @@ export default function JobSearchFilterControl() {
                 }
               }}
               placeholder="Search by title, company, or keywords"
-              className="min-w-0 flex-1 rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--text-default) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
+              className="min-w-0 flex-1 rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--foreground) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
             />
             <button
               onClick={handleSearch}
-              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-medium text-(--background) hover:bg-(--foreground-hover) focus:outline-none focus:ring-2 focus:ring-(--foreground) focus:ring-offset-2"
+              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-medium text-(--background) hover:bg-(--inverse-hover) focus:outline-none focus:ring-2 focus:ring-(--foreground) focus:ring-offset-2"
             >
               Apply filters
             </button>
@@ -100,7 +100,7 @@ export default function JobSearchFilterControl() {
           <select
             value={selectedStage}
             onChange={(event) => setSelectedStage(event.target.value)}
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--text-default) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
+            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--foreground) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
           >
             {STAGE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -118,7 +118,7 @@ export default function JobSearchFilterControl() {
               value={selectedLocation}
               onChange={(event) => setSelectedLocation(event.target.value)}
               placeholder="Enter a location"
-              className="w-full rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--text-default) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
+              className="w-full rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--foreground) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
             />
           </label>
 
@@ -127,7 +127,7 @@ export default function JobSearchFilterControl() {
             <select
               value={selectedDeadlineState}
               onChange={(event) => setSelectedDeadlineState(event.target.value)}
-              className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--text-default) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
+              className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--foreground) focus:border-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
             >
               {DEADLINE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
