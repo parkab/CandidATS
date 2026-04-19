@@ -471,8 +471,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           <JobSortControl />
         </div>
       </div>
-
-      <JobsModalGrid jobs={jobsForModal} />
+      <JobsModalGrid initialJobs={jobsForModal} />
     </section>
   );
 }
