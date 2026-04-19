@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import {
   createTimelineEvent,
   createStageChangeEvent,
+  createStageTransitionHistory,
 } from './timeline';
 
 jest.mock('@/lib/prisma', () => ({
@@ -9,10 +10,16 @@ jest.mock('@/lib/prisma', () => ({
     timelineEvent: {
       create: jest.fn(),
     },
+    pipelineStageHistory: {
+      create: jest.fn(),
+    },
   },
 }));
 
 const mockedCreate = jest.mocked(prisma.timelineEvent.create);
+const mockedPipelineStageHistoryCreate = jest.mocked(
+  prisma.pipelineStageHistory.create,
+);
 
 describe('Timeline helper functions', () => {
   beforeEach(() => {
@@ -232,6 +239,81 @@ describe('Timeline helper functions', () => {
         },
       });
       expect(result).toEqual(createdEvent);
+    });
+
+    it('uses provided occurredAt when supplied', async () => {
+      const occurredAt = new Date('2026-04-03T14:30:00.000Z');
+      const createdEvent = {
+        id: 'event-1',
+        job_id: 'job-1',
+        event_type: 'stage_changed',
+        notes: 'Changed from Applied to Interview',
+        occurred_at: occurredAt,
+      };
+
+      mockedCreate.mockResolvedValue(createdEvent as never);
+
+      const result = await createStageChangeEvent(
+        'job-1',
+        'Applied',
+        'Interview',
+        occurredAt,
+      );
+
+      expect(mockedCreate).toHaveBeenCalledWith({
+        data: {
+          job_id: 'job-1',
+          event_type: 'stage_changed',
+          notes: 'Changed from Applied to Interview',
+          occurred_at: occurredAt,
+        },
+      });
+      expect(result).toEqual(createdEvent);
+    });
+  });
+
+  describe('createStageTransitionHistory', () => {
+    it('creates a stage transition history row when stage changes', async () => {
+      const changedAt = new Date('2026-04-05T09:00:00.000Z');
+      const createdHistory = {
+        id: 'history-1',
+        job_id: 'job-1',
+        from_stage: 'Applied',
+        to_stage: 'Interview',
+        changed_at: changedAt,
+      };
+
+      mockedPipelineStageHistoryCreate.mockResolvedValue(
+        createdHistory as never,
+      );
+
+      const result = await createStageTransitionHistory(
+        'job-1',
+        'Applied',
+        'Interview',
+        changedAt,
+      );
+
+      expect(mockedPipelineStageHistoryCreate).toHaveBeenCalledWith({
+        data: {
+          job_id: 'job-1',
+          from_stage: 'Applied',
+          to_stage: 'Interview',
+          changed_at: changedAt,
+        },
+      });
+      expect(result).toEqual(createdHistory);
+    });
+
+    it('returns null when stage does not change', async () => {
+      const result = await createStageTransitionHistory(
+        'job-1',
+        'Interview',
+        'Interview',
+      );
+
+      expect(mockedPipelineStageHistoryCreate).not.toHaveBeenCalled();
+      expect(result).toBeNull();
     });
   });
 });
