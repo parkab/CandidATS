@@ -51,7 +51,6 @@ export default function PolaroidCard({
             >
               <path d="M12 2.5l2.2 5.1 5.6.5-4.3 3.4 1.6 5.3L12 14.9 6.9 17.8l1.6-5.3L4.2 9.1l5.6-.5L12 2.5z" />
             </svg>
-            <span className="sr-only">High priority</span>
           </span>
         ) : null}
         <p className="line-clamp-2 text-lg font-semibold leading-tight">
