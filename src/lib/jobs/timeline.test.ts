@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import {
   createTimelineEvent,
   createStageChangeEvent,
+  createArchiveStateEvent,
   createStageTransitionHistory,
 } from './timeline';
 
@@ -314,6 +315,58 @@ describe('Timeline helper functions', () => {
 
       expect(mockedPipelineStageHistoryCreate).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('createArchiveStateEvent', () => {
+    it('creates a job_archived timeline event', async () => {
+      const occurredAt = new Date('2026-04-05T10:00:00.000Z');
+      const createdEvent = {
+        id: 'event-archive-1',
+        job_id: 'job-1',
+        event_type: 'job_archived',
+        notes: 'Job archived',
+        occurred_at: occurredAt,
+      };
+
+      mockedCreate.mockResolvedValue(createdEvent as never);
+
+      const result = await createArchiveStateEvent('job-1', true, occurredAt);
+
+      expect(mockedCreate).toHaveBeenCalledWith({
+        data: {
+          job_id: 'job-1',
+          event_type: 'job_archived',
+          notes: 'Job archived',
+          occurred_at: occurredAt,
+        },
+      });
+      expect(result).toEqual(createdEvent);
+    });
+
+    it('creates a job_restored timeline event', async () => {
+      const occurredAt = new Date('2026-04-05T11:00:00.000Z');
+      const createdEvent = {
+        id: 'event-restore-1',
+        job_id: 'job-1',
+        event_type: 'job_restored',
+        notes: 'Job restored',
+        occurred_at: occurredAt,
+      };
+
+      mockedCreate.mockResolvedValue(createdEvent as never);
+
+      const result = await createArchiveStateEvent('job-1', false, occurredAt);
+
+      expect(mockedCreate).toHaveBeenCalledWith({
+        data: {
+          job_id: 'job-1',
+          event_type: 'job_restored',
+          notes: 'Job restored',
+          occurred_at: occurredAt,
+        },
+      });
+      expect(result).toEqual(createdEvent);
     });
   });
 });

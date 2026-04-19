@@ -124,6 +124,7 @@ export async function POST(request: Request) {
         application_date: applicationDate,
         recruiter_contact_notes: recruiterNotes,
         custom_notes: otherNotes,
+        archived: false,
       },
     });
 
@@ -174,7 +175,8 @@ export async function POST(request: Request) {
           continue; // Skip items without round type or notes
         }
 
-        const roundTypeValue = typeof roundType === 'string' ? roundType.trim() : '';
+        const roundTypeValue =
+          typeof roundType === 'string' ? roundType.trim() : '';
 
         // Use provided date or default to now if not provided or invalid
         let parsedDate = new Date();
