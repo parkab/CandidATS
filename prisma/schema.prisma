@@ -15,6 +15,7 @@ model FollowUpTask {
   due_date   DateTime? @db.Date
   completed  Boolean?
   created_at DateTime? @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  notes      String?
   Job        Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
 }
 
