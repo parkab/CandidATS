@@ -164,8 +164,7 @@ function getJobWhere(
 
   if (stageFilter !== 'all') {
     where.pipeline_stage = {
-      contains: stageFilter.toLowerCase(),
-      mode: 'insensitive',
+      equals: stageFilter,
     };
   }
 
