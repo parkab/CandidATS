@@ -53,7 +53,7 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
   const dialogTitleId = useId();
   const modalRef = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
-  const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const lastTriggerRef = useRef<HTMLElement | null>(null);
 
   const selectedJob = useMemo(() => {
     if (!modalState || modalState.type !== 'edit') {
@@ -74,12 +74,12 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
     }
   }
 
-  function openCreateModal(trigger: HTMLButtonElement) {
+  function openCreateModal(trigger: HTMLElement) {
     lastTriggerRef.current = trigger;
     setModalState({ type: 'create' });
   }
 
-  function openEditModal(trigger: HTMLButtonElement, jobId: string) {
+  function openEditModal(trigger: HTMLElement, jobId: string) {
     lastTriggerRef.current = trigger;
     setModalState({ type: 'edit', jobId });
   }
@@ -193,11 +193,18 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
         </button>
 
         {jobs.map((job) => (
-          <button
+          <div
             key={job.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={(event) => openEditModal(event.currentTarget, job.id)}
-            className="block rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openEditModal(event.currentTarget, job.id);
+              }
+            }}
+            className="block rounded-sm text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
           >
             <PolaroidCard
               company={job.company}
@@ -209,7 +216,7 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
               jobId={job.id}
               onStageChange={(newStage) => handleStageChange(job.id, newStage)}
             />
-          </button>
+          </div>
         ))}
       </div>
 
