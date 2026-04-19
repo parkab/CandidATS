@@ -14,6 +14,9 @@ jest.mock('@/lib/prisma', () => ({
     timelineEvent: {
       create: jest.fn(),
     },
+    pipelineStageHistory: {
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -23,6 +26,7 @@ jest.mock('@/lib/supabase', () => ({
 
 jest.mock('@/lib/jobs/timeline', () => ({
   createStageChangeEvent: jest.fn(),
+  createStageTransitionHistory: jest.fn(),
 }));
 
 const mockedUpdateMany = jest.mocked(prisma.job.updateMany);
@@ -32,6 +36,9 @@ const mockedGetSupabaseUserFromRequest = jest.mocked(
 );
 const mockedCreateStageChangeEvent = jest.mocked(
   timelineModule.createStageChangeEvent,
+);
+const mockedCreateStageTransitionHistory = jest.mocked(
+  timelineModule.createStageTransitionHistory,
 );
 
 function buildRequest(body: Record<string, unknown>) {
@@ -303,6 +310,9 @@ describe('PATCH /api/jobs/[id]', () => {
     mockedFindFirst.mockResolvedValueOnce(currentJob as never);
     mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
     mockedFindFirst.mockResolvedValueOnce(updatedJob as never);
+    mockedCreateStageTransitionHistory.mockResolvedValue({
+      id: 'history-1',
+    } as never);
     mockedCreateStageChangeEvent.mockResolvedValue({
       id: 'event-1',
       job_id: 'job-1',
@@ -327,6 +337,13 @@ describe('PATCH /api/jobs/[id]', () => {
       'job-1',
       'Applied',
       'Interview',
+      expect.any(Date),
+    );
+    expect(mockedCreateStageTransitionHistory).toHaveBeenCalledWith(
+      'job-1',
+      'Applied',
+      'Interview',
+      expect.any(Date),
     );
   });
 
@@ -367,7 +384,7 @@ describe('PATCH /api/jobs/[id]', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(mockedCreateStageTransitionHistory).not.toHaveBeenCalled();
     expect(mockedCreateStageChangeEvent).not.toHaveBeenCalled();
   });
 });
-

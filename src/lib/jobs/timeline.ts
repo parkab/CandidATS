@@ -33,6 +33,7 @@ export async function createStageChangeEvent(
   jobId: string,
   oldStage: string | null,
   newStage: string | null,
+  occurredAt?: Date,
 ) {
   if (oldStage === newStage) {
     return null; // No change, don't create an event
@@ -45,5 +46,32 @@ export async function createStageChangeEvent(
         ? `Changed to ${newStage}`
         : 'Stage changed';
 
-  return createTimelineEvent(jobId, 'stage_changed', notes);
+  return createTimelineEvent(jobId, 'stage_changed', notes, occurredAt);
+}
+
+/**
+ * Persists a dedicated history row for a job stage transition.
+ * @param jobId - The job ID
+ * @param oldStage - The previous pipeline stage
+ * @param newStage - The new pipeline stage
+ * @param changedAt - Optional timestamp for the transition (defaults to now)
+ */
+export async function createStageTransitionHistory(
+  jobId: string,
+  oldStage: string | null,
+  newStage: string | null,
+  changedAt?: Date,
+) {
+  if (oldStage === newStage) {
+    return null;
+  }
+
+  return prisma.pipelineStageHistory.create({
+    data: {
+      job_id: jobId,
+      from_stage: oldStage,
+      to_stage: newStage,
+      changed_at: changedAt ?? new Date(),
+    },
+  });
 }

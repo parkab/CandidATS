@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
-import { createStageChangeEvent } from '@/lib/jobs/timeline';
+import {
+  createStageChangeEvent,
+  createStageTransitionHistory,
+} from '@/lib/jobs/timeline';
 
 type UpdateJobBody = Record<string, unknown>;
 
@@ -172,7 +175,8 @@ export async function PATCH(
           continue; // Skip items without title or notes
         }
 
-        const titleValue = typeof itemTitle === 'string' ? itemTitle.trim() : '';
+        const titleValue =
+          typeof itemTitle === 'string' ? itemTitle.trim() : '';
 
         let parsedDate = new Date();
         if (typeof itemDate === 'string' && itemDate.trim()) {
@@ -182,7 +186,11 @@ export async function PATCH(
           }
         }
 
-        if (itemId && typeof itemId === 'string' && existingEventIds.has(itemId)) {
+        if (
+          itemId &&
+          typeof itemId === 'string' &&
+          existingEventIds.has(itemId)
+        ) {
           incomingEventIds.add(itemId);
           await prisma.timelineEvent.update({
             where: { id: itemId },
@@ -194,7 +202,12 @@ export async function PATCH(
           });
         } else {
           // Create new event - use client-provided ID if valid, otherwise let Prisma generate
-          const eventId = itemId && typeof itemId === 'string' && !existingEventIds.has(itemId) ? itemId : undefined;
+          const eventId =
+            itemId &&
+            typeof itemId === 'string' &&
+            !existingEventIds.has(itemId)
+              ? itemId
+              : undefined;
           if (eventId) {
             incomingEventIds.add(eventId);
           }
@@ -230,7 +243,9 @@ export async function PATCH(
         where: { job_id: jobId },
       });
 
-      const existingInterviewIds = new Set(existingInterviews.map((interview) => interview.id));
+      const existingInterviewIds = new Set(
+        existingInterviews.map((interview) => interview.id),
+      );
       const incomingInterviewIds = new Set<string>();
 
       for (const interviewItem of body.interviews as Array<
@@ -246,7 +261,8 @@ export async function PATCH(
           continue; // Skip items without round type or notes
         }
 
-        const roundTypeValue = typeof roundType === 'string' ? roundType.trim() : '';
+        const roundTypeValue =
+          typeof roundType === 'string' ? roundType.trim() : '';
 
         let parsedDate = new Date();
         if (typeof scheduledDate === 'string' && scheduledDate.trim()) {
@@ -256,14 +272,22 @@ export async function PATCH(
           }
         }
 
-        if (itemId && typeof itemId === 'string' && existingInterviewIds.has(itemId)) {
+        if (
+          itemId &&
+          typeof itemId === 'string' &&
+          existingInterviewIds.has(itemId)
+        ) {
           incomingInterviewIds.add(itemId);
           // Only update scheduled_at if a valid date was provided; preserve existing date if empty
           const updateData: Record<string, unknown> = {
             round_type: roundTypeValue || 'Interview',
             notes: typeof notes === 'string' ? notes.trim() : null,
           };
-          if (scheduledDate && typeof scheduledDate === 'string' && scheduledDate.trim()) {
+          if (
+            scheduledDate &&
+            typeof scheduledDate === 'string' &&
+            scheduledDate.trim()
+          ) {
             updateData.scheduled_at = parsedDate;
           }
           await prisma.interview.update({
@@ -272,7 +296,12 @@ export async function PATCH(
           });
         } else {
           // Create new interview
-          const interviewId = itemId && typeof itemId === 'string' && !existingInterviewIds.has(itemId) ? itemId : undefined;
+          const interviewId =
+            itemId &&
+            typeof itemId === 'string' &&
+            !existingInterviewIds.has(itemId)
+              ? itemId
+              : undefined;
           if (interviewId) {
             incomingInterviewIds.add(interviewId);
           }
@@ -304,7 +333,19 @@ export async function PATCH(
 
     // Create stage change event AFTER timeline sync to avoid race conditions
     if (currentJob.pipeline_stage !== stage) {
-      await createStageChangeEvent(jobId, currentJob.pipeline_stage, stage);
+      const transitionOccurredAt = new Date();
+      await createStageTransitionHistory(
+        jobId,
+        currentJob.pipeline_stage,
+        stage,
+        transitionOccurredAt,
+      );
+      await createStageChangeEvent(
+        jobId,
+        currentJob.pipeline_stage,
+        stage,
+        transitionOccurredAt,
+      );
     }
 
     const updatedJob = await prisma.job.findFirst({
