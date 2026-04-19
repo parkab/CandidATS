@@ -146,32 +146,108 @@ export default async function Dashboard() {
     },
   });
 
-  const jobsForModal = jobs.map((job: DashboardJob) => ({
-    id: job.id,
-    company: job.company_name,
-    title: job.title,
-    location: job.location,
-    status: toApplicationStatus(job.pipeline_stage),
-    lastActivityDateLabel: formatDate(job.last_activity_date),
-    angle: getStableAngle(job.id),
-    formData: {
-      id: job.id,
-      title: job.title,
-      company: job.company_name,
-      location: job.location,
-      stage: job.pipeline_stage,
-      lastActivityDate: job.last_activity_date.toISOString(),
-      deadline: job.deadline ? job.deadline.toISOString() : null,
-      priority: job.priority_flag,
-      jobDescription: job.job_description,
-      compensation: job.compensation_notes,
-      applicationDate: job.application_date
-        ? job.application_date.toISOString()
-        : null,
-      recruiterNotes: job.recruiter_contact_notes,
-      otherNotes: job.custom_notes,
+  // Fetch all timeline events for jobs
+  const allTimelineEvents = await prisma.timelineEvent.findMany({
+    where: {
+      job_id: {
+        in: jobs.map((job) => job.id),
+      },
     },
-  }));
+  });
+
+  const timelineByJobId = new Map<
+    string,
+    Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>
+  >();
+  for (const event of allTimelineEvents) {
+    // Filter out events with null event_type or occurred_at
+    if (!event.event_type || !event.occurred_at) continue;
+    
+    if (!timelineByJobId.has(event.job_id)) {
+      timelineByJobId.set(event.job_id, []);
+    }
+    timelineByJobId.get(event.job_id)?.push({
+      id: event.id,
+      event_type: event.event_type,
+      occurred_at: event.occurred_at,
+      notes: event.notes,
+    });
+  }
+
+  // Fetch all interviews for jobs
+  const allInterviews = await prisma.interview.findMany({
+    where: {
+      job_id: {
+        in: jobs.map((job) => job.id),
+      },
+    },
+    orderBy: {
+      scheduled_at: 'asc',
+    },
+  });
+
+  const interviewsByJobId = new Map<
+    string,
+    Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
+  >();
+  for (const interview of allInterviews) {
+    if (!interviewsByJobId.has(interview.job_id)) {
+      interviewsByJobId.set(interview.job_id, []);
+    }
+    interviewsByJobId.get(interview.job_id)?.push({
+      id: interview.id,
+      round_type: interview.round_type,
+      scheduled_at: interview.scheduled_at,
+      notes: interview.notes,
+    });
+  }
+
+  const jobsForModal = jobs.map((job: DashboardJob) => {
+    const timelineEvents = timelineByJobId.get(job.id) ?? [];
+    const timeline = timelineEvents.map((event) => ({
+      id: event.id,
+      title: event.event_type,
+      date: event.occurred_at.toISOString().split('T')[0],
+      notes: event.notes ?? '',
+    }));
+
+    const interviewsForJob = interviewsByJobId.get(job.id) ?? [];
+    const interviews = interviewsForJob.map((interview) => ({
+      id: interview.id,
+      title: interview.round_type,
+      date: interview.scheduled_at.toISOString().split('T')[0],
+      notes: interview.notes ?? '',
+    }));
+
+    return {
+      id: job.id,
+      company: job.company_name,
+      title: job.title,
+      location: job.location,
+      status: toApplicationStatus(job.pipeline_stage),
+      lastActivityDateLabel: formatDate(job.last_activity_date),
+      angle: getStableAngle(job.id),
+      timeline,
+      interviews,
+      formData: {
+        id: job.id,
+        title: job.title,
+        company: job.company_name,
+        location: job.location,
+        stage: job.pipeline_stage,
+        lastActivityDate: job.last_activity_date.toISOString(),
+        deadline: job.deadline ? job.deadline.toISOString() : null,
+        priority: job.priority_flag,
+        jobDescription: job.job_description,
+        compensation: job.compensation_notes,
+        applicationDate: job.application_date
+          ? job.application_date.toISOString()
+          : null,
+        recruiterNotes: job.recruiter_contact_notes,
+        otherNotes: job.custom_notes,
+      },
+    };
+  });
 
   return (
     <section className="px-6 py-12">

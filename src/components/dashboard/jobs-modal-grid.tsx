@@ -38,6 +38,18 @@ type DashboardJobForModal = {
     recruiterNotes: string | null;
     otherNotes: string | null;
   };
+  timeline: Array<{
+    id: string;
+    title: string;
+    date: string;
+    notes: string;
+  }>;
+  interviews: Array<{
+    id: string;
+    title: string;
+    date: string;
+    notes: string;
+  }>;
 };
 
 type ModalState = { type: 'create' } | { type: 'edit'; jobId: string } | null;
@@ -270,6 +282,8 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
                   onSuccess={closeModal}
                   onCancel={closeModal}
                   initialJob={selectedJob.formData}
+                  initialTimeline={selectedJob.timeline}
+                  initialInterviews={selectedJob.interviews}
                 />
               ) : null}
             </div>

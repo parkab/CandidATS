@@ -5,6 +5,7 @@ import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import type {
   JobMultiStepDraft,
   JobOverviewDraft,
+  JobSectionItemDraft,
 } from '@/lib/jobs/multi-step-form';
 import type { ApplicationStatus } from '@/lib/jobs/status';
 
@@ -27,6 +28,8 @@ type EditJobFormProps = {
     recruiterNotes: string | null;
     otherNotes: string | null;
   };
+  initialTimeline?: JobSectionItemDraft[];
+  initialInterviews?: JobSectionItemDraft[];
 };
 
 const STAGE_OPTIONS: ApplicationStatus[] = [
@@ -88,6 +91,8 @@ export default function EditJobForm({
   onSuccess,
   onCancel,
   initialJob,
+  initialTimeline = [],
+  initialInterviews = [],
 }: EditJobFormProps) {
   const router = useRouter();
 
@@ -125,7 +130,6 @@ export default function EditJobForm({
       applicationDate: toOptionalString(draft.overview.applicationDate),
       recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
       otherNotes: toOptionalString(draft.overview.otherNotes),
-      // These frontend-only section arrays are intentionally left for backend integration.
       timeline: draft.timeline,
       interviews: draft.interviews,
       followUps: draft.followUps,
@@ -155,6 +159,10 @@ export default function EditJobForm({
   return (
     <JobMultiStepForm
       initialOverview={toOverviewDraft(initialJob)}
+      initialDraft={{
+        timeline: initialTimeline,
+        interviews: initialInterviews,
+      }}
       submitLabel="Save changes"
       onCancel={handleCancel}
       onFinalSave={handleFinalSave}
