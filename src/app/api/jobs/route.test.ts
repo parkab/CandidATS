@@ -138,7 +138,6 @@ describe('POST /api/jobs', () => {
         compensation_notes: '$180k',
         recruiter_contact_notes: 'Recruiter notes',
         custom_notes: 'Other notes',
-        archived: false,
       }),
     });
 
@@ -203,7 +202,6 @@ describe('POST /api/jobs', () => {
         job_description: null,
         application_date: null,
         custom_notes: null,
-        archived: false,
       }),
     });
   });

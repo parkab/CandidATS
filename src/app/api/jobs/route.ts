@@ -124,7 +124,7 @@ export async function POST(request: Request) {
         application_date: applicationDate,
         recruiter_contact_notes: recruiterNotes,
         custom_notes: otherNotes,
-        archived: false,
+
       },
     });
 

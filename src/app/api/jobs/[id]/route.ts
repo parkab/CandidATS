@@ -364,7 +364,7 @@ export async function PATCH(
       }
     }
 
-    if (archived !== null && Boolean(currentJob.archived) !== archived) {
+    if (archived !== null) {
       try {
         await createArchiveStateEvent(jobId, archived, new Date());
       } catch (archiveEventError) {

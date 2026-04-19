@@ -321,6 +321,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     title: job.title,
     location: job.location,
     pipeline_stage: job.pipeline_stage,
+    archived: job.archived,
     last_activity_date: job.last_activity_date,
     deadline: job.deadline,
     priority_flag: job.priority_flag,
@@ -341,20 +342,6 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       notes: string | null;
     }>
   >();
-  for (const event of allTimelineEvents) {
-    // Filter out events with null event_type or occurred_at
-    if (!event.event_type || !event.occurred_at) continue;
-
-    if (!timelineByJobId.has(event.job_id)) {
-      timelineByJobId.set(event.job_id, []);
-    }
-    timelineByJobId.get(event.job_id)?.push({
-      id: event.id,
-      event_type: event.event_type,
-      occurred_at: event.occurred_at,
-      notes: event.notes,
-    });
-  }
   for (const job of jobsWithRelations) {
     // Cast to the expected type since we filtered nulls in the query
     timelineByJobId.set(
@@ -386,13 +373,13 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
 
   // Get upcoming interviews for metrics
   const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
-    (job.Interview ?? []).filter((interview) => interview.scheduled_at >= now),
+    (job.Interview ?? []).filter((interview: { scheduled_at: Date }) => interview.scheduled_at >= now),
   );
 
   const normalizedStages = jobs.map((job) => toApplicationStatus(job.pipeline_stage));
   const totalApplications = jobs.length;
   const openApplications = jobs.filter(
-    (job) => toApplicationStatus(job.pipeline_stage) !== 'Archived',
+    (job) => !job.archived,
   ).length;
   const offersReceived = jobs.filter(
     (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
