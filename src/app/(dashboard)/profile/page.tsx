@@ -7,6 +7,10 @@ import ExperienceSection from '@/components/profile/ExperienceSection';
 import type { ExperienceEntry } from '@/components/profile/ExperienceSection';
 import SkillsSection from '@/components/profile/SkillsSection';
 import type { SkillEntry } from '@/components/profile/SkillsSection';
+import EducationSection from '@/components/profile/EducationSection';
+import type { EducationEntry } from '@/components/profile/EducationSection';
+import CareerPreferencesSection from '@/components/profile/CareerPreferencesSection';
+import type { CareerPreferencesData } from '@/components/profile/CareerPreferencesSection';
 
 export default async function Profile() {
   const session = await getSession();
@@ -58,6 +62,27 @@ export default async function Profile() {
           sortOrder: true,
         },
       },
+      Education: {
+        orderBy: [{ startDate: 'desc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          institution: true,
+          degree: true,
+          fieldOfStudy: true,
+          startDate: true,
+          endDate: true,
+          honors: true,
+          gpa: true,
+        },
+      },
+      CareerPreferences: {
+        select: {
+          targetRoles: true,
+          targetLocations: true,
+          workMode: true,
+          salaryPreference: true,
+        },
+      },
     },
   });
 
@@ -84,6 +109,26 @@ export default async function Profile() {
     sortOrder: s.sortOrder,
   }));
 
+  const initialEducation: EducationEntry[] = (user?.Education ?? []).map((e) => ({
+    id: e.id,
+    institution: e.institution,
+    degree: e.degree,
+    fieldOfStudy: e.fieldOfStudy,
+    startDate: e.startDate.toISOString(),
+    endDate: e.endDate ? e.endDate.toISOString() : null,
+    honors: e.honors,
+    gpa: e.gpa,
+  }));
+
+  const initialCareerPreferences: CareerPreferencesData | null = user?.CareerPreferences
+    ? {
+        targetRoles: user.CareerPreferences.targetRoles,
+        targetLocations: user.CareerPreferences.targetLocations,
+        workMode: user.CareerPreferences.workMode,
+        salaryPreference: user.CareerPreferences.salaryPreference,
+      }
+    : null;
+
   const initialProfile = {
     firstName: user?.firstName ?? session.firstName ?? '',
     lastName: user?.lastName ?? session.lastName ?? '',
@@ -108,6 +153,12 @@ export default async function Profile() {
       </div>
       <div className="mx-auto mt-6 w-full max-w-4xl">
         <SkillsSection initialSkills={initialSkills} />
+      </div>
+      <div className="mx-auto mt-6 w-full max-w-4xl">
+        <EducationSection initialEducation={initialEducation} />
+      </div>
+      <div className="mx-auto mt-6 w-full max-w-4xl">
+        <CareerPreferencesSection initialData={initialCareerPreferences} />
       </div>
     </section>
   );
