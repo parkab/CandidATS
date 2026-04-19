@@ -33,6 +33,7 @@ export default function PipelineStageDropdown({
       await onStageChange(newStage);
       setIsOpen(false);
     } catch (err) {
+      setIsOpen(false);
       setError(err instanceof Error ? err.message : 'Failed to update stage');
       console.error('Error updating stage:', err);
     } finally {
