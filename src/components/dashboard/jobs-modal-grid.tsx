@@ -80,32 +80,23 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
   }
 
   async function handleStageChange(jobId: string, newStage: ApplicationStatus) {
-    const jobIndex = jobs.findIndex((job) => job.id === jobId);
-    if (jobIndex === -1) {
+    const oldJob = jobs.find((job) => job.id === jobId);
+    if (!oldJob) {
       throw new Error('Job not found');
     }
 
-    const oldJob = jobs[jobIndex];
-
-    // Optimistic update
-    const updatedJob = {
-      ...oldJob,
-      status: newStage,
-      formData: {
-        ...oldJob.formData,
-        stage: newStage,
-      },
-    };
-
-    setJobs((prevJobs) => {
-      const newJobs = [...prevJobs];
-      newJobs[jobIndex] = updatedJob;
-      return newJobs;
-    });
+    // Optimistic update — locate by id inside the updater to avoid stale index
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === jobId
+          ? { ...job, status: newStage, formData: { ...job.formData, stage: newStage } }
+          : job,
+      ),
+    );
 
     // API call
     try {
-      const response = await fetch(`/api/jobs/${jobId}`, {
+      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -130,12 +121,10 @@ export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJ
         throw new Error('Failed to update job stage');
       }
     } catch (error) {
-      // Revert optimistic update on error
-      setJobs((prevJobs) => {
-        const newJobs = [...prevJobs];
-        newJobs[jobIndex] = oldJob;
-        return newJobs;
-      });
+      // Revert optimistic update — locate by id inside the updater to avoid stale index
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => (job.id === jobId ? oldJob : job)),
+      );
       throw error;
     }
   }
