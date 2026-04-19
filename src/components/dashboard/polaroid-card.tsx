@@ -63,7 +63,9 @@ export default function PolaroidCard({
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation();
-                  onToggleArchive?.(!archived);
+                  void onToggleArchive?.(!archived)?.catch((error) => {
+                    console.error('Failed to toggle archive state.', error);
+                  });
                 }}
                 className="w-full max-w-xs rounded-md border px-2.5 py-1 text-xs font-bold text-[#111111] transition hover:brightness-95"
                 style={{
