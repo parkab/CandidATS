@@ -389,6 +389,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       title: string | null;
       due_date: Date | null;
       completed: boolean | null;
+      notes: string | null;
     }>
   >();
   for (const job of jobsWithRelations) {
