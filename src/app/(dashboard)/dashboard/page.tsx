@@ -344,10 +344,13 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     interviewsByJobId.set(job.id, job.Interview);
   }
 
-  // Get all interviews for metrics
-  const allInterviews = jobsWithRelations.flatMap(job => job.Interview);
-
   const now = new Date();
+
+  // Get upcoming interviews for metrics
+  const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
+    job.Interview.filter((interview) => interview.scheduled_at >= now),
+  );
+
   const normalizedStages = jobs.map((job) => toApplicationStatus(job.pipeline_stage));
   const totalApplications = jobs.length;
   const openApplications = jobs.filter(
@@ -359,7 +362,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const pastDueDeadlines = jobs.filter(
     (job) => job.deadline !== null && job.deadline < now,
   ).length;
-  const upcomingInterviews = allInterviews.length;
+  const upcomingInterviews = upcomingInterviewsList.length;
   const averageDaysSinceLastActivity =
     totalApplications === 0
       ? 0
