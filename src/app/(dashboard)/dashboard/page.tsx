@@ -303,6 +303,17 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           scheduled_at: 'asc',
         },
       },
+      FollowUpTask: {
+        select: {
+          id: true,
+          title: true,
+          due_date: true,
+          completed: true,
+        },
+        orderBy: {
+          due_date: 'asc',
+        },
+      },
     },
     where: getJobWhere(
       session.userId,
@@ -367,6 +378,20 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   >();
   for (const job of jobsWithRelations) {
     interviewsByJobId.set(job.id, job.Interview ?? []);
+  }
+
+  // Build follow-ups map from included data
+  const followUpsByJobId = new Map<
+    string,
+    Array<{
+      id: string;
+      title: string | null;
+      due_date: Date | null;
+      completed: boolean | null;
+    }>
+  >();
+  for (const job of jobsWithRelations) {
+    followUpsByJobId.set(job.id, job.FollowUpTask ?? []);
   }
 
   const now = new Date();
@@ -454,6 +479,25 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       notes: interview.notes ?? '',
     }));
 
+    const followUpsForJob = followUpsByJobId.get(job.id) ?? [];
+    const followUps = followUpsForJob.map((followUp) => {
+      let dateString = '';
+      if (followUp.due_date) {
+        const dateObj = typeof followUp.due_date === 'string' 
+          ? new Date(followUp.due_date)
+          : followUp.due_date;
+        if (!Number.isNaN(dateObj.getTime())) {
+          dateString = dateObj.toISOString().split('T')[0];
+        }
+      }
+      return {
+        id: followUp.id,
+        title: followUp.title ?? '',
+        date: dateString,
+        notes: followUp.completed ? 'Completed' : '',
+      };
+    });
+
     return {
       id: job.id,
       company: job.company_name,
@@ -465,6 +509,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       angle: getStableAngle(job.id),
       timeline,
       interviews,
+      followUps,
       formData: {
         id: job.id,
         title: job.title,

@@ -52,6 +52,12 @@ type DashboardJobForModal = {
     date: string;
     notes: string;
   }>;
+  followUps: Array<{
+    id: string;
+    title: string;
+    date: string;
+    notes: string;
+  }>;
 };
 
 type ModalState = { type: 'create' } | { type: 'edit'; jobId: string } | null;
@@ -370,6 +376,7 @@ export default function JobsModalGrid({
                   initialJob={selectedJob.formData}
                   initialTimeline={selectedJob.timeline}
                   initialInterviews={selectedJob.interviews}
+                  initialFollowUps={selectedJob.followUps}
                 />
               ) : null}
             </div>

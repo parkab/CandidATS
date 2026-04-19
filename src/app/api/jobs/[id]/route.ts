@@ -339,6 +339,92 @@ export async function PATCH(
       }
     }
 
+    // Handle follow-up tasks similar to interviews
+    if (Array.isArray(body.followUps)) {
+      const existingFollowUps = await prisma.followUpTask.findMany({
+        where: { job_id: jobId },
+      });
+
+      const existingFollowUpIds = new Set(
+        existingFollowUps.map((followUp) => followUp.id),
+      );
+      const incomingFollowUpIds = new Set<string>();
+
+      for (const followUpItem of body.followUps as Array<
+        Record<string, unknown>
+      >) {
+        const itemId = followUpItem.id;
+        const title = followUpItem.title;
+        const dueDate = followUpItem.date;
+        const notes = followUpItem.notes;
+
+        // Validate: require title for follow-ups
+        if (!title) {
+          continue; // Skip items without a title
+        }
+
+        const titleValue =
+          typeof title === 'string' ? title.trim() : '';
+
+        let parsedDate: Date | null = null;
+        if (typeof dueDate === 'string' && dueDate.trim()) {
+          const parsed = new Date(dueDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        if (
+          itemId &&
+          typeof itemId === 'string' &&
+          existingFollowUpIds.has(itemId)
+        ) {
+          incomingFollowUpIds.add(itemId);
+          await prisma.followUpTask.update({
+            where: { id: itemId },
+            data: {
+              title: titleValue,
+              due_date: parsedDate,
+              completed: typeof notes === 'boolean' ? notes : undefined,
+            },
+          });
+        } else {
+          // Create new follow-up
+          const followUpId =
+            itemId &&
+            typeof itemId === 'string' &&
+            !existingFollowUpIds.has(itemId)
+              ? itemId
+              : undefined;
+          if (followUpId) {
+            incomingFollowUpIds.add(followUpId);
+          }
+          const createdFollowUp = await prisma.followUpTask.create({
+            data: {
+              id: followUpId,
+              job_id: jobId,
+              title: titleValue,
+              due_date: parsedDate,
+              completed: false,
+            },
+          });
+          // Track the actual created ID for deletion tracking
+          if (!followUpId) {
+            incomingFollowUpIds.add(createdFollowUp.id);
+          }
+        }
+      }
+
+      const followUpsToDelete = Array.from(existingFollowUpIds).filter(
+        (id) => !incomingFollowUpIds.has(id),
+      );
+      for (const followUpId of followUpsToDelete) {
+        await prisma.followUpTask.delete({
+          where: { id: followUpId },
+        });
+      }
+    }
+
     // Create stage change event AFTER timeline sync to avoid race conditions
     if (currentJob.pipeline_stage !== stage) {
       const transitionOccurredAt = new Date();
@@ -397,6 +483,62 @@ export async function PATCH(
       {
         error:
           'Unable to update job due to a server error. Please try again later.',
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { data, error } = await getSupabaseUserFromRequest(request);
+
+  if (error || !data.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const sessionUserId = data.user.id;
+
+  const { id } = await context.params;
+  const jobId = asRequiredString(id);
+
+  if (!jobId) {
+    return NextResponse.json({ error: 'Job id is required' }, { status: 400 });
+  }
+
+  try {
+    // Check if job exists and belongs to the current user (ownership check)
+    const jobToDelete = await prisma.job.findFirst({
+      where: {
+        id: jobId,
+        user_id: sessionUserId,
+      },
+    });
+
+    if (!jobToDelete) {
+      return NextResponse.json(
+        { error: 'Job not found or access denied' },
+        { status: 404 },
+      );
+    }
+
+    // Delete the job (related records will be deleted via CASCADE)
+    const deletedJob = await prisma.job.delete({
+      where: {
+        id: jobId,
+      },
+    });
+
+    return NextResponse.json(deletedJob, { status: 200 });
+  } catch (error) {
+    console.error('Failed to delete job', error);
+
+    return NextResponse.json(
+      {
+        error:
+          'Unable to delete job due to a server error. Please try again later.',
       },
       { status: 500 },
     );

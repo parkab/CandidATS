@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
+import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
 import type {
   JobMultiStepDraft,
   JobOverviewDraft,
@@ -30,6 +32,7 @@ type EditJobFormProps = {
   };
   initialTimeline?: JobSectionItemDraft[];
   initialInterviews?: JobSectionItemDraft[];
+  initialFollowUps?: JobSectionItemDraft[];
 };
 
 const STAGE_OPTIONS: ApplicationStatus[] = [
@@ -92,8 +95,12 @@ export default function EditJobForm({
   initialJob,
   initialTimeline = [],
   initialInterviews = [],
+  initialFollowUps = [],
 }: EditJobFormProps) {
   const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   function handleCancel() {
     if (onCancel) {
@@ -107,6 +114,54 @@ export default function EditJobForm({
     }
 
     router.push('/dashboard');
+  }
+
+  async function handleDelete() {
+    setDeleteError(null);
+    setIsDeleting(true);
+
+    try {
+      const jobId = initialJob.id.trim();
+
+      if (!jobId) {
+        throw new Error('Job ID is required to delete a job.');
+      }
+
+      const response = await fetch(
+        `/api/jobs/${encodeURIComponent(jobId)}`,
+        {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+        }
+      );
+
+      if (!response.ok) {
+        const responseBody = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(responseBody?.error ?? 'Unable to delete job right now.');
+      }
+
+      // Close modal if in modal view
+      if (inModal) {
+        onSuccess?.();
+      }
+      
+      // Navigate back to dashboard and refresh data
+      if (!inModal) {
+        router.push('/dashboard');
+      }
+      
+      // Refresh to update metrics and jobs list
+      router.refresh();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred.';
+      setDeleteError(errorMessage);
+      throw error;
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   async function handleFinalSave(draft: JobMultiStepDraft) {
@@ -156,17 +211,37 @@ export default function EditJobForm({
   }
 
   return (
-    <JobMultiStepForm
-      initialOverview={toOverviewDraft(initialJob)}
-      initialDraft={{
-        timeline: initialTimeline,
-        interviews: initialInterviews,
-      }}
-      submitLabel="Save changes"
-      onCancel={handleCancel}
-      onFinalSave={handleFinalSave}
-      stickyFooter={inModal}
-      showFooterCancel={!inModal}
-    />
+    <>
+      <JobMultiStepForm
+        initialOverview={toOverviewDraft(initialJob)}
+        initialDraft={{
+          timeline: initialTimeline,
+          interviews: initialInterviews,
+          followUps: initialFollowUps,
+        }}
+        submitLabel="Save changes"
+        onCancel={handleCancel}
+        onFinalSave={handleFinalSave}
+        onDelete={() => setIsDeleteDialogOpen(true)}
+        jobId={initialJob.id}
+        jobTitle={initialJob.title}
+        jobCompany={initialJob.company}
+        stickyFooter={inModal}
+        showFooterCancel={!inModal}
+        deleteError={deleteError}
+        isDeleting={isDeleting}
+      />
+      <DeleteJobDialog
+        jobId={initialJob.id}
+        isOpen={isDeleteDialogOpen}
+        onClose={() => {
+          setIsDeleteDialogOpen(false);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+        jobTitle={initialJob.title}
+        companyName={initialJob.company}
+      />
+    </>
   );
 }

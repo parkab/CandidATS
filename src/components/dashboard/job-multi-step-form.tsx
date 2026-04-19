@@ -36,6 +36,12 @@ type JobMultiStepFormProps = {
   onCancel: () => void;
   onFinalSave: FinalSaveAdapter;
   onStepSave?: StepSaveAdapter;
+  onDelete?: () => void;
+  jobId?: string;
+  jobTitle?: string;
+  jobCompany?: string;
+  deleteError?: string | null;
+  isDeleting?: boolean;
   initialDraft?: Partial<JobMultiStepDraft>;
   stickyFooter?: boolean;
   showFooterCancel?: boolean;
@@ -47,6 +53,12 @@ export default function JobMultiStepForm({
   onCancel,
   onFinalSave,
   onStepSave,
+  onDelete,
+  jobId,
+  jobTitle,
+  jobCompany,
+  deleteError,
+  isDeleting = false,
   initialDraft,
   stickyFooter = false,
   showFooterCancel = true,
@@ -640,41 +652,55 @@ export default function JobMultiStepForm({
       <div
         className={
           stickyFooter
-            ? 'z-20 flex flex-wrap items-center justify-end gap-3 border-t border-(--surface-divider) bg-(--background) pt-3 pb-0'
-            : 'flex flex-wrap items-center justify-end gap-3 border-t border-(--surface-divider) pt-3 pb-0'
+            ? 'z-20 flex flex-wrap items-center justify-between gap-3 border-t border-(--surface-divider) bg-(--background) pt-3 pb-0'
+            : 'flex flex-wrap items-center justify-between gap-3 border-t border-(--surface-divider) pt-3 pb-0'
         }
       >
-        {showFooterCancel ? (
+        <div className="flex gap-2">
+          {onDelete && jobId ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isSaving || isDeleting}
+              className="rounded-md border border-(--danger-border) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-bg) disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Job'}
+            </button>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {showFooterCancel ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSaving || isDeleting}
+              className="rounded-md border border-(--danger-border) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-bg) disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Cancel
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={onCancel}
-            disabled={isSaving}
-            className="rounded-md border border-(--danger-border) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-bg) disabled:cursor-not-allowed disabled:opacity-70"
+            onClick={handleNext}
+            disabled={isSaving || isDeleting || isLastStep}
+            className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Cancel
+            Next
           </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={isSaving || isLastStep}
-          className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          Next
-        </button>
-        <button
-          type="button"
-          onClick={handleSaveChanges}
-          disabled={isSaving}
-          className="rounded-md bg-(--foreground) px-5 py-2.5 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isSaving ? 'Saving...' : submitLabel}
-        </button>
+          <button
+            type="button"
+            onClick={handleSaveChanges}
+            disabled={isSaving || isDeleting}
+            className="rounded-md bg-(--foreground) px-5 py-2.5 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isSaving ? 'Saving...' : submitLabel}
+          </button>
+        </div>
       </div>
 
-      {error ? (
+      {error || deleteError ? (
         <p className="text-sm font-medium text-(--danger-text)" role="alert">
-          {error}
+          {error || deleteError}
         </p>
       ) : null}
     </div>
