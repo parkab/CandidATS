@@ -15,7 +15,7 @@ export default function DashboardMetrics({ metrics }: DashboardMetricsProps) {
         {metrics.map((metric) => (
           <article
             key={metric.label}
-            className="rounded-3xl border border-(--surface-border) bg-(--surface-muted) p-5 shadow-sm"
+            className="rounded-3xl border border-(--surface-border) bg-(--surface) p-5 shadow-sm"
           >
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-(--text-muted)">
               {metric.label}
