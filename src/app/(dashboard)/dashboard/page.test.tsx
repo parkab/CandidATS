@@ -257,12 +257,13 @@ describe('Dashboard page', () => {
           application_date: true,
           recruiter_contact_notes: true,
           custom_notes: true,
+          TimelineEvent: expect.any(Object),
+          Interview: expect.any(Object),
         }),
         where: expect.objectContaining({
           user_id: 'user-123',
           pipeline_stage: {
-            contains: 'interview',
-            mode: 'insensitive',
+            equals: 'Interview',
           },
           location: {
             contains: 'Austin',
