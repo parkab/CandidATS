@@ -45,6 +45,11 @@ type ModalState = { type: 'create' } | { type: 'edit'; jobId: string } | null;
 export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJobForModal[] }) {
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
   const [modalState, setModalState] = useState<ModalState>(null);
+
+  // Keep jobs in sync when the parent re-fetches (e.g. after router.refresh())
+  useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
   const dialogTitleId = useId();
   const modalRef = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
