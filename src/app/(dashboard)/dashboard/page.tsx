@@ -18,6 +18,7 @@ type DashboardJob = {
   title: string;
   location: string;
   pipeline_stage: string;
+  archived: boolean | null;
   last_activity_date: Date;
   deadline: Date | null;
   priority_flag: boolean | null;
@@ -44,9 +45,6 @@ function toApplicationStatus(stage: string): ApplicationStatus {
       return 'Offer';
     case 'rejected':
       return 'Rejected';
-    case 'archived':
-    case 'archive':
-      return 'Archived';
     default:
       return 'Interested';
   }
@@ -265,6 +263,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       title: true,
       location: true,
       pipeline_stage: true,
+      archived: true,
       last_activity_date: true,
       deadline: true,
       priority_flag: true,
@@ -322,6 +321,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     title: job.title,
     location: job.location,
     pipeline_stage: job.pipeline_stage,
+    archived: job.archived,
     last_activity_date: job.last_activity_date,
     deadline: job.deadline,
     priority_flag: job.priority_flag,
@@ -335,7 +335,12 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   // Build timeline map from included data
   const timelineByJobId = new Map<
     string,
-    Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>
+    Array<{
+      id: string;
+      event_type: string;
+      occurred_at: Date;
+      notes: string | null;
+    }>
   >();
   for (const job of jobsWithRelations) {
     // Cast to the expected type since we filtered nulls in the query
@@ -353,7 +358,12 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   // Build interviews map from included data
   const interviewsByJobId = new Map<
     string,
-    Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
+    Array<{
+      id: string;
+      round_type: string;
+      scheduled_at: Date;
+      notes: string | null;
+    }>
   >();
   for (const job of jobsWithRelations) {
     interviewsByJobId.set(job.id, job.Interview ?? []);
@@ -363,13 +373,13 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
 
   // Get upcoming interviews for metrics
   const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
-    (job.Interview ?? []).filter((interview) => interview.scheduled_at >= now),
+    (job.Interview ?? []).filter((interview: { scheduled_at: Date }) => interview.scheduled_at >= now),
   );
 
   const normalizedStages = jobs.map((job) => toApplicationStatus(job.pipeline_stage));
   const totalApplications = jobs.length;
   const openApplications = jobs.filter(
-    (job) => toApplicationStatus(job.pipeline_stage) !== 'Archived',
+    (job) => !job.archived,
   ).length;
   const offersReceived = jobs.filter(
     (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
@@ -449,6 +459,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       company: job.company_name,
       title: job.title,
       location: job.location,
+      archived: Boolean(job.archived),
       status: toApplicationStatus(job.pipeline_stage),
       lastActivityDateLabel: formatDate(job.last_activity_date),
       angle: getStableAngle(job.id),
@@ -470,6 +481,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           : null,
         recruiterNotes: job.recruiter_contact_notes,
         otherNotes: job.custom_notes,
+        archived: Boolean(job.archived),
       },
     };
   });
