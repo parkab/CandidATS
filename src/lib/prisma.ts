@@ -22,4 +22,3 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export const prisma = prismaClient;
-export const prismaAny = prismaClient as unknown as any;

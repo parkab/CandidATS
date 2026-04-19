@@ -1,7 +1,7 @@
 import GRADIENT_HEADING_CLASS from '@/components/dashboard/gradient';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { prisma, prismaAny } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import ProfilePanel from './profile-panel';
 import ExperienceSection from '@/components/profile/ExperienceSection';
 import type { ExperienceEntry } from '@/components/profile/ExperienceSection';
