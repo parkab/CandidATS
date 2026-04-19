@@ -52,18 +52,20 @@ type DashboardJobForModal = {
   }>;
 };
 
-type JobsModalGridProps = {
-  jobs: DashboardJobForModal[];
-};
-
 type ModalState = { type: 'create' } | { type: 'edit'; jobId: string } | null;
 
-export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
+export default function JobsModalGrid({ initialJobs }: { initialJobs: DashboardJobForModal[] }) {
+  const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
   const [modalState, setModalState] = useState<ModalState>(null);
+
+  // Keep jobs in sync when the parent re-fetches (e.g. after router.refresh())
+  useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
   const dialogTitleId = useId();
   const modalRef = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
-  const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const lastTriggerRef = useRef<HTMLElement | null>(null);
 
   const selectedJob = useMemo(() => {
     if (!modalState || modalState.type !== 'edit') {
@@ -84,14 +86,64 @@ export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
     }
   }
 
-  function openCreateModal(trigger: HTMLButtonElement) {
+  function openCreateModal(trigger: HTMLElement) {
     lastTriggerRef.current = trigger;
     setModalState({ type: 'create' });
   }
 
-  function openEditModal(trigger: HTMLButtonElement, jobId: string) {
+  function openEditModal(trigger: HTMLElement, jobId: string) {
     lastTriggerRef.current = trigger;
     setModalState({ type: 'edit', jobId });
+  }
+
+  async function handleStageChange(jobId: string, newStage: ApplicationStatus) {
+    const oldJob = jobs.find((job) => job.id === jobId);
+    if (!oldJob) {
+      throw new Error('Job not found');
+    }
+
+    // Optimistic update — locate by id inside the updater to avoid stale index
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === jobId
+          ? { ...job, status: newStage, formData: { ...job.formData, stage: newStage } }
+          : job,
+      ),
+    );
+
+    // API call
+    try {
+      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: oldJob.formData.title,
+          company: oldJob.formData.company,
+          location: oldJob.formData.location,
+          stage: newStage,
+          lastActivityDate: oldJob.formData.lastActivityDate,
+          deadline: oldJob.formData.deadline,
+          priority: oldJob.formData.priority,
+          jobDescription: oldJob.formData.jobDescription,
+          compensation: oldJob.formData.compensation,
+          applicationDate: oldJob.formData.applicationDate,
+          recruiterNotes: oldJob.formData.recruiterNotes,
+          otherNotes: oldJob.formData.otherNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update job stage');
+      }
+    } catch (error) {
+      // Revert optimistic update — locate by id inside the updater to avoid stale index
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => (job.id === jobId ? oldJob : job)),
+      );
+      throw error;
+    }
   }
 
   function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -153,11 +205,18 @@ export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
         </button>
 
         {jobs.map((job) => (
-          <button
+          <div
             key={job.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={(event) => openEditModal(event.currentTarget, job.id)}
-            className="block rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openEditModal(event.currentTarget, job.id);
+              }
+            }}
+            className="block rounded-sm text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--foreground)"
           >
             <PolaroidCard
               company={job.company}
@@ -166,8 +225,10 @@ export default function JobsModalGrid({ jobs }: JobsModalGridProps) {
               lastActivityDate={job.lastActivityDateLabel}
               status={job.status}
               angle={job.angle}
+              jobId={job.id}
+              onStageChange={(newStage) => handleStageChange(job.id, newStage)}
             />
-          </button>
+          </div>
         ))}
       </div>
 
