@@ -23,8 +23,6 @@ export default function PolaroidCard({
   jobId,
   onStageChange,
 }: PolaroidCardProps) {
-  const hasInteractiveStage = jobId && onStageChange;
-
   return (
     <PolaroidShell angle={angle}>
       <div className="flex min-h-48 flex-col justify-center text-center rounded-xs bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] px-4 py-5 text-[#111111] shadow-inner">
@@ -43,7 +41,7 @@ export default function PolaroidCard({
         <p className="text-left italic leading-none opacity-80">
           {lastActivityDate}
         </p>
-        {hasInteractiveStage ? (
+        {jobId && onStageChange ? (
           <div className="flex-1 max-w-xs">
             <PipelineStageDropdown
               currentStage={status}
