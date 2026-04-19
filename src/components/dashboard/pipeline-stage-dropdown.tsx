@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { APPLICATION_STATUS_COLOR, type ApplicationStatus } from '@/lib/jobs/status';
 
 type PipelineStageDropdownProps = {
@@ -20,6 +20,29 @@ export default function PipelineStageDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const menuId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Focus the selected (or first) option when the menu opens
+  useEffect(() => {
+    if (isOpen) {
+      const selected = menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]');
+      const first = menuRef.current?.querySelector<HTMLButtonElement>('[role="option"]');
+      (selected ?? first)?.focus();
+    }
+  }, [isOpen]);
+
+  function openMenu() {
+    setIsOpen(true);
+  }
+
+  function closeMenu(returnFocus = true) {
+    setIsOpen(false);
+    if (returnFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }
 
   async function handleStageSelect(newStage: ApplicationStatus) {
     if (newStage === currentStage || isLoading) {
@@ -31,9 +54,9 @@ export default function PipelineStageDropdown({
 
     try {
       await onStageChange(newStage);
-      setIsOpen(false);
+      closeMenu();
     } catch (err) {
-      setIsOpen(false);
+      closeMenu();
       setError(err instanceof Error ? err.message : 'Failed to update stage');
       console.error('Error updating stage:', err);
     } finally {
@@ -50,14 +73,28 @@ export default function PipelineStageDropdown({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <button
+        ref={triggerRef}
         onClick={(e) => {
           e.stopPropagation();
           if (!isLoading && !disabled) {
-            setIsOpen(!isOpen);
+            if (isOpen) {
+              closeMenu();
+            } else {
+              openMenu();
+            }
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            closeMenu();
           }
         }}
         onPointerDown={(e) => e.stopPropagation()}
         disabled={disabled || isLoading}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-controls={menuId}
         className="w-full rounded-md px-2.5 py-1 text-sm leading-none font-bold text-(--background) transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-2"
         style={{
           backgroundColor: `${currentColor}8C`,
@@ -72,6 +109,7 @@ export default function PipelineStageDropdown({
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -83,10 +121,20 @@ export default function PipelineStageDropdown({
       </button>
 
       {isOpen && !disabled && (
-        <div 
+        <div
+          ref={menuRef}
+          id={menuId}
+          role="listbox"
+          aria-label="Select pipeline stage"
           className="absolute right-0 left-0 top-full mt-1 z-50 border border-gray-200 rounded-md bg-white shadow-lg overflow-hidden"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation();
+              closeMenu();
+            }
+          }}
         >
           {STAGES.map((stage) => {
             const stageColor = APPLICATION_STATUS_COLOR[stage];
@@ -95,6 +143,8 @@ export default function PipelineStageDropdown({
             return (
               <button
                 key={stage}
+                role="option"
+                aria-selected={isSelected}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleStageSelect(stage);
@@ -113,7 +163,7 @@ export default function PipelineStageDropdown({
                 />
                 <span className={isSelected ? 'font-bold' : ''}>{stage}</span>
                 {isSelected && (
-                  <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

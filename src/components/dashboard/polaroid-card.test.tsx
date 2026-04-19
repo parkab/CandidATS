@@ -68,7 +68,7 @@ describe('PolaroidCard', () => {
     fireEvent.click(trigger);
 
     // The menu should now list all stages
-    const interviewOption = await screen.findByRole('button', { name: /Interview/i });
+    const interviewOption = await screen.findByRole('option', { name: /Interview/i });
     expect(interviewOption).toBeInTheDocument();
 
     // Click a different stage
