@@ -332,7 +332,15 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   >();
   for (const job of jobsWithRelations) {
     // Cast to the expected type since we filtered nulls in the query
-    timelineByJobId.set(job.id, job.TimelineEvent as Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>);
+    timelineByJobId.set(
+      job.id,
+      (job.TimelineEvent ?? []) as Array<{
+        id: string;
+        event_type: string;
+        occurred_at: Date;
+        notes: string | null;
+      }>,
+    );
   }
 
   // Build interviews map from included data
@@ -341,14 +349,14 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
   >();
   for (const job of jobsWithRelations) {
-    interviewsByJobId.set(job.id, job.Interview);
+    interviewsByJobId.set(job.id, job.Interview ?? []);
   }
 
   const now = new Date();
 
   // Get upcoming interviews for metrics
   const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
-    job.Interview.filter((interview) => interview.scheduled_at >= now),
+    (job.Interview ?? []).filter((interview) => interview.scheduled_at >= now),
   );
 
   const normalizedStages = jobs.map((job) => toApplicationStatus(job.pipeline_stage));
