@@ -342,22 +342,37 @@ export async function PATCH(
     // Create stage change event AFTER timeline sync to avoid race conditions
     if (currentJob.pipeline_stage !== stage) {
       const transitionOccurredAt = new Date();
-      await createStageTransitionHistory(
-        jobId,
-        currentJob.pipeline_stage,
-        stage,
-        transitionOccurredAt,
-      );
-      await createStageChangeEvent(
-        jobId,
-        currentJob.pipeline_stage,
-        stage,
-        transitionOccurredAt,
-      );
+
+      try {
+        await createStageTransitionHistory(
+          jobId,
+          currentJob.pipeline_stage,
+          stage,
+          transitionOccurredAt,
+        );
+        await createStageChangeEvent(
+          jobId,
+          currentJob.pipeline_stage,
+          stage,
+          transitionOccurredAt,
+        );
+      } catch (timelineError) {
+        console.error(
+          'Failed to create stage transition history or stage change event',
+          timelineError,
+        );
+      }
     }
 
     if (archived !== null && Boolean(currentJob.archived) !== archived) {
-      await createArchiveStateEvent(jobId, archived, new Date());
+      try {
+        await createArchiveStateEvent(jobId, archived, new Date());
+      } catch (archiveEventError) {
+        console.error(
+          'Failed to create archive state event',
+          archiveEventError,
+        );
+      }
     }
 
     const updatedJob = await prisma.job.findFirst({
