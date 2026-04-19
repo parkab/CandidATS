@@ -18,6 +18,10 @@ type ProfilePanelProps = {
     headline: string;
     bio: string;
   };
+  hasExperience: boolean;
+  hasEducation: boolean;
+  hasSkills: boolean;
+  hasCareerPreferences: boolean;
 };
 
 type EditableFormState = {
@@ -185,7 +189,13 @@ function DetailRow({ label, value, subdued }: DetailRowProps) {
   );
 }
 
-export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
+export default function ProfilePanel({
+  initialProfile,
+  hasExperience,
+  hasEducation,
+  hasSkills,
+  hasCareerPreferences,
+}: ProfilePanelProps) {
   const router = useRouter();
   const [profile, setProfile] = useState(initialProfile);
   const [form, setForm] = useState<EditableFormState>(
@@ -226,8 +236,19 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
   }, [profile.firstName, profile.lastName]);
 
   const baselineCompletion = useMemo(
-    () => calculateProfileBaselineCompletion(profile),
+    () =>
+      calculateProfileBaselineCompletion({
+        ...profile,
+        hasExperience,
+        hasEducation,
+        hasSkills,
+        hasCareerPreferences,
+      }),
     [
+      hasCareerPreferences,
+      hasEducation,
+      hasExperience,
+      hasSkills,
       profile.bio,
       profile.firstName,
       profile.headline,
@@ -382,17 +403,10 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
       <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-(--foreground)">
-              {fullName}
-            </h2>
-            <p className="mt-1 text-sm font-medium text-(--foreground)">
-              {profile.email}
-            </p>
-
-            <div className="mt-4 grid gap-1.5">
+            <div className="grid gap-1.5">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-(--foreground)">
-                  Baseline completion
+                  Profile completion
                 </p>
                 <p className="text-sm font-semibold text-(--foreground)">
                   {baselineCompletion.percentage}% complete
@@ -400,7 +414,7 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
               </div>
               <div
                 role="progressbar"
-                aria-label="Baseline profile completion"
+                aria-label="Profile completion"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={baselineCompletion.percentage}
@@ -413,7 +427,16 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
               </div>
               <p className="text-xs font-medium text-(--text-muted)">
                 {baselineCompletion.completed} of {baselineCompletion.total}{' '}
-                baseline fields complete
+                profile fields complete
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <h2 className="text-2xl font-semibold tracking-tight text-(--foreground)">
+                {fullName}
+              </h2>
+              <p className="mt-1 text-sm font-medium text-(--foreground)">
+                {profile.email}
               </p>
             </div>
           </div>
@@ -427,45 +450,40 @@ export default function ProfilePanel({ initialProfile }: ProfilePanelProps) {
           </button>
         </div>
 
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
-        />
-      </article>
+        <div className="mt-6 border-t border-(--surface-divider) pt-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold text-(--foreground)">
+              Professional Details
+            </h3>
+          </div>
 
-      <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-lg font-semibold text-(--foreground)">
-            Professional Details
-          </h3>
-        </div>
-
-        <div className="grid">
-          <DetailRow
-            label="Phone"
-            value={displayedDetails.phone || 'Not provided'}
-            subdued
-          />
-          <DetailRow
-            label="Location"
-            value={displayedDetails.location || 'Not provided'}
-            subdued
-          />
-          <DetailRow
-            label="LinkedIn"
-            value={displayedDetails.linkedIn || 'Not provided'}
-            subdued
-          />
-          <DetailRow
-            label="Headline"
-            value={displayedDetails.headline || 'Not provided'}
-            subdued
-          />
-          <DetailRow
-            label="Bio"
-            value={displayedDetails.bio || 'Not provided'}
-            subdued
-          />
+          <div className="grid">
+            <DetailRow
+              label="Phone"
+              value={displayedDetails.phone || 'Not provided'}
+              subdued
+            />
+            <DetailRow
+              label="Location"
+              value={displayedDetails.location || 'Not provided'}
+              subdued
+            />
+            <DetailRow
+              label="LinkedIn"
+              value={displayedDetails.linkedIn || 'Not provided'}
+              subdued
+            />
+            <DetailRow
+              label="Headline"
+              value={displayedDetails.headline || 'Not provided'}
+              subdued
+            />
+            <DetailRow
+              label="Bio"
+              value={displayedDetails.bio || 'Not provided'}
+              subdued
+            />
+          </div>
         </div>
 
         <div
