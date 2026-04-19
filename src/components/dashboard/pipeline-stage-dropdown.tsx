@@ -10,14 +10,7 @@ type PipelineStageDropdownProps = {
   disabled?: boolean;
 };
 
-const STAGES: ApplicationStatus[] = [
-  'Interested',
-  'Applied',
-  'Interview',
-  'Offer',
-  'Rejected',
-  'Archived',
-];
+const STAGES = Object.keys(APPLICATION_STATUS_COLOR) as ApplicationStatus[];
 
 export default function PipelineStageDropdown({
   currentStage,
