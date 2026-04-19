@@ -75,3 +75,20 @@ export async function createStageTransitionHistory(
     },
   });
 }
+
+/**
+ * Creates a timeline event when a job is archived or restored.
+ * @param jobId - The job ID
+ * @param archived - Whether the job is now archived
+ * @param occurredAt - Optional timestamp for the event (defaults to now)
+ */
+export async function createArchiveStateEvent(
+  jobId: string,
+  archived: boolean,
+  occurredAt?: Date,
+) {
+  const eventType = archived ? 'job_archived' : 'job_restored';
+  const notes = archived ? 'Job archived' : 'Job restored';
+
+  return createTimelineEvent(jobId, eventType, notes, occurredAt);
+}

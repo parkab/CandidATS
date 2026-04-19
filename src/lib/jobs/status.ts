@@ -3,8 +3,7 @@ export type ApplicationStatus =
   | 'Applied'
   | 'Interview'
   | 'Offer'
-  | 'Rejected'
-  | 'Archived';
+  | 'Rejected';
 
 export const APPLICATION_STATUS_COLOR: Record<ApplicationStatus, string> = {
   Interested: '#cd93ff',
@@ -12,5 +11,4 @@ export const APPLICATION_STATUS_COLOR: Record<ApplicationStatus, string> = {
   Interview: '#ffe83f',
   Offer: '#9fff5b',
   Rejected: '#ff75c3',
-  Archived: '#ffa647',
 };

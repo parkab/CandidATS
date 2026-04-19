@@ -38,7 +38,6 @@ const STAGE_OPTIONS: ApplicationStatus[] = [
   'Interview',
   'Offer',
   'Rejected',
-  'Archived',
 ];
 
 function toDateInputValue(value: Date | string | null) {

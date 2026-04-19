@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import {
+  createArchiveStateEvent,
   createStageChangeEvent,
   createStageTransitionHistory,
 } from '@/lib/jobs/timeline';
@@ -85,6 +86,7 @@ export async function PATCH(
   const applicationDate = asOptionalDate(body.applicationDate);
   const recruiterNotes = asOptionalString(body.recruiterNotes);
   const otherNotes = asOptionalString(body.otherNotes);
+  const archived = typeof body.archived === 'boolean' ? body.archived : null;
 
   if (!title || !company || !location || !stage || !lastActivityDate) {
     return NextResponse.json(
@@ -126,25 +128,31 @@ export async function PATCH(
       );
     }
 
+    const updateData: Record<string, unknown> = {
+      title,
+      company_name: company,
+      location,
+      pipeline_stage: stage,
+      last_activity_date: lastActivityDate,
+      deadline,
+      priority_flag: priority,
+      job_description: jobDescription,
+      compensation_notes: compensation,
+      application_date: applicationDate,
+      recruiter_contact_notes: recruiterNotes,
+      custom_notes: otherNotes,
+    };
+
+    if (archived !== null) {
+      updateData.archived = archived;
+    }
+
     const updateResult = await prisma.job.updateMany({
       where: {
         id: jobId,
         user_id: sessionUserId,
       },
-      data: {
-        title,
-        company_name: company,
-        location,
-        pipeline_stage: stage,
-        last_activity_date: lastActivityDate,
-        deadline,
-        priority_flag: priority,
-        job_description: jobDescription,
-        compensation_notes: compensation,
-        application_date: applicationDate,
-        recruiter_contact_notes: recruiterNotes,
-        custom_notes: otherNotes,
-      },
+      data: updateData,
     });
 
     if (updateResult.count === 0) {
@@ -346,6 +354,10 @@ export async function PATCH(
         stage,
         transitionOccurredAt,
       );
+    }
+
+    if (archived !== null && Boolean(currentJob.archived) !== archived) {
+      await createArchiveStateEvent(jobId, archived, new Date());
     }
 
     const updatedJob = await prisma.job.findFirst({

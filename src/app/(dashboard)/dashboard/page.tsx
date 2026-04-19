@@ -15,6 +15,7 @@ type DashboardJob = {
   title: string;
   location: string;
   pipeline_stage: string;
+  archived: boolean | null;
   last_activity_date: Date;
   deadline: Date | null;
   priority_flag: boolean | null;
@@ -41,9 +42,6 @@ function toApplicationStatus(stage: string): ApplicationStatus {
       return 'Offer';
     case 'rejected':
       return 'Rejected';
-    case 'archived':
-    case 'archive':
-      return 'Archived';
     default:
       return 'Interested';
   }
@@ -129,6 +127,7 @@ export default async function Dashboard() {
       title: true,
       location: true,
       pipeline_stage: true,
+      archived: true,
       last_activity_date: true,
       deadline: true,
       priority_flag: true,
@@ -157,12 +156,17 @@ export default async function Dashboard() {
 
   const timelineByJobId = new Map<
     string,
-    Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>
+    Array<{
+      id: string;
+      event_type: string;
+      occurred_at: Date;
+      notes: string | null;
+    }>
   >();
   for (const event of allTimelineEvents) {
     // Filter out events with null event_type or occurred_at
     if (!event.event_type || !event.occurred_at) continue;
-    
+
     if (!timelineByJobId.has(event.job_id)) {
       timelineByJobId.set(event.job_id, []);
     }
@@ -188,7 +192,12 @@ export default async function Dashboard() {
 
   const interviewsByJobId = new Map<
     string,
-    Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
+    Array<{
+      id: string;
+      round_type: string;
+      scheduled_at: Date;
+      notes: string | null;
+    }>
   >();
   for (const interview of allInterviews) {
     if (!interviewsByJobId.has(interview.job_id)) {
@@ -224,6 +233,7 @@ export default async function Dashboard() {
       company: job.company_name,
       title: job.title,
       location: job.location,
+      archived: Boolean(job.archived),
       status: toApplicationStatus(job.pipeline_stage),
       lastActivityDateLabel: formatDate(job.last_activity_date),
       angle: getStableAngle(job.id),
@@ -245,6 +255,7 @@ export default async function Dashboard() {
           : null,
         recruiterNotes: job.recruiter_contact_notes,
         otherNotes: job.custom_notes,
+        archived: Boolean(job.archived),
       },
     };
   });
