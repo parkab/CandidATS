@@ -285,6 +285,14 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           event_type: { not: null },
           occurred_at: { not: null },
         },
+        orderBy: [
+          {
+            occurred_at: 'asc',
+          },
+          {
+            id: 'asc',
+          },
+        ],
       },
       Interview: {
         select: {
