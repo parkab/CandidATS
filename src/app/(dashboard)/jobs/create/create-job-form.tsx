@@ -94,7 +94,9 @@ export default function CreateJobForm({
     if (!inModal) {
       // Redirect to edit page so user can see the created job with timeline
       if (createdJob?.id) {
-        router.push(`/dashboard/jobs/edit?id=${encodeURIComponent(createdJob.id)}`);
+        router.push(
+          `/dashboard/jobs/edit?id=${encodeURIComponent(createdJob.id)}`,
+        );
         return; // Return early to avoid calling refresh after navigation
       } else {
         router.push('/dashboard');

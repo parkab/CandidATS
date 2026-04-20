@@ -30,7 +30,10 @@ const context = { params: Promise.resolve({ id: 'edu-1' }) };
 function buildRequest(method: string, body?: Record<string, unknown>) {
   return new Request('http://localhost/api/profile/education/edu-1', {
     method,
-    headers: { 'content-type': 'application/json', cookie: 'sb-access-token=test-token' },
+    headers: {
+      'content-type': 'application/json',
+      cookie: 'sb-access-token=test-token',
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 }
@@ -40,14 +43,20 @@ describe('PATCH /api/profile/education/[id]', () => {
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
-    const response = await PATCH(buildRequest('PATCH', { institution: 'New' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { institution: 'New' }),
+      context,
+    );
     expect(response.status).toBe(401);
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
 
   it('returns 400 for an invalid payload', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const response = await PATCH(buildRequest('PATCH', { institution: '' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { institution: '' }),
+      context,
+    );
     expect(response.status).toBe(400);
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
@@ -56,7 +65,10 @@ describe('PATCH /api/profile/education/[id]', () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedUpdateMany.mockResolvedValue({ count: 0 } as never);
 
-    const response = await PATCH(buildRequest('PATCH', { institution: 'NJIT' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { institution: 'NJIT' }),
+      context,
+    );
     expect(response.status).toBe(404);
     expect(mockedFindFirst).not.toHaveBeenCalled();
   });
@@ -64,9 +76,16 @@ describe('PATCH /api/profile/education/[id]', () => {
   it('updates using session userId — not any id from the request body', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
-    mockedFindFirst.mockResolvedValue({ id: 'edu-1', userId: 'session-user-id', institution: 'NJIT' } as never);
+    mockedFindFirst.mockResolvedValue({
+      id: 'edu-1',
+      userId: 'session-user-id',
+      institution: 'NJIT',
+    } as never);
 
-    const response = await PATCH(buildRequest('PATCH', { institution: 'NJIT' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { institution: 'NJIT' }),
+      context,
+    );
     expect(response.status).toBe(200);
     expect(mockedUpdateMany).toHaveBeenCalledWith({
       where: { id: 'edu-1', userId: 'session-user-id' },

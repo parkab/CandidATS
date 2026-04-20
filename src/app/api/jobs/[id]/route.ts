@@ -363,8 +363,7 @@ export async function PATCH(
           continue; // Skip items without a title
         }
 
-        const titleValue =
-          typeof title === 'string' ? title.trim() : '';
+        const titleValue = typeof title === 'string' ? title.trim() : '';
 
         // Require a non-empty string title for follow-up tasks
         if (titleValue.length === 0) {
@@ -385,8 +384,7 @@ export async function PATCH(
           existingFollowUpIds.has(itemId)
         ) {
           incomingFollowUpIds.add(itemId);
-          const notesValue =
-            typeof notes === 'string' ? notes.trim() : null;
+          const notesValue = typeof notes === 'string' ? notes.trim() : null;
           await prisma.followUpTask.update({
             where: { id: itemId },
             data: {
@@ -406,8 +404,7 @@ export async function PATCH(
           if (followUpId) {
             incomingFollowUpIds.add(followUpId);
           }
-          const notesValue =
-            typeof notes === 'string' ? notes.trim() : null;
+          const notesValue = typeof notes === 'string' ? notes.trim() : null;
           const createdFollowUp = await prisma.followUpTask.create({
             data: {
               id: followUpId,

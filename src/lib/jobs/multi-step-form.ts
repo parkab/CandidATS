@@ -6,6 +6,8 @@ export const JOB_FORM_STEPS = [
   { id: 'interviews', label: 'Interviews' },
   { id: 'followUps', label: 'Follow-ups' },
   { id: 'documents', label: 'Documents' },
+  { id: 'resume', label: 'Resume' },
+  { id: 'coverLetter', label: 'Cover Letter' },
 ] as const;
 
 export type JobFormStepId = (typeof JOB_FORM_STEPS)[number]['id'];
@@ -48,12 +50,24 @@ export type JobDocumentsDraft = {
   files: JobDocumentItemDraft[];
 };
 
+export type JobResumeDraft = {
+  content: string;
+  isGenerating: boolean;
+};
+
+export type JobCoverLetterDraft = {
+  content: string;
+  isGenerating: boolean;
+};
+
 export type JobMultiStepDraft = {
   overview: JobOverviewDraft;
   timeline: JobSectionItemDraft[];
   interviews: JobSectionItemDraft[];
   followUps: JobSectionItemDraft[];
   documents: JobDocumentsDraft;
+  resume: JobResumeDraft;
+  coverLetter: JobCoverLetterDraft;
 };
 
 export type StepSaveAdapter = (payload: {

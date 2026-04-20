@@ -100,7 +100,9 @@ export async function POST(
     return NextResponse.json({ error: 'Job id is required' }, { status: 400 });
   }
 
-  const body = (await request.json().catch(() => null)) as CreateTimelineEventBody | null;
+  const body = (await request
+    .json()
+    .catch(() => null)) as CreateTimelineEventBody | null;
 
   if (!body || typeof body !== 'object') {
     return NextResponse.json(

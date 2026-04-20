@@ -45,7 +45,7 @@ export default function DeleteJobDialog({
   async function handleConfirm() {
     setError(null);
     setIsDeleting(true);
-    
+
     try {
       await onConfirm();
       setIsDeleting(false);
@@ -75,11 +75,16 @@ export default function DeleteJobDialog({
       }}
     >
       <div className="w-96 p-6">
-        <h2 id="delete-dialog-title" className="text-lg font-semibold text-(--foreground)">
+        <h2
+          id="delete-dialog-title"
+          className="text-lg font-semibold text-(--foreground)"
+        >
           Delete Job Application?
         </h2>
         <p className="mt-3 text-sm text-(--text-muted)">
-          Are you sure you want to delete <span className="font-medium">{displayName}</span>? This action cannot be undone.
+          Are you sure you want to delete{' '}
+          <span className="font-medium">{displayName}</span>? This action cannot
+          be undone.
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <button
@@ -100,7 +105,10 @@ export default function DeleteJobDialog({
           </button>
         </div>
         {error && (
-          <p className="mt-4 text-sm font-medium text-(--danger-text)" role="alert">
+          <p
+            className="mt-4 text-sm font-medium text-(--danger-text)"
+            role="alert"
+          >
             {error}
           </p>
         )}

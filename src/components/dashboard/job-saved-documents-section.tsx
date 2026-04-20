@@ -1,0 +1,187 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+type Document = {
+  id: string;
+  title: string;
+  content: string;
+  type: 'resume' | 'cover_letter';
+  created_at: string;
+  updated_at: string;
+};
+
+type JobSavedDocumentsSectionProps = {
+  jobId: string;
+};
+
+export default function JobSavedDocumentsSection({
+  jobId,
+}: JobSavedDocumentsSectionProps) {
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [jobId]);
+
+  async function fetchDocuments() {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/documents?jobId=${jobId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch documents');
+      }
+
+      const data = await response.json();
+      setDocuments(data.documents);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4">
+        <h4 className="text-sm font-semibold text-(--foreground)">
+          Saved Documents
+        </h4>
+        <div className="flex items-center gap-2 text-sm text-(--text-muted)">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-(--foreground) border-t-transparent"></div>
+          Loading documents...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="grid gap-4">
+        <h4 className="text-sm font-semibold text-(--foreground)">
+          Saved Documents
+        </h4>
+        <p className="text-sm text-red-600">Error loading documents: {error}</p>
+      </div>
+    );
+  }
+
+  const resumes = documents.filter((doc) => doc.type === 'resume');
+  const coverLetters = documents.filter((doc) => doc.type === 'cover_letter');
+
+  if (documents.length === 0) {
+    return (
+      <div className="grid gap-4">
+        <h4 className="text-sm font-semibold text-(--foreground)">
+          Saved Documents
+        </h4>
+        <p className="text-sm text-(--text-muted)">
+          No documents have been saved for this job yet. Generate and save
+          resumes or cover letters to see them here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      <h4 className="text-sm font-semibold text-(--foreground)">
+        Saved Documents
+      </h4>
+
+      {resumes.length > 0 && (
+        <div className="grid gap-2">
+          <h5 className="text-xs font-semibold text-(--text-muted) uppercase tracking-wide">
+            Resumes ({resumes.length})
+          </h5>
+          <div className="grid gap-2">
+            {resumes.map((doc) => (
+              <DocumentCard key={doc.id} document={doc} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {coverLetters.length > 0 && (
+        <div className="grid gap-2">
+          <h5 className="text-xs font-semibold text-(--text-muted) uppercase tracking-wide">
+            Cover Letters ({coverLetters.length})
+          </h5>
+          <div className="grid gap-2">
+            {coverLetters.map((doc) => (
+              <DocumentCard key={doc.id} document={doc} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentCard({ document }: { document: Document }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getTypeLabel = (type: string) => {
+    return type === 'resume' ? 'Resume' : 'Cover Letter';
+  };
+
+  const getTypeColor = (type: string) => {
+    return type === 'resume'
+      ? 'bg-blue-100 text-blue-800'
+      : 'bg-green-100 text-green-800';
+  };
+
+  return (
+    <div className="rounded-md border border-(--surface-border) bg-(--surface-dimmed) p-3">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h6 className="text-sm font-semibold text-(--foreground) truncate">
+              {document.title}
+            </h6>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTypeColor(document.type)}`}
+            >
+              {getTypeLabel(document.type)}
+            </span>
+          </div>
+          <p className="text-xs text-(--text-muted)">
+            Created: {formatDate(document.created_at)}
+            {document.updated_at !== document.created_at && (
+              <> • Updated: {formatDate(document.updated_at)}</>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="ml-2 text-xs text-(--text-muted) hover:text-(--foreground)"
+        >
+          {isExpanded ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
+
+      {isExpanded && (
+        <div className="mt-3">
+          <div className="rounded border bg-(--background) p-3">
+            <pre className="whitespace-pre-wrap text-xs text-(--foreground) leading-relaxed">
+              {document.content}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

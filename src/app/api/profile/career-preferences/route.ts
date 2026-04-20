@@ -7,17 +7,26 @@ export async function GET(request: Request) {
   let userId: string;
   try {
     const { data, error } = await getSupabaseUserFromRequest(request);
-    if (error || !data?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (error || !data?.user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     userId = data.user.id;
   } catch {
-    return NextResponse.json({ error: 'Auth service unavailable' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Auth service unavailable' },
+      { status: 503 },
+    );
   }
 
   try {
-    const record = await prisma.careerPreferences.findUnique({ where: { userId } });
+    const record = await prisma.careerPreferences.findUnique({
+      where: { userId },
+    });
     return NextResponse.json(record ?? null);
   } catch {
-    return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Unable to process request.' },
+      { status: 500 },
+    );
   }
 }
 
@@ -25,15 +34,23 @@ export async function PATCH(request: Request) {
   let userId: string;
   try {
     const { data, error } = await getSupabaseUserFromRequest(request);
-    if (error || !data?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (error || !data?.user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     userId = data.user.id;
   } catch {
-    return NextResponse.json({ error: 'Auth service unavailable' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Auth service unavailable' },
+      { status: 503 },
+    );
   }
 
   const rawBody = await request.json().catch(() => null);
   const { payload, error } = parseCareerPreferencesUpdatePayload(rawBody);
-  if (!payload || error) return NextResponse.json({ error: error ?? 'Invalid payload' }, { status: 400 });
+  if (!payload || error)
+    return NextResponse.json(
+      { error: error ?? 'Invalid payload' },
+      { status: 400 },
+    );
 
   try {
     const updated = await prisma.careerPreferences.upsert({
@@ -43,6 +60,9 @@ export async function PATCH(request: Request) {
     });
     return NextResponse.json(updated);
   } catch {
-    return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Unable to process request.' },
+      { status: 500 },
+    );
   }
 }

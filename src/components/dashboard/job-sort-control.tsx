@@ -40,7 +40,10 @@ export default function JobSortControl() {
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-      <label className="text-sm font-medium text-(--text-muted)" htmlFor="job-sort-select">
+      <label
+        className="text-sm font-medium text-(--text-muted)"
+        htmlFor="job-sort-select"
+      >
         Sort by
       </label>
       <select

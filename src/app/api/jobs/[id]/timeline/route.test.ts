@@ -27,9 +27,7 @@ const mockedGetSupabaseUserFromRequest = jest.mocked(
   getSupabaseUserFromRequest,
 );
 
-function buildRequest(
-  body?: Record<string, unknown>,
-): Request {
+function buildRequest(body?: Record<string, unknown>): Request {
   return new Request('http://localhost/api/jobs/job-1/timeline', {
     method: body ? 'POST' : 'GET',
     headers: {
@@ -197,12 +195,9 @@ describe('Timeline API Routes', () => {
         error: { message: 'Unauthorized' },
       } as never);
 
-      const response = await POST(
-        buildRequest({ event_type: 'test_event' }),
-        {
-          params: Promise.resolve({ id: 'job-1' }),
-        },
-      );
+      const response = await POST(buildRequest({ event_type: 'test_event' }), {
+        params: Promise.resolve({ id: 'job-1' }),
+      });
 
       expect(response.status).toBe(401);
       expect(await response.json()).toEqual({ error: 'Unauthorized' });
@@ -215,12 +210,9 @@ describe('Timeline API Routes', () => {
         error: null,
       } as never);
 
-      const response = await POST(
-        buildRequest({ event_type: 'test_event' }),
-        {
-          params: Promise.resolve({ id: '' }),
-        },
-      );
+      const response = await POST(buildRequest({ event_type: 'test_event' }), {
+        params: Promise.resolve({ id: '' }),
+      });
 
       expect(response.status).toBe(400);
       expect(await response.json()).toEqual({
@@ -319,12 +311,9 @@ describe('Timeline API Routes', () => {
         user_id: 'other-user-id',
       } as never);
 
-      const response = await POST(
-        buildRequest({ event_type: 'test_event' }),
-        {
-          params: Promise.resolve({ id: 'job-1' }),
-        },
-      );
+      const response = await POST(buildRequest({ event_type: 'test_event' }), {
+        params: Promise.resolve({ id: 'job-1' }),
+      });
 
       expect(response.status).toBe(404);
       expect(await response.json()).toEqual({

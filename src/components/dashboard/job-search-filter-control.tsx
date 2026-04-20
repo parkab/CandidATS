@@ -25,8 +25,14 @@ export default function JobSearchFilterControl() {
   const searchParams = useSearchParams();
 
   const query = useMemo(() => searchParams.get('q') ?? '', [searchParams]);
-  const stage = useMemo(() => searchParams.get('stage') ?? 'all', [searchParams]);
-  const location = useMemo(() => searchParams.get('location') ?? '', [searchParams]);
+  const stage = useMemo(
+    () => searchParams.get('stage') ?? 'all',
+    [searchParams],
+  );
+  const location = useMemo(
+    () => searchParams.get('location') ?? '',
+    [searchParams],
+  );
   const deadlineState = useMemo(
     () => searchParams.get('deadlineState') ?? 'any',
     [searchParams],
@@ -35,7 +41,8 @@ export default function JobSearchFilterControl() {
   const [searchQuery, setSearchQuery] = useState(query);
   const [selectedStage, setSelectedStage] = useState(stage);
   const [selectedLocation, setSelectedLocation] = useState(location);
-  const [selectedDeadlineState, setSelectedDeadlineState] = useState(deadlineState);
+  const [selectedDeadlineState, setSelectedDeadlineState] =
+    useState(deadlineState);
 
   useEffect(() => {
     setSearchQuery(query);
@@ -72,7 +79,9 @@ export default function JobSearchFilterControl() {
     <div className="rounded-3xl border border-(--surface-border) bg-(--surface-muted) p-4 shadow-sm">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_auto_auto]">
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-(--text-muted)">Search jobs</span>
+          <span className="text-sm font-medium text-(--text-muted)">
+            Search jobs
+          </span>
           <div className="flex w-full items-end justify-between gap-2">
             <input
               type="search"
@@ -112,7 +121,9 @@ export default function JobSearchFilterControl() {
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-(--text-muted)">Location</span>
+            <span className="text-sm font-medium text-(--text-muted)">
+              Location
+            </span>
             <input
               type="text"
               value={selectedLocation}
@@ -123,7 +134,9 @@ export default function JobSearchFilterControl() {
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-(--text-muted)">Deadline</span>
+            <span className="text-sm font-medium text-(--text-muted)">
+              Deadline
+            </span>
             <select
               value={selectedDeadlineState}
               onChange={(event) => setSelectedDeadlineState(event.target.value)}
