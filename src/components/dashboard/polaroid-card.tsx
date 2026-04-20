@@ -13,6 +13,7 @@ type PolaroidCardProps = {
   jobId?: string;
   onStageChange?: (newStage: ApplicationStatus) => Promise<void>;
   onToggleArchive?: (archived: boolean) => Promise<void>;
+  highPriority?: boolean;
 };
 
 export default function PolaroidCard({
@@ -26,6 +27,7 @@ export default function PolaroidCard({
   jobId,
   onStageChange,
   onToggleArchive,
+  highPriority = false,
 }: PolaroidCardProps) {
   const canUpdateArchiveState = Boolean(jobId && onToggleArchive);
   const archiveButtonLabel = archived ? 'Restore' : 'Archive';
@@ -33,7 +35,24 @@ export default function PolaroidCard({
 
   return (
     <PolaroidShell angle={angle}>
-      <div className="flex min-h-48 flex-col justify-center text-center rounded-xs bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] px-4 py-5 text-[#111111] shadow-inner">
+      <div className="relative flex min-h-48 flex-col justify-center text-center rounded-xs bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] px-4 py-5 text-[#111111] shadow-inner">
+        {highPriority ? (
+          <span
+            aria-label="High priority"
+            title="High priority"
+            className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center text-[#111111]"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-6 w-6"
+              aria-hidden="true"
+            >
+              <path d="M12 2.5l2.2 5.1 5.6.5-4.3 3.4 1.6 5.3L12 14.9 6.9 17.8l1.6-5.3L4.2 9.1l5.6-.5L12 2.5z" />
+            </svg>
+          </span>
+        ) : null}
         <p className="line-clamp-2 text-lg font-semibold leading-tight">
           {company}
         </p>

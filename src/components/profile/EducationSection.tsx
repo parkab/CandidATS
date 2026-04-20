@@ -17,6 +17,7 @@ export type EducationEntry = {
 
 type EducationSectionProps = {
   initialEducation: EducationEntry[];
+  onCompletionChange?: (isComplete: boolean) => void;
 };
 
 type FormState = {
@@ -72,9 +73,9 @@ function validateForm(form: FormState): FormErrors {
 
 export default function EducationSection({
   initialEducation,
+  onCompletionChange,
 }: EducationSectionProps) {
-  const [education, setEducation] =
-    useState<EducationEntry[]>(initialEducation);
+  const [education, setEducation] = useState<EducationEntry[]>(initialEducation);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -84,6 +85,10 @@ export default function EducationSection({
   const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
+
+  useEffect(() => {
+    onCompletionChange?.(education.length > 0);
+  }, [education.length, onCompletionChange]);
 
   useEffect(() => {
     if (!toast) {

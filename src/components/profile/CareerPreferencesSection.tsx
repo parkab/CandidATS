@@ -15,6 +15,7 @@ export type CareerPreferencesData = {
 
 type CareerPreferencesSectionProps = {
   initialData: CareerPreferencesData | null;
+  onCompletionChange?: (isComplete: boolean) => void;
 };
 
 type FormState = {
@@ -39,6 +40,7 @@ function toFormState(data: CareerPreferencesData | null): FormState {
 
 export default function CareerPreferencesSection({
   initialData,
+  onCompletionChange,
 }: CareerPreferencesSectionProps) {
   const [data, setData] = useState<CareerPreferencesData | null>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,6 +123,10 @@ export default function CareerPreferencesSection({
     data?.targetLocations ||
     data?.workMode ||
     data?.salaryPreference;
+
+  useEffect(() => {
+    onCompletionChange?.(Boolean(hasAnyData));
+  }, [hasAnyData, onCompletionChange]);
 
   return (
     <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
