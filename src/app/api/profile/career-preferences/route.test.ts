@@ -27,7 +27,10 @@ const unauthedUser = { data: null, error: { message: 'Unauthorized' } };
 function buildRequest(method: string, body?: Record<string, unknown>) {
   return new Request('http://localhost/api/profile/career-preferences', {
     method,
-    headers: { 'content-type': 'application/json', cookie: 'sb-access-token=test-token' },
+    headers: {
+      'content-type': 'application/json',
+      cookie: 'sb-access-token=test-token',
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 }
@@ -52,11 +55,18 @@ describe('GET /api/profile/career-preferences', () => {
 
   it('returns the record scoped to the session user', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const record = { id: 'cp-1', userId: 'session-user-id', targetRoles: 'Engineer', workMode: 'Remote' };
+    const record = {
+      id: 'cp-1',
+      userId: 'session-user-id',
+      targetRoles: 'Engineer',
+      workMode: 'Remote',
+    };
     mockedFindUnique.mockResolvedValue(record as never);
     const response = await GET(buildRequest('GET'));
     expect(response.status).toBe(200);
-    expect(mockedFindUnique).toHaveBeenCalledWith({ where: { userId: 'session-user-id' } });
+    expect(mockedFindUnique).toHaveBeenCalledWith({
+      where: { userId: 'session-user-id' },
+    });
     const body = await response.json();
     expect(body.targetRoles).toBe('Engineer');
   });
@@ -67,7 +77,9 @@ describe('PATCH /api/profile/career-preferences', () => {
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
-    const response = await PATCH(buildRequest('PATCH', { targetRoles: 'Engineer' }));
+    const response = await PATCH(
+      buildRequest('PATCH', { targetRoles: 'Engineer' }),
+    );
     expect(response.status).toBe(401);
     expect(mockedUpsert).not.toHaveBeenCalled();
   });
@@ -81,17 +93,26 @@ describe('PATCH /api/profile/career-preferences', () => {
 
   it('returns 400 for an invalid workMode', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const response = await PATCH(buildRequest('PATCH', { workMode: 'InvalidMode' }));
+    const response = await PATCH(
+      buildRequest('PATCH', { workMode: 'InvalidMode' }),
+    );
     expect(response.status).toBe(400);
     expect(mockedUpsert).not.toHaveBeenCalled();
   });
 
   it('upserts using session userId and returns 200', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const record = { id: 'cp-1', userId: 'session-user-id', targetRoles: 'Engineer', workMode: 'Remote' };
+    const record = {
+      id: 'cp-1',
+      userId: 'session-user-id',
+      targetRoles: 'Engineer',
+      workMode: 'Remote',
+    };
     mockedUpsert.mockResolvedValue(record as never);
 
-    const response = await PATCH(buildRequest('PATCH', { targetRoles: 'Engineer', workMode: 'Remote' }));
+    const response = await PATCH(
+      buildRequest('PATCH', { targetRoles: 'Engineer', workMode: 'Remote' }),
+    );
     expect(response.status).toBe(200);
     expect(mockedUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -104,9 +125,14 @@ describe('PATCH /api/profile/career-preferences', () => {
 
   it('ignores any userId in the request body and uses the session userId', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    mockedUpsert.mockResolvedValue({ id: 'cp-1', userId: 'session-user-id' } as never);
+    mockedUpsert.mockResolvedValue({
+      id: 'cp-1',
+      userId: 'session-user-id',
+    } as never);
 
-    await PATCH(buildRequest('PATCH', { targetRoles: 'Engineer', userId: 'attacker-id' }));
+    await PATCH(
+      buildRequest('PATCH', { targetRoles: 'Engineer', userId: 'attacker-id' }),
+    );
     expect(mockedUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: 'session-user-id' },

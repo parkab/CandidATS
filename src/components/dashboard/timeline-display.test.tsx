@@ -3,19 +3,20 @@ import { render, screen } from '@testing-library/react';
 import { TimelineDisplay } from './timeline-display';
 
 jest.mock('@/lib/utils/formatDate', () => ({
-  formatDate: (date: Date) => date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }),
+  formatDate: (date: Date) =>
+    date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }),
 }));
 
 describe('TimelineDisplay', () => {
   it('renders loading skeleton when isLoading is true', () => {
     render(<TimelineDisplay events={[]} isLoading={true} />);
-    const skeleton = screen.getAllByRole('generic').find(el => 
-      el.className.includes('animate-pulse')
-    );
+    const skeleton = screen
+      .getAllByRole('generic')
+      .find((el) => el.className.includes('animate-pulse'));
     expect(skeleton).toBeInTheDocument();
   });
 
@@ -36,7 +37,9 @@ describe('TimelineDisplay', () => {
     render(<TimelineDisplay events={[event]} />);
 
     expect(screen.getByText('Stage Changed')).toBeInTheDocument();
-    expect(screen.getByText('Moved from Applied to Interview')).toBeInTheDocument();
+    expect(
+      screen.getByText('Moved from Applied to Interview'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Apr 3, 2026')).toBeInTheDocument();
   });
 
@@ -65,7 +68,9 @@ describe('TimelineDisplay', () => {
 
     expect(stage.closest('div')).toBeInTheDocument();
     expect(created.closest('div')).toBeInTheDocument();
-    expect(stage.compareDocumentPosition(created) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      stage.compareDocumentPosition(created) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('renders event without notes correctly', () => {
@@ -80,7 +85,9 @@ describe('TimelineDisplay', () => {
     render(<TimelineDisplay events={[event]} />);
 
     expect(screen.getByText('Job Created')).toBeInTheDocument();
-    expect(screen.queryByText(/^Moved|^Changed|Updated/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/^Moved|^Changed|Updated/),
+    ).not.toBeInTheDocument();
   });
 
   it('renders event with unknown event_type using the type as label', () => {

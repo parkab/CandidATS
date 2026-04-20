@@ -83,46 +83,53 @@ export default async function Profile() {
 
   const userProfile = user?.Profile;
 
-  const initialExperiences: ExperienceEntry[] = (user?.Experience ?? []).map((e): ExperienceEntry => ({
-    id: e.id,
-    type: e.type,
-    title: e.title,
-    organization: e.organization,
-    role: e.role,
-    startDate: e.startDate.toISOString(),
-    endDate: e.endDate ? e.endDate.toISOString() : null,
-    description: e.description,
-    accomplishments: e.accomplishments,
-    sortOrder: e.sortOrder,
-  }));
+  const initialExperiences: ExperienceEntry[] = (user?.Experience ?? []).map(
+    (e): ExperienceEntry => ({
+      id: e.id,
+      type: e.type,
+      title: e.title,
+      organization: e.organization,
+      role: e.role,
+      startDate: e.startDate.toISOString(),
+      endDate: e.endDate ? e.endDate.toISOString() : null,
+      description: e.description,
+      accomplishments: e.accomplishments,
+      sortOrder: e.sortOrder,
+    }),
+  );
 
-  const initialSkills: SkillEntry[] = (user?.Skill ?? []).map((s): SkillEntry => ({
-    id: s.id,
-    name: s.name,
-    category: s.category,
-    proficiencyLabel: s.proficiencyLabel,
-    sortOrder: s.sortOrder,
-  }));
+  const initialSkills: SkillEntry[] = (user?.Skill ?? []).map(
+    (s): SkillEntry => ({
+      id: s.id,
+      name: s.name,
+      category: s.category,
+      proficiencyLabel: s.proficiencyLabel,
+      sortOrder: s.sortOrder,
+    }),
+  );
 
-  const initialEducation: EducationEntry[] = (user?.Education ?? []).map((e) => ({
-    id: e.id,
-    institution: e.institution,
-    degree: e.degree,
-    fieldOfStudy: e.fieldOfStudy,
-    startDate: e.startDate.toISOString(),
-    endDate: e.endDate ? e.endDate.toISOString() : null,
-    honors: e.honors,
-    gpa: e.gpa,
-  }));
+  const initialEducation: EducationEntry[] = (user?.Education ?? []).map(
+    (e) => ({
+      id: e.id,
+      institution: e.institution,
+      degree: e.degree,
+      fieldOfStudy: e.fieldOfStudy,
+      startDate: e.startDate.toISOString(),
+      endDate: e.endDate ? e.endDate.toISOString() : null,
+      honors: e.honors,
+      gpa: e.gpa,
+    }),
+  );
 
-  const initialCareerPreferences: CareerPreferencesData | null = user?.CareerPreferences
-    ? {
-        targetRoles: user.CareerPreferences.targetRoles,
-        targetLocations: user.CareerPreferences.targetLocations,
-        workMode: user.CareerPreferences.workMode,
-        salaryPreference: user.CareerPreferences.salaryPreference,
-      }
-    : null;
+  const initialCareerPreferences: CareerPreferencesData | null =
+    user?.CareerPreferences
+      ? {
+          targetRoles: user.CareerPreferences.targetRoles,
+          targetLocations: user.CareerPreferences.targetLocations,
+          workMode: user.CareerPreferences.workMode,
+          salaryPreference: user.CareerPreferences.salaryPreference,
+        }
+      : null;
 
   const initialProfile = {
     firstName: user?.firstName ?? session.firstName ?? '',

@@ -30,7 +30,10 @@ const context = { params: Promise.resolve({ id: 'exp-1' }) };
 function buildRequest(method: string, body?: Record<string, unknown>) {
   return new Request('http://localhost/api/profile/experience/exp-1', {
     method,
-    headers: { 'content-type': 'application/json', cookie: 'sb-access-token=test-token' },
+    headers: {
+      'content-type': 'application/json',
+      cookie: 'sb-access-token=test-token',
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 }
@@ -40,7 +43,10 @@ describe('PATCH /api/profile/experience/[id]', () => {
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
-    const response = await PATCH(buildRequest('PATCH', { title: 'New' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { title: 'New' }),
+      context,
+    );
     expect(response.status).toBe(401);
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
@@ -56,7 +62,10 @@ describe('PATCH /api/profile/experience/[id]', () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedUpdateMany.mockResolvedValue({ count: 0 } as never);
 
-    const response = await PATCH(buildRequest('PATCH', { title: 'New Title' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { title: 'New Title' }),
+      context,
+    );
     expect(response.status).toBe(404);
     expect(mockedFindFirst).not.toHaveBeenCalled();
   });
@@ -64,9 +73,16 @@ describe('PATCH /api/profile/experience/[id]', () => {
   it('updates using session userId — not any id from the request body', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedUpdateMany.mockResolvedValue({ count: 1 } as never);
-    mockedFindFirst.mockResolvedValue({ id: 'exp-1', userId: 'session-user-id', title: 'New Title' } as never);
+    mockedFindFirst.mockResolvedValue({
+      id: 'exp-1',
+      userId: 'session-user-id',
+      title: 'New Title',
+    } as never);
 
-    const response = await PATCH(buildRequest('PATCH', { title: 'New Title' }), context);
+    const response = await PATCH(
+      buildRequest('PATCH', { title: 'New Title' }),
+      context,
+    );
     expect(response.status).toBe(200);
     expect(mockedUpdateMany).toHaveBeenCalledWith({
       where: { id: 'exp-1', userId: 'session-user-id' },

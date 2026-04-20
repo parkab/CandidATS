@@ -127,36 +127,37 @@ export default function EditJobForm({
         throw new Error('Job ID is required to delete a job.');
       }
 
-      const response = await fetch(
-        `/api/jobs/${encodeURIComponent(jobId)}`,
-        {
-          method: 'DELETE',
-          headers: { 'content-type': 'application/json' },
-        }
-      );
+      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+      });
 
       if (!response.ok) {
         const responseBody = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(responseBody?.error ?? 'Unable to delete job right now.');
+        throw new Error(
+          responseBody?.error ?? 'Unable to delete job right now.',
+        );
       }
 
       // Close modal if in modal view
       if (inModal) {
         onSuccess?.();
       }
-      
+
       // Navigate back to dashboard and refresh data
       if (!inModal) {
         router.push('/dashboard');
       }
-      
+
       // Refresh to update metrics and jobs list
       router.refresh();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'An unexpected error occurred.';
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred.';
       setDeleteError(errorMessage);
       throw error;
     } finally {

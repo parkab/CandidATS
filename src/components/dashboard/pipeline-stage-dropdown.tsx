@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { APPLICATION_STATUS_COLOR, type ApplicationStatus } from '@/lib/jobs/status';
+import {
+  APPLICATION_STATUS_COLOR,
+  type ApplicationStatus,
+} from '@/lib/jobs/status';
 
 type PipelineStageDropdownProps = {
   currentStage: ApplicationStatus;
@@ -27,8 +30,11 @@ export default function PipelineStageDropdown({
   // Focus the selected (or first) option when the menu opens
   useEffect(() => {
     if (isOpen) {
-      const selected = menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]');
-      const first = menuRef.current?.querySelector<HTMLButtonElement>('[role="option"]');
+      const selected = menuRef.current?.querySelector<HTMLButtonElement>(
+        '[aria-selected="true"]',
+      );
+      const first =
+        menuRef.current?.querySelector<HTMLButtonElement>('[role="option"]');
       (selected ?? first)?.focus();
     }
   }, [isOpen]);
@@ -67,7 +73,7 @@ export default function PipelineStageDropdown({
   const currentColor = APPLICATION_STATUS_COLOR[currentStage];
 
   return (
-    <div 
+    <div
       className="relative inline-block w-full"
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
@@ -152,9 +158,7 @@ export default function PipelineStageDropdown({
                 onPointerDown={(e) => e.stopPropagation()}
                 disabled={isLoading}
                 className={`w-full px-3 py-2 text-left text-sm font-medium transition-colors duration-150 flex items-center gap-2 ${
-                  isSelected
-                    ? 'bg-gray-100'
-                    : 'hover:bg-gray-50'
+                  isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div
@@ -163,7 +167,12 @@ export default function PipelineStageDropdown({
                 />
                 <span className={isSelected ? 'font-bold' : ''}>{stage}</span>
                 {isSelected && (
-                  <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <svg
+                    className="w-4 h-4 ml-auto"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                  >
                     <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

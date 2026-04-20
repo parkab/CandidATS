@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import EditJobForm from './edit-job-form';
+import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
 
 type EditJobPageProps = {
   searchParams?: Promise<{
@@ -52,9 +53,10 @@ export default async function EditJobApplication({
   const timelineItems = timelineEvents.map((event) => {
     let dateString = '';
     if (event.occurred_at) {
-      const dateObj = typeof event.occurred_at === 'string' 
-        ? new Date(event.occurred_at)
-        : event.occurred_at;
+      const dateObj =
+        typeof event.occurred_at === 'string'
+          ? new Date(event.occurred_at)
+          : event.occurred_at;
       if (!Number.isNaN(dateObj.getTime())) {
         dateString = dateObj.toISOString().split('T')[0];
       }
@@ -76,9 +78,10 @@ export default async function EditJobApplication({
   const interviewItems = interviews.map((interview) => {
     let dateString = '';
     if (interview.scheduled_at) {
-      const dateObj = typeof interview.scheduled_at === 'string' 
-        ? new Date(interview.scheduled_at)
-        : interview.scheduled_at;
+      const dateObj =
+        typeof interview.scheduled_at === 'string'
+          ? new Date(interview.scheduled_at)
+          : interview.scheduled_at;
       if (!Number.isNaN(dateObj.getTime())) {
         dateString = dateObj.toISOString().split('T')[0];
       }
@@ -141,6 +144,10 @@ export default async function EditJobApplication({
         initialInterviews={interviewItems}
         initialFollowUps={followUpItems}
       />
+
+      <div className="mx-auto max-w-2xl mt-12">
+        <JobSavedDocumentsSection jobId={jobId} />
+      </div>
     </section>
   );
 }
