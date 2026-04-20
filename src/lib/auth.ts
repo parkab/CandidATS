@@ -9,8 +9,10 @@ export interface RegistrationPayload {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const BCRYPT_SALT_ROUNDS = process.env.NODE_ENV === 'test' ? 8 : 12;
+
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+  return bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 }
 
 export async function verifyPassword(

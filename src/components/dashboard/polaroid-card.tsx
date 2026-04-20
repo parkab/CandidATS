@@ -1,5 +1,6 @@
 import { ApplicationStatus, APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import PolaroidShell from '@/components/dashboard/polaroid-shell';
+import PipelineStageDropdown from '@/components/dashboard/pipeline-stage-dropdown';
 
 type PolaroidCardProps = {
   company: string;
@@ -7,7 +8,11 @@ type PolaroidCardProps = {
   position: string;
   lastActivityDate: string;
   status: ApplicationStatus;
+  archived?: boolean;
   angle?: number;
+  jobId?: string;
+  onStageChange?: (newStage: ApplicationStatus) => Promise<void>;
+  onToggleArchive?: (archived: boolean) => Promise<void>;
 };
 
 export default function PolaroidCard({
@@ -16,8 +21,16 @@ export default function PolaroidCard({
   position,
   lastActivityDate,
   status,
+  archived = false,
   angle = 0,
+  jobId,
+  onStageChange,
+  onToggleArchive,
 }: PolaroidCardProps) {
+  const canUpdateArchiveState = Boolean(jobId && onToggleArchive);
+  const archiveButtonLabel = archived ? 'Restore' : 'Archive';
+  const archiveButtonColor = archived ? '#9fff5b' : '#ffa647';
+
   return (
     <PolaroidShell angle={angle}>
       <div className="flex min-h-48 flex-col justify-center text-center rounded-xs bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] px-4 py-5 text-[#111111] shadow-inner">
@@ -36,12 +49,42 @@ export default function PolaroidCard({
         <p className="text-left italic leading-none opacity-80">
           {lastActivityDate}
         </p>
-        <p
-          className="rounded-md px-2.5 py-1 text-right leading-none font-bold text-(--background)"
-          style={{ backgroundColor: `${APPLICATION_STATUS_COLOR[status]}8C` }}
-        >
-          {status}
-        </p>
+        {jobId && onStageChange ? (
+          <div className="flex w-full flex-col items-end gap-2">
+            <div className="w-full max-w-xs">
+              <PipelineStageDropdown
+                currentStage={status}
+                jobId={jobId}
+                onStageChange={onStageChange}
+              />
+            </div>
+            {canUpdateArchiveState ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void onToggleArchive?.(!archived)?.catch((error) => {
+                    console.error('Failed to toggle archive state.', error);
+                  });
+                }}
+                className="w-full max-w-xs rounded-md border px-2.5 py-1 text-xs font-bold text-[#111111] transition hover:brightness-95"
+                style={{
+                  backgroundColor: `${archiveButtonColor}B3`,
+                  borderColor: archiveButtonColor,
+                }}
+              >
+                {archiveButtonLabel}
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <p
+            className="rounded-md px-2.5 py-1 text-right leading-none font-bold text-(--background)"
+            style={{ backgroundColor: `${APPLICATION_STATUS_COLOR[status]}8C` }}
+          >
+            {status}
+          </p>
+        )}
       </div>
     </PolaroidShell>
   );

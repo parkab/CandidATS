@@ -15,6 +15,7 @@ model FollowUpTask {
   due_date   DateTime? @db.Date
   completed  Boolean?
   created_at DateTime? @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  notes      String?
   Job        Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
 }
 
@@ -47,6 +48,7 @@ model Job {
   custom_notes            String?
   created_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  archived                Boolean                @default(false)
   FollowUpTask            FollowUpTask[]
   Interview               Interview[]
   User                    User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -174,5 +176,4 @@ enum stage {
   Interview
   Offer
   Rejected
-  Archived
 }

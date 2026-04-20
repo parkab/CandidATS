@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
-import { createStageChangeEvent } from '@/lib/jobs/timeline';
+import {
+  createArchiveStateEvent,
+  createStageChangeEvent,
+  createStageTransitionHistory,
+} from '@/lib/jobs/timeline';
 
 type UpdateJobBody = Record<string, unknown>;
 
@@ -82,6 +86,7 @@ export async function PATCH(
   const applicationDate = asOptionalDate(body.applicationDate);
   const recruiterNotes = asOptionalString(body.recruiterNotes);
   const otherNotes = asOptionalString(body.otherNotes);
+  const archived = typeof body.archived === 'boolean' ? body.archived : null;
 
   if (!title || !company || !location || !stage || !lastActivityDate) {
     return NextResponse.json(
@@ -123,25 +128,31 @@ export async function PATCH(
       );
     }
 
+    const updateData: Record<string, unknown> = {
+      title,
+      company_name: company,
+      location,
+      pipeline_stage: stage,
+      last_activity_date: lastActivityDate,
+      deadline,
+      priority_flag: priority,
+      job_description: jobDescription,
+      compensation_notes: compensation,
+      application_date: applicationDate,
+      recruiter_contact_notes: recruiterNotes,
+      custom_notes: otherNotes,
+    };
+
+    if (archived !== null) {
+      updateData.archived = archived;
+    }
+
     const updateResult = await prisma.job.updateMany({
       where: {
         id: jobId,
         user_id: sessionUserId,
       },
-      data: {
-        title,
-        company_name: company,
-        location,
-        pipeline_stage: stage,
-        last_activity_date: lastActivityDate,
-        deadline,
-        priority_flag: priority,
-        job_description: jobDescription,
-        compensation_notes: compensation,
-        application_date: applicationDate,
-        recruiter_contact_notes: recruiterNotes,
-        custom_notes: otherNotes,
-      },
+      data: updateData,
     });
 
     if (updateResult.count === 0) {
@@ -172,7 +183,8 @@ export async function PATCH(
           continue; // Skip items without title or notes
         }
 
-        const titleValue = typeof itemTitle === 'string' ? itemTitle.trim() : '';
+        const titleValue =
+          typeof itemTitle === 'string' ? itemTitle.trim() : '';
 
         let parsedDate = new Date();
         if (typeof itemDate === 'string' && itemDate.trim()) {
@@ -182,7 +194,11 @@ export async function PATCH(
           }
         }
 
-        if (itemId && typeof itemId === 'string' && existingEventIds.has(itemId)) {
+        if (
+          itemId &&
+          typeof itemId === 'string' &&
+          existingEventIds.has(itemId)
+        ) {
           incomingEventIds.add(itemId);
           await prisma.timelineEvent.update({
             where: { id: itemId },
@@ -194,7 +210,12 @@ export async function PATCH(
           });
         } else {
           // Create new event - use client-provided ID if valid, otherwise let Prisma generate
-          const eventId = itemId && typeof itemId === 'string' && !existingEventIds.has(itemId) ? itemId : undefined;
+          const eventId =
+            itemId &&
+            typeof itemId === 'string' &&
+            !existingEventIds.has(itemId)
+              ? itemId
+              : undefined;
           if (eventId) {
             incomingEventIds.add(eventId);
           }
@@ -230,7 +251,9 @@ export async function PATCH(
         where: { job_id: jobId },
       });
 
-      const existingInterviewIds = new Set(existingInterviews.map((interview) => interview.id));
+      const existingInterviewIds = new Set(
+        existingInterviews.map((interview) => interview.id),
+      );
       const incomingInterviewIds = new Set<string>();
 
       for (const interviewItem of body.interviews as Array<
@@ -246,7 +269,8 @@ export async function PATCH(
           continue; // Skip items without round type or notes
         }
 
-        const roundTypeValue = typeof roundType === 'string' ? roundType.trim() : '';
+        const roundTypeValue =
+          typeof roundType === 'string' ? roundType.trim() : '';
 
         let parsedDate = new Date();
         if (typeof scheduledDate === 'string' && scheduledDate.trim()) {
@@ -256,14 +280,22 @@ export async function PATCH(
           }
         }
 
-        if (itemId && typeof itemId === 'string' && existingInterviewIds.has(itemId)) {
+        if (
+          itemId &&
+          typeof itemId === 'string' &&
+          existingInterviewIds.has(itemId)
+        ) {
           incomingInterviewIds.add(itemId);
           // Only update scheduled_at if a valid date was provided; preserve existing date if empty
           const updateData: Record<string, unknown> = {
             round_type: roundTypeValue || 'Interview',
             notes: typeof notes === 'string' ? notes.trim() : null,
           };
-          if (scheduledDate && typeof scheduledDate === 'string' && scheduledDate.trim()) {
+          if (
+            scheduledDate &&
+            typeof scheduledDate === 'string' &&
+            scheduledDate.trim()
+          ) {
             updateData.scheduled_at = parsedDate;
           }
           await prisma.interview.update({
@@ -272,7 +304,12 @@ export async function PATCH(
           });
         } else {
           // Create new interview
-          const interviewId = itemId && typeof itemId === 'string' && !existingInterviewIds.has(itemId) ? itemId : undefined;
+          const interviewId =
+            itemId &&
+            typeof itemId === 'string' &&
+            !existingInterviewIds.has(itemId)
+              ? itemId
+              : undefined;
           if (interviewId) {
             incomingInterviewIds.add(interviewId);
           }
@@ -302,9 +339,136 @@ export async function PATCH(
       }
     }
 
+    // Handle follow-up tasks similar to interviews
+    if (Array.isArray(body.followUps)) {
+      const existingFollowUps = await prisma.followUpTask.findMany({
+        where: { job_id: jobId },
+      });
+
+      const existingFollowUpIds = new Set(
+        existingFollowUps.map((followUp) => followUp.id),
+      );
+      const incomingFollowUpIds = new Set<string>();
+
+      for (const followUpItem of body.followUps as Array<
+        Record<string, unknown>
+      >) {
+        const itemId = followUpItem.id;
+        const title = followUpItem.title;
+        const dueDate = followUpItem.date;
+        const notes = followUpItem.notes;
+
+        // Validate: require title for follow-ups
+        if (!title) {
+          continue; // Skip items without a title
+        }
+
+        const titleValue =
+          typeof title === 'string' ? title.trim() : '';
+
+        // Require a non-empty string title for follow-up tasks
+        if (titleValue.length === 0) {
+          continue; // Skip items without a valid title
+        }
+
+        let parsedDate: Date | null = null;
+        if (typeof dueDate === 'string' && dueDate.trim()) {
+          const parsed = new Date(dueDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        if (
+          itemId &&
+          typeof itemId === 'string' &&
+          existingFollowUpIds.has(itemId)
+        ) {
+          incomingFollowUpIds.add(itemId);
+          const notesValue =
+            typeof notes === 'string' ? notes.trim() : null;
+          await prisma.followUpTask.update({
+            where: { id: itemId },
+            data: {
+              title: titleValue,
+              due_date: parsedDate,
+              notes: notesValue,
+            },
+          });
+        } else {
+          // Create new follow-up
+          const followUpId =
+            itemId &&
+            typeof itemId === 'string' &&
+            !existingFollowUpIds.has(itemId)
+              ? itemId
+              : undefined;
+          if (followUpId) {
+            incomingFollowUpIds.add(followUpId);
+          }
+          const notesValue =
+            typeof notes === 'string' ? notes.trim() : null;
+          const createdFollowUp = await prisma.followUpTask.create({
+            data: {
+              id: followUpId,
+              job_id: jobId,
+              title: titleValue,
+              due_date: parsedDate,
+              completed: false,
+              notes: notesValue,
+            },
+          });
+          // Track the actual created ID for deletion tracking
+          if (!followUpId) {
+            incomingFollowUpIds.add(createdFollowUp.id);
+          }
+        }
+      }
+
+      const followUpsToDelete = Array.from(existingFollowUpIds).filter(
+        (id) => !incomingFollowUpIds.has(id),
+      );
+      for (const followUpId of followUpsToDelete) {
+        await prisma.followUpTask.delete({
+          where: { id: followUpId },
+        });
+      }
+    }
+
     // Create stage change event AFTER timeline sync to avoid race conditions
     if (currentJob.pipeline_stage !== stage) {
-      await createStageChangeEvent(jobId, currentJob.pipeline_stage, stage);
+      const transitionOccurredAt = new Date();
+
+      try {
+        await createStageTransitionHistory(
+          jobId,
+          currentJob.pipeline_stage,
+          stage,
+          transitionOccurredAt,
+        );
+        await createStageChangeEvent(
+          jobId,
+          currentJob.pipeline_stage,
+          stage,
+          transitionOccurredAt,
+        );
+      } catch (timelineError) {
+        console.error(
+          'Failed to create stage transition history or stage change event',
+          timelineError,
+        );
+      }
+    }
+
+    if (archived !== null) {
+      try {
+        await createArchiveStateEvent(jobId, archived, new Date());
+      } catch (archiveEventError) {
+        console.error(
+          'Failed to create archive state event',
+          archiveEventError,
+        );
+      }
     }
 
     const updatedJob = await prisma.job.findFirst({
@@ -329,6 +493,62 @@ export async function PATCH(
       {
         error:
           'Unable to update job due to a server error. Please try again later.',
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { data, error } = await getSupabaseUserFromRequest(request);
+
+  if (error || !data.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const sessionUserId = data.user.id;
+
+  const { id } = await context.params;
+  const jobId = asRequiredString(id);
+
+  if (!jobId) {
+    return NextResponse.json({ error: 'Job id is required' }, { status: 400 });
+  }
+
+  try {
+    // Check if job exists and belongs to the current user (ownership check)
+    const jobToDelete = await prisma.job.findFirst({
+      where: {
+        id: jobId,
+        user_id: sessionUserId,
+      },
+    });
+
+    if (!jobToDelete) {
+      return NextResponse.json(
+        { error: 'Job not found or access denied' },
+        { status: 404 },
+      );
+    }
+
+    // Delete the job (related records will be deleted via CASCADE)
+    const deletedJob = await prisma.job.delete({
+      where: {
+        id: jobId,
+      },
+    });
+
+    return NextResponse.json(deletedJob, { status: 200 });
+  } catch (error) {
+    console.error('Failed to delete job', error);
+
+    return NextResponse.json(
+      {
+        error:
+          'Unable to delete job due to a server error. Please try again later.',
       },
       { status: 500 },
     );
