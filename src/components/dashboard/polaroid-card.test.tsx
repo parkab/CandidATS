@@ -26,6 +26,36 @@ describe('PolaroidCard', () => {
     });
   });
 
+  it('shows high-priority star when highPriority is true', () => {
+    render(
+      <PolaroidCard
+        company="Stripe"
+        location="San Francisco, CA"
+        position="Software Engineer"
+        lastActivityDate="03.30.2026"
+        status="Applied"
+        highPriority
+      />,
+    );
+
+    expect(screen.getByLabelText('High priority')).toBeInTheDocument();
+  });
+
+  it('does not show high-priority star when highPriority is false', () => {
+    render(
+      <PolaroidCard
+        company="Stripe"
+        location="San Francisco, CA"
+        position="Software Engineer"
+        lastActivityDate="03.30.2026"
+        status="Applied"
+        highPriority={false}
+      />,
+    );
+
+    expect(screen.queryByLabelText('High priority')).not.toBeInTheDocument();
+  });
+
   it('renders interactive stage dropdown instead of static badge when jobId and onStageChange are provided', () => {
     const onStageChange = jest.fn().mockResolvedValue(undefined);
     render(

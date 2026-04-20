@@ -313,6 +313,7 @@ export default function JobsModalGrid({
               lastActivityDate={job.lastActivityDateLabel}
               status={job.status}
               archived={job.archived}
+              highPriority={Boolean(job.formData.priority)}
               angle={job.angle}
               jobId={job.id}
               onStageChange={(newStage) => handleStageChange(job.id, newStage)}

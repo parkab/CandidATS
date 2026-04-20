@@ -14,6 +14,7 @@ export type SkillEntry = {
 
 type SkillsSectionProps = {
   initialSkills: SkillEntry[];
+  onCompletionChange?: (isComplete: boolean) => void;
 };
 
 type FormState = {
@@ -41,7 +42,10 @@ function validateForm(form: FormState): FormErrors {
   return errors;
 }
 
-export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
+export default function SkillsSection({
+  initialSkills,
+  onCompletionChange,
+}: SkillsSectionProps) {
   const [skills, setSkills] = useState<SkillEntry[]>(initialSkills);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,6 +57,10 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
   const [isReordering, setIsReordering] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
+
+  useEffect(() => {
+    onCompletionChange?.(skills.length > 0);
+  }, [onCompletionChange, skills.length]);
 
   useEffect(() => {
     if (!toast) {
