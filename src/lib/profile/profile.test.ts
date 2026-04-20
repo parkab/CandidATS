@@ -10,10 +10,14 @@ describe('calculateProfileBaselineCompletion', () => {
       linkedIn: null,
       headline: null,
       bio: null,
+      hasExperience: false,
+      hasEducation: false,
+      hasSkills: false,
+      hasCareerPreferences: false,
     });
 
     expect(result).toEqual({
-      total: 7,
+      total: 11,
       completed: 0,
       percentage: 0,
       isComplete: false,
@@ -29,12 +33,16 @@ describe('calculateProfileBaselineCompletion', () => {
       linkedIn: '   ',
       headline: 'Engineer',
       bio: '',
+      hasExperience: false,
+      hasEducation: false,
+      hasSkills: true,
+      hasCareerPreferences: false,
     });
 
     expect(result).toEqual({
-      total: 7,
-      completed: 3,
-      percentage: 43,
+      total: 11,
+      completed: 4,
+      percentage: 36,
       isComplete: false,
     });
   });
@@ -48,12 +56,16 @@ describe('calculateProfileBaselineCompletion', () => {
       linkedIn: null,
       headline: null,
       bio: null,
+      hasExperience: true,
+      hasEducation: false,
+      hasSkills: false,
+      hasCareerPreferences: false,
     });
 
     expect(result).toEqual({
-      total: 7,
-      completed: 2,
-      percentage: 29,
+      total: 11,
+      completed: 3,
+      percentage: 27,
       isComplete: false,
     });
   });
@@ -67,11 +79,15 @@ describe('calculateProfileBaselineCompletion', () => {
       linkedIn: 'https://www.linkedin.com/in/jane-doe',
       headline: 'Frontend Engineer',
       bio: 'Building delightful products',
+      hasExperience: true,
+      hasEducation: true,
+      hasSkills: true,
+      hasCareerPreferences: true,
     });
 
     expect(result).toEqual({
-      total: 7,
-      completed: 7,
+      total: 11,
+      completed: 11,
       percentage: 100,
       isComplete: true,
     });

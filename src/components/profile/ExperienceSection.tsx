@@ -19,6 +19,7 @@ export type ExperienceEntry = {
 
 type ExperienceSectionProps = {
   initialExperiences: ExperienceEntry[];
+  onCompletionChange?: (isComplete: boolean) => void;
 };
 
 type FormState = {
@@ -134,6 +135,7 @@ function ExperienceField({
 
 export default function ExperienceSection({
   initialExperiences,
+  onCompletionChange,
 }: ExperienceSectionProps) {
   const [experiences, setExperiences] =
     useState<ExperienceEntry[]>(initialExperiences);
@@ -147,6 +149,10 @@ export default function ExperienceSection({
   const [isReordering, setIsReordering] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
+
+  useEffect(() => {
+    onCompletionChange?.(experiences.length > 0);
+  }, [experiences.length, onCompletionChange]);
 
   useEffect(() => {
     if (!toast) {

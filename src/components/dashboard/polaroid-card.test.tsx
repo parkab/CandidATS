@@ -26,6 +26,36 @@ describe('PolaroidCard', () => {
     });
   });
 
+  it('shows high-priority star when highPriority is true', () => {
+    render(
+      <PolaroidCard
+        company="Stripe"
+        location="San Francisco, CA"
+        position="Software Engineer"
+        lastActivityDate="03.30.2026"
+        status="Applied"
+        highPriority
+      />,
+    );
+
+    expect(screen.getByLabelText('High priority')).toBeInTheDocument();
+  });
+
+  it('does not show high-priority star when highPriority is false', () => {
+    render(
+      <PolaroidCard
+        company="Stripe"
+        location="San Francisco, CA"
+        position="Software Engineer"
+        lastActivityDate="03.30.2026"
+        status="Applied"
+        highPriority={false}
+      />,
+    );
+
+    expect(screen.queryByLabelText('High priority')).not.toBeInTheDocument();
+  });
+
   it('renders interactive stage dropdown instead of static badge when jobId and onStageChange are provided', () => {
     const onStageChange = jest.fn().mockResolvedValue(undefined);
     render(
@@ -68,7 +98,9 @@ describe('PolaroidCard', () => {
     fireEvent.click(trigger);
 
     // The menu should now list all stages
-    const interviewOption = await screen.findByRole('option', { name: /Interview/i });
+    const interviewOption = await screen.findByRole('option', {
+      name: /Interview/i,
+    });
     expect(interviewOption).toBeInTheDocument();
 
     // Click a different stage
@@ -76,6 +108,58 @@ describe('PolaroidCard', () => {
 
     await waitFor(() => {
       expect(onStageChange).toHaveBeenCalledWith('Interview');
+    });
+  });
+
+  it('shows Archive action for active cards and calls archive toggle handler', async () => {
+    const onStageChange = jest.fn().mockResolvedValue(undefined);
+    const onToggleArchive = jest.fn().mockResolvedValue(undefined);
+
+    render(
+      <PolaroidCard
+        company="Stripe"
+        location="San Francisco, CA"
+        position="Software Engineer"
+        lastActivityDate="03.30.2026"
+        status="Applied"
+        archived={false}
+        jobId="job-123"
+        onStageChange={onStageChange}
+        onToggleArchive={onToggleArchive}
+      />,
+    );
+
+    const archiveButton = screen.getByRole('button', { name: 'Archive' });
+    fireEvent.click(archiveButton);
+
+    await waitFor(() => {
+      expect(onToggleArchive).toHaveBeenCalledWith(true);
+    });
+  });
+
+  it('shows Restore action for archived cards and calls restore toggle handler', async () => {
+    const onStageChange = jest.fn().mockResolvedValue(undefined);
+    const onToggleArchive = jest.fn().mockResolvedValue(undefined);
+
+    render(
+      <PolaroidCard
+        company="Stripe"
+        location="San Francisco, CA"
+        position="Software Engineer"
+        lastActivityDate="03.30.2026"
+        status="Applied"
+        archived={true}
+        jobId="job-123"
+        onStageChange={onStageChange}
+        onToggleArchive={onToggleArchive}
+      />,
+    );
+
+    const restoreButton = screen.getByRole('button', { name: 'Restore' });
+    fireEvent.click(restoreButton);
+
+    await waitFor(() => {
+      expect(onToggleArchive).toHaveBeenCalledWith(false);
     });
   });
 });

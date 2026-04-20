@@ -91,6 +91,28 @@ export default async function EditJobApplication({
     };
   });
 
+  // Fetch follow-ups for the job
+  const followUps = await prisma.followUpTask.findMany({
+    where: { job_id: jobId },
+    orderBy: { due_date: 'asc' },
+  });
+
+  const followUpItems = followUps.map((followUp) => {
+    let dateString = '';
+    if (followUp.due_date) {
+      const dateObj = followUp.due_date as Date;
+      if (!Number.isNaN(dateObj.getTime())) {
+        dateString = dateObj.toISOString().split('T')[0];
+      }
+    }
+    return {
+      id: followUp.id,
+      title: followUp.title || '',
+      date: dateString,
+      notes: followUp.notes || '',
+    };
+  });
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
@@ -117,6 +139,7 @@ export default async function EditJobApplication({
         }}
         initialTimeline={timelineItems}
         initialInterviews={interviewItems}
+        initialFollowUps={followUpItems}
       />
     </section>
   );
