@@ -14,6 +14,7 @@ export type SkillEntry = {
 
 type SkillsSectionProps = {
   initialSkills: SkillEntry[];
+  onCompletionChange?: (isComplete: boolean) => void;
 };
 
 type FormState = {
@@ -33,7 +34,13 @@ const EMPTY_FORM: FormState = {
   proficiencyLabel: '',
 };
 
-const PROFICIENCY_OPTIONS = ['', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+const PROFICIENCY_OPTIONS = [
+  '',
+  'Beginner',
+  'Intermediate',
+  'Advanced',
+  'Expert',
+];
 
 function validateForm(form: FormState): FormErrors {
   const errors: FormErrors = {};
@@ -41,7 +48,10 @@ function validateForm(form: FormState): FormErrors {
   return errors;
 }
 
-export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
+export default function SkillsSection({
+  initialSkills,
+  onCompletionChange,
+}: SkillsSectionProps) {
   const [skills, setSkills] = useState<SkillEntry[]>(initialSkills);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,6 +63,10 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
   const [isReordering, setIsReordering] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
+
+  useEffect(() => {
+    onCompletionChange?.(skills.length > 0);
+  }, [onCompletionChange, skills.length]);
 
   useEffect(() => {
     if (!toast) {
@@ -92,9 +106,7 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
     setErrors({});
   }
 
-  function onFieldChange(
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) {
+  function onFieldChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof FormErrors]) {
@@ -323,12 +335,12 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
             }}
             className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-(--surface-border) bg-(--background) shadow-2xl"
           >
-            <form
-              onSubmit={handleSubmit}
-              className="grid gap-5 px-6 pb-6 pt-0"
-            >
+            <form onSubmit={handleSubmit} className="grid gap-5 px-6 pb-6 pt-0">
               <div className="flex items-center justify-between gap-3 border-b border-(--surface-divider) pb-4 pt-6">
-                <h3 id="skill-modal-title" className={GRADIENT_SUBHEADING_CLASS}>
+                <h3
+                  id="skill-modal-title"
+                  className={GRADIENT_SUBHEADING_CLASS}
+                >
                   {editingId ? 'Edit Skill' : 'Add Skill'}
                 </h3>
                 <button
@@ -349,7 +361,10 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
                 >
                   Skill name
                 </label>
-                <div className="profile-input-wrap" data-error={Boolean(errors.name)}>
+                <div
+                  className="profile-input-wrap"
+                  data-error={Boolean(errors.name)}
+                >
                   <input
                     id="skill-name"
                     name="name"
@@ -362,7 +377,10 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
                   />
                 </div>
                 {errors.name ? (
-                  <p className="text-xs font-medium text-(--danger-text)" role="alert">
+                  <p
+                    className="text-xs font-medium text-(--danger-text)"
+                    role="alert"
+                  >
                     {errors.name}
                   </p>
                 ) : null}
@@ -427,7 +445,10 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
               </div>
 
               {errors.submit ? (
-                <p className="text-sm font-medium text-(--danger-text)" role="alert">
+                <p
+                  className="text-sm font-medium text-(--danger-text)"
+                  role="alert"
+                >
                   {errors.submit}
                 </p>
               ) : null}
@@ -457,7 +478,10 @@ export default function SkillsSection({ initialSkills }: SkillsSectionProps) {
             }}
             className="relative z-10 w-full max-w-sm rounded-2xl border border-(--surface-border) bg-(--background) p-6 shadow-2xl"
           >
-            <p id="skill-delete-title" className="text-sm font-semibold text-(--foreground)">
+            <p
+              id="skill-delete-title"
+              className="text-sm font-semibold text-(--foreground)"
+            >
               Remove this skill?
             </p>
             <p className="mt-1 text-sm text-(--text-muted)">

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import EditJobForm from './edit-job-form';
+import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
 
 type EditJobPageProps = {
   searchParams?: Promise<{
@@ -52,9 +53,10 @@ export default async function EditJobApplication({
   const timelineItems = timelineEvents.map((event) => {
     let dateString = '';
     if (event.occurred_at) {
-      const dateObj = typeof event.occurred_at === 'string' 
-        ? new Date(event.occurred_at)
-        : event.occurred_at;
+      const dateObj =
+        typeof event.occurred_at === 'string'
+          ? new Date(event.occurred_at)
+          : event.occurred_at;
       if (!Number.isNaN(dateObj.getTime())) {
         dateString = dateObj.toISOString().split('T')[0];
       }
@@ -76,9 +78,10 @@ export default async function EditJobApplication({
   const interviewItems = interviews.map((interview) => {
     let dateString = '';
     if (interview.scheduled_at) {
-      const dateObj = typeof interview.scheduled_at === 'string' 
-        ? new Date(interview.scheduled_at)
-        : interview.scheduled_at;
+      const dateObj =
+        typeof interview.scheduled_at === 'string'
+          ? new Date(interview.scheduled_at)
+          : interview.scheduled_at;
       if (!Number.isNaN(dateObj.getTime())) {
         dateString = dateObj.toISOString().split('T')[0];
       }
@@ -88,6 +91,28 @@ export default async function EditJobApplication({
       title: interview.round_type || '',
       date: dateString,
       notes: interview.notes || '',
+    };
+  });
+
+  // Fetch follow-ups for the job
+  const followUps = await prisma.followUpTask.findMany({
+    where: { job_id: jobId },
+    orderBy: { due_date: 'asc' },
+  });
+
+  const followUpItems = followUps.map((followUp) => {
+    let dateString = '';
+    if (followUp.due_date) {
+      const dateObj = followUp.due_date as Date;
+      if (!Number.isNaN(dateObj.getTime())) {
+        dateString = dateObj.toISOString().split('T')[0];
+      }
+    }
+    return {
+      id: followUp.id,
+      title: followUp.title || '',
+      date: dateString,
+      notes: followUp.notes || '',
     };
   });
 
@@ -117,7 +142,12 @@ export default async function EditJobApplication({
         }}
         initialTimeline={timelineItems}
         initialInterviews={interviewItems}
+        initialFollowUps={followUpItems}
       />
+
+      <div className="mx-auto max-w-2xl mt-12">
+        <JobSavedDocumentsSection jobId={jobId} />
+      </div>
     </section>
   );
 }

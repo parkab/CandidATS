@@ -18,6 +18,7 @@ type DashboardJob = {
   title: string;
   location: string;
   pipeline_stage: string;
+  archived: boolean | null;
   last_activity_date: Date;
   deadline: Date | null;
   priority_flag: boolean | null;
@@ -44,9 +45,6 @@ function toApplicationStatus(stage: string): ApplicationStatus {
       return 'Offer';
     case 'rejected':
       return 'Rejected';
-    case 'archived':
-    case 'archive':
-      return 'Archived';
     default:
       return 'Interested';
   }
@@ -64,7 +62,14 @@ type SortOption = 'lastActivity' | 'deadline' | 'company' | 'createdDate';
 
 type DeadlineState = 'any' | 'upcoming' | 'past' | 'noDeadline';
 
-type StageFilter = 'all' | 'Interested' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Archived';
+type StageFilter =
+  | 'all'
+  | 'Interested'
+  | 'Applied'
+  | 'Interview'
+  | 'Offer'
+  | 'Rejected'
+  | 'Archived';
 
 export type DashboardPageProps = {
   searchParams: Promise<{
@@ -130,10 +135,16 @@ function parseStageFilter(value: string | string[] | undefined): StageFilter {
   return 'all';
 }
 
-function parseDeadlineState(value: string | string[] | undefined): DeadlineState {
+function parseDeadlineState(
+  value: string | string[] | undefined,
+): DeadlineState {
   const candidate = Array.isArray(value) ? value[0] : value;
 
-  if (candidate === 'upcoming' || candidate === 'past' || candidate === 'noDeadline') {
+  if (
+    candidate === 'upcoming' ||
+    candidate === 'past' ||
+    candidate === 'noDeadline'
+  ) {
     return candidate;
   }
 
@@ -157,7 +168,9 @@ function getJobWhere(
       { company_name: { contains: searchQuery, mode: 'insensitive' } },
       { job_description: { contains: searchQuery, mode: 'insensitive' } },
       { compensation_notes: { contains: searchQuery, mode: 'insensitive' } },
-      { recruiter_contact_notes: { contains: searchQuery, mode: 'insensitive' } },
+      {
+        recruiter_contact_notes: { contains: searchQuery, mode: 'insensitive' },
+      },
       { custom_notes: { contains: searchQuery, mode: 'insensitive' } },
     ];
   }
@@ -265,6 +278,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       title: true,
       location: true,
       pipeline_stage: true,
+      archived: true,
       last_activity_date: true,
       deadline: true,
       priority_flag: true,
@@ -304,6 +318,18 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           scheduled_at: 'asc',
         },
       },
+      FollowUpTask: {
+        select: {
+          id: true,
+          title: true,
+          due_date: true,
+          completed: true,
+          notes: true,
+        },
+        orderBy: {
+          due_date: 'asc',
+        },
+      },
     },
     where: getJobWhere(
       session.userId,
@@ -316,12 +342,13 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   });
 
   // Transform the data to match the expected format
-  const jobs: DashboardJob[] = jobsWithRelations.map(job => ({
+  const jobs: DashboardJob[] = jobsWithRelations.map((job) => ({
     id: job.id,
     company_name: job.company_name,
     title: job.title,
     location: job.location,
     pipeline_stage: job.pipeline_stage,
+    archived: job.archived,
     last_activity_date: job.last_activity_date,
     deadline: job.deadline,
     priority_flag: job.priority_flag,
@@ -335,7 +362,12 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   // Build timeline map from included data
   const timelineByJobId = new Map<
     string,
-    Array<{ id: string; event_type: string; occurred_at: Date; notes: string | null }>
+    Array<{
+      id: string;
+      event_type: string;
+      occurred_at: Date;
+      notes: string | null;
+    }>
   >();
   for (const job of jobsWithRelations) {
     // Cast to the expected type since we filtered nulls in the query
@@ -353,24 +385,46 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   // Build interviews map from included data
   const interviewsByJobId = new Map<
     string,
-    Array<{ id: string; round_type: string; scheduled_at: Date; notes: string | null }>
+    Array<{
+      id: string;
+      round_type: string;
+      scheduled_at: Date;
+      notes: string | null;
+    }>
   >();
   for (const job of jobsWithRelations) {
     interviewsByJobId.set(job.id, job.Interview ?? []);
+  }
+
+  // Build follow-ups map from included data
+  const followUpsByJobId = new Map<
+    string,
+    Array<{
+      id: string;
+      title: string | null;
+      due_date: Date | null;
+      completed: boolean | null;
+      notes: string | null;
+    }>
+  >();
+  for (const job of jobsWithRelations) {
+    followUpsByJobId.set(job.id, job.FollowUpTask ?? []);
   }
 
   const now = new Date();
 
   // Get upcoming interviews for metrics
   const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
-    (job.Interview ?? []).filter((interview) => interview.scheduled_at >= now),
+    (job.Interview ?? []).filter(
+      (interview: { scheduled_at: Date }) => interview.scheduled_at >= now,
+    ),
   );
 
-  const normalizedStages = jobs.map((job) => toApplicationStatus(job.pipeline_stage));
+  const normalizedStages = jobs.map((job) =>
+    toApplicationStatus(job.pipeline_stage),
+  );
   const totalApplications = jobs.length;
-  const openApplications = jobs.filter(
-    (job) => toApplicationStatus(job.pipeline_stage) !== 'Archived',
-  ).length;
+  const openApplications = jobs.filter((job) => !job.archived).length;
   const offersReceived = jobs.filter(
     (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
   ).length;
@@ -444,16 +498,38 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       notes: interview.notes ?? '',
     }));
 
+    const followUpsForJob = followUpsByJobId.get(job.id) ?? [];
+    const followUps = followUpsForJob.map((followUp) => {
+      let dateString = '';
+      if (followUp.due_date) {
+        const dateObj =
+          typeof followUp.due_date === 'string'
+            ? new Date(followUp.due_date)
+            : followUp.due_date;
+        if (!Number.isNaN(dateObj.getTime())) {
+          dateString = dateObj.toISOString().split('T')[0];
+        }
+      }
+      return {
+        id: followUp.id,
+        title: followUp.title ?? '',
+        date: dateString,
+        notes: followUp.notes ?? '',
+      };
+    });
+
     return {
       id: job.id,
       company: job.company_name,
       title: job.title,
       location: job.location,
+      archived: Boolean(job.archived),
       status: toApplicationStatus(job.pipeline_stage),
       lastActivityDateLabel: formatDate(job.last_activity_date),
       angle: getStableAngle(job.id),
       timeline,
       interviews,
+      followUps,
       formData: {
         id: job.id,
         title: job.title,
@@ -470,6 +546,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           : null,
         recruiterNotes: job.recruiter_contact_notes,
         otherNotes: job.custom_notes,
+        archived: Boolean(job.archived),
       },
     };
   });

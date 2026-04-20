@@ -98,9 +98,7 @@ export function TimelineDisplay({ events, isLoading }: TimelineDisplayProps) {
                   className={`w-3 h-3 rounded-full border-2 border-white ${colorConfig.line}`}
                 />
                 {index < events.length - 1 && (
-                  <div
-                    className={`w-0.5 h-12 mt-2 ${colorConfig.line}`}
-                  />
+                  <div className={`w-0.5 h-12 mt-2 ${colorConfig.line}`} />
                 )}
               </div>
 

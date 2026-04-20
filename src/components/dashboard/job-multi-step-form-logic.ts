@@ -68,6 +68,14 @@ export function buildInitialDraft(
       normalizeDocumentDraft(document),
     ),
   };
+  const resume = initialDraft?.resume ?? {
+    content: '',
+    isGenerating: false,
+  };
+  const coverLetter = initialDraft?.coverLetter ?? {
+    content: '',
+    isGenerating: false,
+  };
 
   return {
     overview: initialOverview,
@@ -75,5 +83,7 @@ export function buildInitialDraft(
     interviews: interviews,
     followUps: followUps,
     documents: documents,
+    resume: resume,
+    coverLetter: coverLetter,
   };
 }

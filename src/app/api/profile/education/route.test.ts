@@ -27,7 +27,10 @@ const unauthedUser = { data: null, error: { message: 'Unauthorized' } };
 function buildRequest(method: string, body?: Record<string, unknown>) {
   return new Request('http://localhost/api/profile/education', {
     method,
-    headers: { 'content-type': 'application/json', cookie: 'sb-access-token=test-token' },
+    headers: {
+      'content-type': 'application/json',
+      cookie: 'sb-access-token=test-token',
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 }
@@ -52,8 +55,18 @@ describe('GET /api/profile/education', () => {
   it('returns education scoped to the authenticated user ordered by startDate desc', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     const mockList = [
-      { id: 'edu-1', userId: 'session-user-id', institution: 'NJIT', startDate: new Date('2022-09-01') },
-      { id: 'edu-2', userId: 'session-user-id', institution: 'Community College', startDate: new Date('2020-09-01') },
+      {
+        id: 'edu-1',
+        userId: 'session-user-id',
+        institution: 'NJIT',
+        startDate: new Date('2022-09-01'),
+      },
+      {
+        id: 'edu-2',
+        userId: 'session-user-id',
+        institution: 'Community College',
+        startDate: new Date('2020-09-01'),
+      },
     ];
     mockedFindMany.mockResolvedValue(mockList as never);
 
@@ -87,21 +100,33 @@ describe('POST /api/profile/education', () => {
 
   it('creates an education record scoped to the session user and returns 201', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const created = { id: 'edu-new', userId: 'session-user-id', ...validCreateBody };
+    const created = {
+      id: 'edu-new',
+      userId: 'session-user-id',
+      ...validCreateBody,
+    };
     mockedCreate.mockResolvedValue(created as never);
 
     const response = await POST(buildRequest('POST', validCreateBody));
     expect(response.status).toBe(201);
     expect(mockedCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ userId: 'session-user-id', institution: 'NJIT' }),
+      data: expect.objectContaining({
+        userId: 'session-user-id',
+        institution: 'NJIT',
+      }),
     });
   });
 
   it('ignores any userId in the request body and uses the session userId', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    mockedCreate.mockResolvedValue({ id: 'edu-new', userId: 'session-user-id' } as never);
+    mockedCreate.mockResolvedValue({
+      id: 'edu-new',
+      userId: 'session-user-id',
+    } as never);
 
-    await POST(buildRequest('POST', { ...validCreateBody, userId: 'attacker-id' }));
+    await POST(
+      buildRequest('POST', { ...validCreateBody, userId: 'attacker-id' }),
+    );
     expect(mockedCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ userId: 'session-user-id' }),
     });

@@ -67,7 +67,15 @@ jest.mock('@/components/dashboard/job-sort-control', () => ({
 
 jest.mock('@/components/dashboard/dashboard-metrics', () => ({
   __esModule: true,
-  default: ({ metrics }: { metrics: Array<{ label: string; value: string | number; description: string }> }) => (
+  default: ({
+    metrics,
+  }: {
+    metrics: Array<{
+      label: string;
+      value: string | number;
+      description: string;
+    }>;
+  }) => (
     <div>
       Mock Dashboard Metrics:
       {metrics.map((m) => (
@@ -85,7 +93,11 @@ describe('Dashboard page', () => {
   it('renders landing experience when session does not exist', async () => {
     (getSession as jest.Mock).mockResolvedValue(null);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
 
     expect(screen.getByText('The ATS for Candidates.')).toBeInTheDocument();
     expect(screen.getByText('Organize your jobs.')).toBeInTheDocument();
@@ -105,6 +117,7 @@ describe('Dashboard page', () => {
         company_name: 'Stripe',
         location: 'San Francisco, CA',
         title: 'Software Engineer',
+        archived: false,
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: 'Applied',
         deadline: null,
@@ -119,13 +132,19 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();    expect(screen.getByText('Total applications')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Total applications')).toBeInTheDocument();
     expect(screen.getByText('Open opportunities')).toBeInTheDocument();
     expect(screen.getByText('Offers received')).toBeInTheDocument();
     expect(screen.getByText('Past due deadlines')).toBeInTheDocument();
-    expect(screen.getByText('Interviews scheduled')).toBeInTheDocument();    expect(
+    expect(screen.getByText('Interviews scheduled')).toBeInTheDocument();
+    expect(
       screen.getByText(
         /Mock Jobs Modal Grid: 1 jobs \| first company: Stripe \| first angle: -?\d+/,
       ),
@@ -140,6 +159,7 @@ describe('Dashboard page', () => {
           title: true,
           location: true,
           pipeline_stage: true,
+          archived: true,
           last_activity_date: true,
           deadline: true,
           priority_flag: true,
@@ -168,6 +188,7 @@ describe('Dashboard page', () => {
         title: 'Software Engineer',
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: 'Applied',
+        archived: false,
         deadline: null,
         priority_flag: false,
         job_description: null,
@@ -180,7 +201,11 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({ sort: 'company' }) } as unknown as DashboardPageProps));
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({ sort: 'company' }),
+      } as unknown as DashboardPageProps),
+    );
 
     expect(prisma.job.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -293,6 +318,7 @@ describe('Dashboard page', () => {
         company_name: 'Interview Co',
         location: 'Austin, TX',
         title: 'Frontend Engineer',
+        archived: false,
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: ' interviewing ',
         deadline: null,
@@ -308,6 +334,7 @@ describe('Dashboard page', () => {
         company_name: 'Offer Co',
         location: 'Seattle, WA',
         title: 'Backend Engineer',
+        archived: false,
         last_activity_date: new Date('2026-03-29T00:00:00.000Z'),
         pipeline_stage: 'offered',
         deadline: null,
@@ -323,6 +350,7 @@ describe('Dashboard page', () => {
         company_name: 'Archive Co',
         location: 'Denver, CO',
         title: 'Fullstack Engineer',
+        archived: true,
         last_activity_date: new Date('2026-03-28T00:00:00.000Z'),
         pipeline_stage: 'archive',
         deadline: null,
@@ -338,6 +366,7 @@ describe('Dashboard page', () => {
         company_name: 'Unknown Co',
         location: 'Remote',
         title: 'QA Engineer',
+        archived: false,
         last_activity_date: new Date('2026-03-27T00:00:00.000Z'),
         pipeline_stage: 'mystery-stage',
         deadline: null,
@@ -352,7 +381,11 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
 
     expect(
       screen.getByText(
@@ -372,6 +405,7 @@ describe('Dashboard page', () => {
         company_name: 'Stable Co',
         location: 'Remote',
         title: 'Platform Engineer',
+        archived: false,
         last_activity_date: new Date('2026-03-30T00:00:00.000Z'),
         pipeline_stage: 'Applied',
         deadline: null,
@@ -386,7 +420,11 @@ describe('Dashboard page', () => {
     (prisma.timelineEvent.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.interview.findMany as jest.Mock).mockResolvedValue([]);
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
     const firstText = screen.getByText(
       /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
     ).textContent;
@@ -394,7 +432,11 @@ describe('Dashboard page', () => {
 
     cleanup();
 
-    render(await Dashboard({ searchParams: Promise.resolve({}) } as unknown as DashboardPageProps));
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
     const secondText = screen.getByText(
       /Mock Jobs Modal Grid: 1 jobs \| first company: Stable Co \| first angle: -?\d+/,
     ).textContent;
