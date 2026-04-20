@@ -23,6 +23,8 @@ import type {
   SectionStep,
 } from './job-multi-step-form-section-types';
 import JobOverviewSection from './job-overview-section';
+import ResumeStepSection from './resume-step-section';
+import CoverLetterStepSection from './cover-letter-step-section';
 import {
   buildInitialDraft,
   createDocumentDraftItem,
@@ -632,6 +634,58 @@ export default function JobMultiStepForm({
               onSaveDocument={saveDocumentItem}
               onViewDocument={viewDocument}
               onRemoveDocument={removeDocument}
+            />
+          ) : null}
+
+          {activeStep === 'resume' ? (
+            <ResumeStepSection
+              resume={draft.resume}
+              jobId={draft.overview.id}
+              jobData={
+                !draft.overview.id
+                  ? {
+                      title: draft.overview.title,
+                      company_name: draft.overview.company,
+                      location: draft.overview.location,
+                      job_description: draft.overview.jobDescription,
+                    }
+                  : undefined
+              }
+              onResumeChange={(content) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  resume: {
+                    ...previous.resume,
+                    content,
+                  },
+                }))
+              }
+            />
+          ) : null}
+
+          {activeStep === 'coverLetter' ? (
+            <CoverLetterStepSection
+              coverLetter={draft.coverLetter}
+              jobId={draft.overview.id}
+              jobData={
+                !draft.overview.id
+                  ? {
+                      title: draft.overview.title,
+                      company_name: draft.overview.company,
+                      location: draft.overview.location,
+                      job_description: draft.overview.jobDescription,
+                    }
+                  : undefined
+              }
+              onCoverLetterChange={(content) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  coverLetter: {
+                    ...previous.coverLetter,
+                    content,
+                  },
+                }))
+              }
             />
           ) : null}
         </section>
