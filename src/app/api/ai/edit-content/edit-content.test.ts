@@ -1,5 +1,10 @@
 /** @jest-environment jsdom */
 
+jest.mock('@/lib/supabase', () => ({
+  supabase: {},
+  supabaseAdmin: {},
+}));
+
 import { POST } from '@/app/api/ai/edit-content/route';
 import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
