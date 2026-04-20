@@ -11,7 +11,10 @@ export async function PATCH(
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json({ error: 'Unable to process request.' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Unable to process request.' },
+      { status: 503 },
+    );
   }
 
   const { data, error } = authResult;
@@ -22,7 +25,10 @@ export async function PATCH(
 
   const { id } = await context.params;
   if (!id) {
-    return NextResponse.json({ error: 'Skill id is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Skill id is required' },
+      { status: 400 },
+    );
   }
 
   const body = await request.json().catch(() => null);
@@ -53,7 +59,10 @@ export async function PATCH(
     });
 
     if (!updated) {
-      return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Unable to process request.' },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json(updated, { status: 200 });
@@ -74,7 +83,10 @@ export async function DELETE(
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json({ error: 'Unable to process request.' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Unable to process request.' },
+      { status: 503 },
+    );
   }
 
   const { data, error } = authResult;
@@ -85,7 +97,10 @@ export async function DELETE(
 
   const { id } = await context.params;
   if (!id) {
-    return NextResponse.json({ error: 'Skill id is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Skill id is required' },
+      { status: 400 },
+    );
   }
 
   try {

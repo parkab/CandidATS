@@ -37,7 +37,9 @@ function toFormState(data: CareerPreferencesData | null): FormState {
   };
 }
 
-export default function CareerPreferencesSection({ initialData }: CareerPreferencesSectionProps) {
+export default function CareerPreferencesSection({
+  initialData,
+}: CareerPreferencesSectionProps) {
   const [data, setData] = useState<CareerPreferencesData | null>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>(toFormState(initialData));
@@ -115,12 +117,17 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
   }
 
   const hasAnyData =
-    data?.targetRoles || data?.targetLocations || data?.workMode || data?.salaryPreference;
+    data?.targetRoles ||
+    data?.targetLocations ||
+    data?.workMode ||
+    data?.salaryPreference;
 
   return (
     <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-(--foreground)">Career Preferences</h3>
+        <h3 className="text-lg font-semibold text-(--foreground)">
+          Career Preferences
+        </h3>
         <button
           type="button"
           onClick={openModal}
@@ -141,7 +148,9 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
               <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
                 Target roles
               </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">{data.targetRoles}</dd>
+              <dd className="mt-0.5 text-sm text-(--foreground)">
+                {data.targetRoles}
+              </dd>
             </div>
           ) : null}
           {data?.targetLocations ? (
@@ -149,7 +158,9 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
               <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
                 Target locations
               </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">{data.targetLocations}</dd>
+              <dd className="mt-0.5 text-sm text-(--foreground)">
+                {data.targetLocations}
+              </dd>
             </div>
           ) : null}
           {data?.workMode ? (
@@ -157,7 +168,9 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
               <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
                 Work mode
               </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">{data.workMode}</dd>
+              <dd className="mt-0.5 text-sm text-(--foreground)">
+                {data.workMode}
+              </dd>
             </div>
           ) : null}
           {data?.salaryPreference ? (
@@ -165,7 +178,9 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
               <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
                 Salary preference
               </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">{data.salaryPreference}</dd>
+              <dd className="mt-0.5 text-sm text-(--foreground)">
+                {data.salaryPreference}
+              </dd>
             </div>
           ) : null}
         </dl>
@@ -192,12 +207,12 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
             }}
             className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-(--surface-border) bg-(--background) shadow-2xl"
           >
-            <form
-              onSubmit={handleSubmit}
-              className="grid gap-5 px-6 pb-6 pt-0"
-            >
+            <form onSubmit={handleSubmit} className="grid gap-5 px-6 pb-6 pt-0">
               <div className="flex items-center justify-between gap-3 border-b border-(--surface-divider) pb-4 pt-6">
-                <h3 id="career-prefs-modal-title" className={GRADIENT_SUBHEADING_CLASS}>
+                <h3
+                  id="career-prefs-modal-title"
+                  className={GRADIENT_SUBHEADING_CLASS}
+                >
                   Career Preferences
                 </h3>
                 <button
@@ -314,7 +329,10 @@ export default function CareerPreferencesSection({ initialData }: CareerPreferen
               </div>
 
               {errors.submit ? (
-                <p className="text-sm font-medium text-(--danger-text)" role="alert">
+                <p
+                  className="text-sm font-medium text-(--danger-text)"
+                  role="alert"
+                >
                   {errors.submit}
                 </p>
               ) : null}

@@ -124,7 +124,6 @@ export async function POST(request: Request) {
         application_date: applicationDate,
         recruiter_contact_notes: recruiterNotes,
         custom_notes: otherNotes,
-
       },
     });
 
@@ -212,8 +211,7 @@ export async function POST(request: Request) {
           continue; // Skip items without a title
         }
 
-        const titleValue =
-          typeof title === 'string' ? title.trim() : '';
+        const titleValue = typeof title === 'string' ? title.trim() : '';
         // Require a non-empty string title for follow-up tasks
         if (titleValue.length === 0) {
           continue; // Skip items without a valid title
@@ -227,8 +225,7 @@ export async function POST(request: Request) {
           }
         }
 
-        const notesValue =
-          typeof notes === 'string' ? notes.trim() : null;
+        const notesValue = typeof notes === 'string' ? notes.trim() : null;
 
         await prisma.followUpTask.create({
           data: {

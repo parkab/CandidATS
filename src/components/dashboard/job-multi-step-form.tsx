@@ -100,6 +100,11 @@ export default function JobMultiStepForm({
   const [documentDraft, setDocumentDraft] = useState<JobDocumentItemDraft>(() =>
     createDocumentDraftItem(),
   );
+  const [refreshDocumentsKey, setRefreshDocumentsKey] = useState(0);
+
+  function refreshDocuments() {
+    setRefreshDocumentsKey((prev) => prev + 1);
+  }
   const [pendingDocumentFile, setPendingDocumentFile] = useState<File | null>(
     null,
   );
@@ -666,6 +671,7 @@ export default function JobMultiStepForm({
                   },
                 }))
               }
+              onRefreshDocuments={refreshDocuments}
             />
           ) : null}
 
@@ -692,6 +698,7 @@ export default function JobMultiStepForm({
                   },
                 }))
               }
+              onRefreshDocuments={refreshDocuments}
             />
           ) : null}
         </section>

@@ -62,7 +62,14 @@ type SortOption = 'lastActivity' | 'deadline' | 'company' | 'createdDate';
 
 type DeadlineState = 'any' | 'upcoming' | 'past' | 'noDeadline';
 
-type StageFilter = 'all' | 'Interested' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Archived';
+type StageFilter =
+  | 'all'
+  | 'Interested'
+  | 'Applied'
+  | 'Interview'
+  | 'Offer'
+  | 'Rejected'
+  | 'Archived';
 
 export type DashboardPageProps = {
   searchParams: Promise<{
@@ -128,10 +135,16 @@ function parseStageFilter(value: string | string[] | undefined): StageFilter {
   return 'all';
 }
 
-function parseDeadlineState(value: string | string[] | undefined): DeadlineState {
+function parseDeadlineState(
+  value: string | string[] | undefined,
+): DeadlineState {
   const candidate = Array.isArray(value) ? value[0] : value;
 
-  if (candidate === 'upcoming' || candidate === 'past' || candidate === 'noDeadline') {
+  if (
+    candidate === 'upcoming' ||
+    candidate === 'past' ||
+    candidate === 'noDeadline'
+  ) {
     return candidate;
   }
 
@@ -155,7 +168,9 @@ function getJobWhere(
       { company_name: { contains: searchQuery, mode: 'insensitive' } },
       { job_description: { contains: searchQuery, mode: 'insensitive' } },
       { compensation_notes: { contains: searchQuery, mode: 'insensitive' } },
-      { recruiter_contact_notes: { contains: searchQuery, mode: 'insensitive' } },
+      {
+        recruiter_contact_notes: { contains: searchQuery, mode: 'insensitive' },
+      },
       { custom_notes: { contains: searchQuery, mode: 'insensitive' } },
     ];
   }
@@ -327,7 +342,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   });
 
   // Transform the data to match the expected format
-  const jobs: DashboardJob[] = jobsWithRelations.map(job => ({
+  const jobs: DashboardJob[] = jobsWithRelations.map((job) => ({
     id: job.id,
     company_name: job.company_name,
     title: job.title,
@@ -400,14 +415,16 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
 
   // Get upcoming interviews for metrics
   const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
-    (job.Interview ?? []).filter((interview: { scheduled_at: Date }) => interview.scheduled_at >= now),
+    (job.Interview ?? []).filter(
+      (interview: { scheduled_at: Date }) => interview.scheduled_at >= now,
+    ),
   );
 
-  const normalizedStages = jobs.map((job) => toApplicationStatus(job.pipeline_stage));
+  const normalizedStages = jobs.map((job) =>
+    toApplicationStatus(job.pipeline_stage),
+  );
   const totalApplications = jobs.length;
-  const openApplications = jobs.filter(
-    (job) => !job.archived,
-  ).length;
+  const openApplications = jobs.filter((job) => !job.archived).length;
   const offersReceived = jobs.filter(
     (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
   ).length;
@@ -485,9 +502,10 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     const followUps = followUpsForJob.map((followUp) => {
       let dateString = '';
       if (followUp.due_date) {
-        const dateObj = typeof followUp.due_date === 'string' 
-          ? new Date(followUp.due_date)
-          : followUp.due_date;
+        const dateObj =
+          typeof followUp.due_date === 'string'
+            ? new Date(followUp.due_date)
+            : followUp.due_date;
         if (!Number.isNaN(dateObj.getTime())) {
           dateString = dateObj.toISOString().split('T')[0];
         }

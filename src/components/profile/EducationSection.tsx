@@ -64,13 +64,17 @@ function validateForm(form: FormState): FormErrors {
   const errors: FormErrors = {};
   if (!form.institution.trim()) errors.institution = 'Institution is required.';
   if (!form.degree.trim()) errors.degree = 'Degree is required.';
-  if (!form.fieldOfStudy.trim()) errors.fieldOfStudy = 'Field of study is required.';
+  if (!form.fieldOfStudy.trim())
+    errors.fieldOfStudy = 'Field of study is required.';
   if (!form.startDate) errors.startDate = 'Start date is required.';
   return errors;
 }
 
-export default function EducationSection({ initialEducation }: EducationSectionProps) {
-  const [education, setEducation] = useState<EducationEntry[]>(initialEducation);
+export default function EducationSection({
+  initialEducation,
+}: EducationSectionProps) {
+  const [education, setEducation] =
+    useState<EducationEntry[]>(initialEducation);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -177,7 +181,9 @@ export default function EducationSection({ initialEducation }: EducationSectionP
       const saved = (await response.json()) as EducationEntry;
 
       if (editingId) {
-        setEducation((prev) => sortEducation(prev.map((e) => (e.id === editingId ? saved : e))));
+        setEducation((prev) =>
+          sortEducation(prev.map((e) => (e.id === editingId ? saved : e))),
+        );
         setToast('Education updated.');
       } else {
         setEducation((prev) => sortEducation([...prev, saved]));
@@ -249,7 +255,9 @@ export default function EducationSection({ initialEducation }: EducationSectionP
                   <p className="text-xs text-(--text-muted)">
                     {toDateInputValue(entry.startDate)}
                     {' — '}
-                    {entry.endDate ? toDateInputValue(entry.endDate) : 'Present'}
+                    {entry.endDate
+                      ? toDateInputValue(entry.endDate)
+                      : 'Present'}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {entry.honors ? (
@@ -313,7 +321,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
               className="grid max-h-[88vh] gap-5 overflow-y-auto px-6 pb-6 pt-0"
             >
               <div className="sticky top-0 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-(--surface-divider) bg-(--background) px-6 pb-4 pt-6">
-                <h3 id="education-modal-title" className={GRADIENT_SUBHEADING_CLASS}>
+                <h3
+                  id="education-modal-title"
+                  className={GRADIENT_SUBHEADING_CLASS}
+                >
                   {editingId ? 'Edit Education' : 'Add Education'}
                 </h3>
                 <button
@@ -328,10 +339,16 @@ export default function EducationSection({ initialEducation }: EducationSectionP
 
               {/* Institution */}
               <div className="grid gap-1.5">
-                <label htmlFor="edu-institution" className="text-sm font-semibold text-(--foreground)">
+                <label
+                  htmlFor="edu-institution"
+                  className="text-sm font-semibold text-(--foreground)"
+                >
                   Institution
                 </label>
-                <div className="profile-input-wrap" data-error={Boolean(errors.institution)}>
+                <div
+                  className="profile-input-wrap"
+                  data-error={Boolean(errors.institution)}
+                >
                   <input
                     id="edu-institution"
                     name="institution"
@@ -344,7 +361,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
                   />
                 </div>
                 {errors.institution ? (
-                  <p className="text-xs font-medium text-(--danger-text)" role="alert">
+                  <p
+                    className="text-xs font-medium text-(--danger-text)"
+                    role="alert"
+                  >
                     {errors.institution}
                   </p>
                 ) : null}
@@ -353,10 +373,16 @@ export default function EducationSection({ initialEducation }: EducationSectionP
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Degree */}
                 <div className="grid gap-1.5">
-                  <label htmlFor="edu-degree" className="text-sm font-semibold text-(--foreground)">
+                  <label
+                    htmlFor="edu-degree"
+                    className="text-sm font-semibold text-(--foreground)"
+                  >
                     Degree
                   </label>
-                  <div className="profile-input-wrap" data-error={Boolean(errors.degree)}>
+                  <div
+                    className="profile-input-wrap"
+                    data-error={Boolean(errors.degree)}
+                  >
                     <input
                       id="edu-degree"
                       name="degree"
@@ -369,7 +395,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
                     />
                   </div>
                   {errors.degree ? (
-                    <p className="text-xs font-medium text-(--danger-text)" role="alert">
+                    <p
+                      className="text-xs font-medium text-(--danger-text)"
+                      role="alert"
+                    >
                       {errors.degree}
                     </p>
                   ) : null}
@@ -377,10 +406,16 @@ export default function EducationSection({ initialEducation }: EducationSectionP
 
                 {/* Field of Study */}
                 <div className="grid gap-1.5">
-                  <label htmlFor="edu-fieldOfStudy" className="text-sm font-semibold text-(--foreground)">
+                  <label
+                    htmlFor="edu-fieldOfStudy"
+                    className="text-sm font-semibold text-(--foreground)"
+                  >
                     Field of study
                   </label>
-                  <div className="profile-input-wrap" data-error={Boolean(errors.fieldOfStudy)}>
+                  <div
+                    className="profile-input-wrap"
+                    data-error={Boolean(errors.fieldOfStudy)}
+                  >
                     <input
                       id="edu-fieldOfStudy"
                       name="fieldOfStudy"
@@ -393,7 +428,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
                     />
                   </div>
                   {errors.fieldOfStudy ? (
-                    <p className="text-xs font-medium text-(--danger-text)" role="alert">
+                    <p
+                      className="text-xs font-medium text-(--danger-text)"
+                      role="alert"
+                    >
                       {errors.fieldOfStudy}
                     </p>
                   ) : null}
@@ -403,10 +441,16 @@ export default function EducationSection({ initialEducation }: EducationSectionP
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Start Date */}
                 <div className="grid gap-1.5">
-                  <label htmlFor="edu-startDate" className="text-sm font-semibold text-(--foreground)">
+                  <label
+                    htmlFor="edu-startDate"
+                    className="text-sm font-semibold text-(--foreground)"
+                  >
                     Start date
                   </label>
-                  <div className="profile-input-wrap" data-error={Boolean(errors.startDate)}>
+                  <div
+                    className="profile-input-wrap"
+                    data-error={Boolean(errors.startDate)}
+                  >
                     <input
                       id="edu-startDate"
                       name="startDate"
@@ -418,7 +462,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
                     />
                   </div>
                   {errors.startDate ? (
-                    <p className="text-xs font-medium text-(--danger-text)" role="alert">
+                    <p
+                      className="text-xs font-medium text-(--danger-text)"
+                      role="alert"
+                    >
                       {errors.startDate}
                     </p>
                   ) : null}
@@ -426,7 +473,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
 
                 {/* End Date */}
                 <div className="grid gap-1.5">
-                  <label htmlFor="edu-endDate" className="text-sm font-semibold text-(--foreground)">
+                  <label
+                    htmlFor="edu-endDate"
+                    className="text-sm font-semibold text-(--foreground)"
+                  >
                     End date (leave blank if current)
                   </label>
                   <div className="profile-input-wrap">
@@ -446,7 +496,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Honors */}
                 <div className="grid gap-1.5">
-                  <label htmlFor="edu-honors" className="text-sm font-semibold text-(--foreground)">
+                  <label
+                    htmlFor="edu-honors"
+                    className="text-sm font-semibold text-(--foreground)"
+                  >
                     Honors (optional)
                   </label>
                   <div className="profile-input-wrap">
@@ -465,7 +518,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
 
                 {/* GPA */}
                 <div className="grid gap-1.5">
-                  <label htmlFor="edu-gpa" className="text-sm font-semibold text-(--foreground)">
+                  <label
+                    htmlFor="edu-gpa"
+                    className="text-sm font-semibold text-(--foreground)"
+                  >
                     GPA (optional)
                   </label>
                   <div className="profile-input-wrap">
@@ -494,7 +550,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
               </div>
 
               {errors.submit ? (
-                <p className="text-sm font-medium text-(--danger-text)" role="alert">
+                <p
+                  className="text-sm font-medium text-(--danger-text)"
+                  role="alert"
+                >
                   {errors.submit}
                 </p>
               ) : null}
@@ -524,7 +583,10 @@ export default function EducationSection({ initialEducation }: EducationSectionP
             }}
             className="relative z-10 w-full max-w-sm rounded-2xl border border-(--surface-border) bg-(--background) p-6 shadow-2xl"
           >
-            <p id="edu-delete-title" className="text-sm font-semibold text-(--foreground)">
+            <p
+              id="edu-delete-title"
+              className="text-sm font-semibold text-(--foreground)"
+            >
               Remove this education record?
             </p>
             <p className="mt-1 text-sm text-(--text-muted)">

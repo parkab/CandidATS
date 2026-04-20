@@ -29,7 +29,10 @@ const unauthedUser = { data: null, error: { message: 'Unauthorized' } };
 function buildRequest(method: string, body?: Record<string, unknown>) {
   return new Request('http://localhost/api/profile/skills', {
     method,
-    headers: { 'content-type': 'application/json', cookie: 'sb-access-token=test-token' },
+    headers: {
+      'content-type': 'application/json',
+      cookie: 'sb-access-token=test-token',
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 }
@@ -49,7 +52,12 @@ describe('GET /api/profile/skills', () => {
   it('returns skills scoped to the authenticated user ordered by sortOrder', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     const mockList = [
-      { id: 'sk-1', userId: 'session-user-id', sortOrder: 0, name: 'TypeScript' },
+      {
+        id: 'sk-1',
+        userId: 'session-user-id',
+        sortOrder: 0,
+        name: 'TypeScript',
+      },
       { id: 'sk-2', userId: 'session-user-id', sortOrder: 1, name: 'React' },
     ];
     mockedFindMany.mockResolvedValue(mockList as never);
@@ -88,21 +96,35 @@ describe('POST /api/profile/skills', () => {
   it('creates a skill with server-computed sortOrder and returns 201', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedFindFirst.mockResolvedValue({ sortOrder: 1 } as never);
-    const created = { id: 'sk-new', userId: 'session-user-id', sortOrder: 2, name: 'TypeScript' };
+    const created = {
+      id: 'sk-new',
+      userId: 'session-user-id',
+      sortOrder: 2,
+      name: 'TypeScript',
+    };
     mockedCreate.mockResolvedValue(created as never);
 
     const response = await POST(buildRequest('POST', validCreateBody));
     expect(response.status).toBe(201);
     expect(mockedCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ userId: 'session-user-id', name: 'TypeScript', sortOrder: 2 }),
+      data: expect.objectContaining({
+        userId: 'session-user-id',
+        name: 'TypeScript',
+        sortOrder: 2,
+      }),
     });
   });
 
   it('ignores any userId in the request body and uses the session userId', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    mockedCreate.mockResolvedValue({ id: 'sk-new', userId: 'session-user-id' } as never);
+    mockedCreate.mockResolvedValue({
+      id: 'sk-new',
+      userId: 'session-user-id',
+    } as never);
 
-    await POST(buildRequest('POST', { ...validCreateBody, userId: 'attacker-id' }));
+    await POST(
+      buildRequest('POST', { ...validCreateBody, userId: 'attacker-id' }),
+    );
     expect(mockedCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ userId: 'session-user-id' }),
     });
