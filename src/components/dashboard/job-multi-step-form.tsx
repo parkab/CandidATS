@@ -41,6 +41,7 @@ type JobMultiStepFormProps = {
   onDelete?: () => void;
   deleteError?: string | null;
   isDeleting?: boolean;
+  onDocumentsChanged?: () => void;
   initialDraft?: Partial<JobMultiStepDraft>;
   stickyFooter?: boolean;
   showFooterCancel?: boolean;
@@ -55,6 +56,7 @@ export default function JobMultiStepForm({
   onDelete,
   deleteError,
   isDeleting = false,
+  onDocumentsChanged,
   initialDraft,
   stickyFooter = false,
   showFooterCancel = true,
@@ -100,10 +102,8 @@ export default function JobMultiStepForm({
   const [documentDraft, setDocumentDraft] = useState<JobDocumentItemDraft>(() =>
     createDocumentDraftItem(),
   );
-  const [refreshDocumentsKey, setRefreshDocumentsKey] = useState(0);
-
   function refreshDocuments() {
-    setRefreshDocumentsKey((prev) => prev + 1);
+    onDocumentsChanged?.();
   }
   const [pendingDocumentFile, setPendingDocumentFile] = useState<File | null>(
     null,
