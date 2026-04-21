@@ -213,9 +213,6 @@ export default function CoverLetterStepSection({
       if (onSavedAsDocument) {
         onSavedAsDocument(coverLetter.content);
       }
-
-      // Show success message (you could add a toast notification here)
-      alert('Cover letter saved successfully!');
     } catch (error) {
       console.error('Error saving cover letter:', error);
       alert('Failed to save cover letter. Please try again.');
