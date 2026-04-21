@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
+import {
+  createInterviewScheduledEvent,
+  createFollowUpCreatedEvent,
+} from '@/lib/jobs/timeline';
 
 type CreateJobBody = Record<string, unknown>;
 
@@ -186,7 +190,7 @@ export async function POST(request: Request) {
           }
         }
 
-        await prisma.interview.create({
+        const createdInterview = await prisma.interview.create({
           data: {
             job_id: createdJob.id,
             round_type: roundTypeValue || 'Interview',
@@ -194,6 +198,15 @@ export async function POST(request: Request) {
             notes: typeof notes === 'string' ? notes.trim() : null,
           },
         });
+
+        // Create timeline event for the new interview
+        await createInterviewScheduledEvent(
+          createdJob.id,
+          createdInterview.id,
+          roundTypeValue || 'Interview',
+          parsedDate,
+          typeof notes === 'string' ? notes.trim() : null,
+        );
       }
     }
 
@@ -217,7 +230,7 @@ export async function POST(request: Request) {
           continue; // Skip items without a valid title
         }
         // Use provided date or default to null if not provided or invalid
-        let parsedDate = null;
+        let parsedDate: Date | null = null;
         if (typeof dueDate === 'string' && dueDate.trim()) {
           const parsed = new Date(dueDate);
           if (!Number.isNaN(parsed.getTime())) {
@@ -227,7 +240,7 @@ export async function POST(request: Request) {
 
         const notesValue = typeof notes === 'string' ? notes.trim() : null;
 
-        await prisma.followUpTask.create({
+        const createdFollowUp = await prisma.followUpTask.create({
           data: {
             job_id: createdJob.id,
             title: titleValue,
@@ -236,6 +249,14 @@ export async function POST(request: Request) {
             notes: notesValue,
           },
         });
+
+        // Create timeline event for the new follow-up
+        await createFollowUpCreatedEvent(
+          createdJob.id,
+          createdFollowUp.id,
+          titleValue,
+          parsedDate,
+        );
       }
     }
 

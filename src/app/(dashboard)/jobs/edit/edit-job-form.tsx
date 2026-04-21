@@ -102,6 +102,9 @@ export default function EditJobForm({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(
+    initialTimeline,
+  );
   const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function handleCancel() {
@@ -206,6 +209,24 @@ export default function EditJobForm({
       throw new Error(responseBody?.error ?? 'Unable to update job right now.');
     }
 
+    // Fetch fresh timeline data to reflect newly saved events
+    try {
+      const timelineResponse = await fetch(
+        `/api/jobs/${encodeURIComponent(jobId)}/timeline`,
+        {
+          method: 'GET',
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+
+      if (timelineResponse.ok) {
+        const freshEvents = (await timelineResponse.json()) as JobSectionItemDraft[];
+        setTimelineData(freshEvents);
+      }
+    } catch (error) {
+      console.error('Failed to fetch fresh timeline data:', error);
+    }
+
     onSuccess?.();
     if (!inModal) {
       router.push('/dashboard');
@@ -218,7 +239,7 @@ export default function EditJobForm({
       <JobMultiStepForm
         initialOverview={toOverviewDraft(initialJob)}
         initialDraft={{
-          timeline: initialTimeline,
+          timeline: timelineData,
           interviews: initialInterviews,
           followUps: initialFollowUps,
         }}
