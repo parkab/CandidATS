@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import type { JobResumeDraft } from '@/lib/jobs/multi-step-form';
 import ComparisonModal from './edit-comparison-modal';
 
@@ -25,7 +24,6 @@ export default function ResumeStepSection({
   onResumeChange,
   onRefreshDocuments,
 }: ResumeStepSectionProps) {
-  const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
@@ -205,8 +203,6 @@ export default function ResumeStepSection({
       if (onRefreshDocuments) {
         onRefreshDocuments();
       }
-
-      router.refresh();
 
       // Show success message (you could add a toast notification here)
       alert('Resume saved successfully!');

@@ -46,10 +46,15 @@ describe('EditJobForm', () => {
   });
 
   it('submits successfully and routes to dashboard for full-page usage', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    });
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ documents: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
 
     render(<EditJobForm initialJob={initialJob} />);
 
@@ -66,15 +71,18 @@ describe('EditJobForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/jobs/job-1',
-        expect.objectContaining({ method: 'PATCH' }),
-      );
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
       expect(mockRefresh).toHaveBeenCalled();
     });
 
-    const request = (global.fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+    const patchCall = (global.fetch as jest.Mock).mock.calls.find(
+      ([requestUrl, requestInit]) =>
+        requestUrl === '/api/jobs/job-1' && requestInit?.method === 'PATCH',
+    );
+
+    expect(patchCall).toBeDefined();
+
+    const request = patchCall?.[1] as RequestInit;
     const payload = JSON.parse(request.body as string);
 
     expect(payload).toMatchObject({
