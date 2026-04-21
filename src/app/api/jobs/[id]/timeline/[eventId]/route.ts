@@ -165,7 +165,7 @@ export async function PATCH(
         ...(typeof eventType === 'string' && eventType.trim() && { event_type: eventType.trim() }),
         ...(typeof notes === 'string' && notes.trim() && { notes: notes.trim() }),
         ...(typeof notes === 'string' && !notes.trim() && { notes: null }),
-        ...(occurredAt instanceof Date || (typeof occurredAt === 'string' && !Number.isNaN(new Date(occurredAt).getTime())) && { occurred_at: new Date(occurredAt) }),
+        ...((occurredAt instanceof Date || (typeof occurredAt === 'string' && !Number.isNaN(new Date(occurredAt).getTime()))) && { occurred_at: new Date(occurredAt) }),
       },
     });
 
