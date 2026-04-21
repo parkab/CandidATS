@@ -32,6 +32,8 @@ describe('TimelineDisplay', () => {
       event_type: 'stage_changed',
       notes: 'Moved from Applied to Interview',
       occurred_at: new Date('2026-04-03T10:00:00Z'),
+      source_type: null,
+      source_id: null,
     };
 
     render(<TimelineDisplay events={[event]} />);
@@ -51,6 +53,8 @@ describe('TimelineDisplay', () => {
         event_type: 'stage_changed',
         notes: 'Moved to Interview',
         occurred_at: new Date('2026-04-03T10:00:00Z'),
+        source_type: null,
+        source_id: null,
       },
       {
         id: 'event-2',
@@ -58,6 +62,8 @@ describe('TimelineDisplay', () => {
         event_type: 'job_created',
         notes: null,
         occurred_at: new Date('2026-04-01T08:00:00Z'),
+        source_type: null,
+        source_id: null,
       },
     ];
 
@@ -80,6 +86,8 @@ describe('TimelineDisplay', () => {
       event_type: 'job_created',
       notes: null,
       occurred_at: new Date('2026-04-01T08:00:00Z'),
+      source_type: null,
+      source_id: null,
     };
 
     render(<TimelineDisplay events={[event]} />);
@@ -97,6 +105,8 @@ describe('TimelineDisplay', () => {
       event_type: 'custom_event_type',
       notes: 'Custom event',
       occurred_at: new Date('2026-04-03T10:00:00Z'),
+      source_type: null,
+      source_id: null,
     };
 
     render(<TimelineDisplay events={[event]} />);
@@ -112,6 +122,8 @@ describe('TimelineDisplay', () => {
       event_type: 'stage_changed',
       notes: 'Test',
       occurred_at: null,
+      source_type: null,
+      source_id: null,
     };
 
     render(<TimelineDisplay events={[event]} />);
@@ -126,6 +138,8 @@ describe('TimelineDisplay', () => {
       event_type: 'interview_scheduled',
       notes: null,
       occurred_at: new Date('2026-04-05T10:00:00Z'),
+      source_type: null,
+      source_id: null,
     };
 
     const { container } = render(<TimelineDisplay events={[event]} />);
@@ -142,6 +156,8 @@ describe('TimelineDisplay', () => {
       event_type: 'unknown_type',
       notes: null,
       occurred_at: new Date('2026-04-05T10:00:00Z'),
+      source_type: null,
+      source_id: null,
     };
 
     const { container } = render(<TimelineDisplay events={[event]} />);
@@ -169,6 +185,8 @@ describe('TimelineDisplay', () => {
       event_type: type,
       notes: null,
       occurred_at: new Date('2026-04-05T10:00:00Z'),
+      source_type: null,
+      source_id: null,
     }));
 
     render(<TimelineDisplay events={events} />);
@@ -192,6 +210,8 @@ describe('TimelineDisplay', () => {
         event_type: 'stage_changed',
         notes: null,
         occurred_at: new Date('2026-04-03T10:00:00Z'),
+        source_type: null,
+        source_id: null,
       },
       {
         id: 'event-2',
@@ -199,6 +219,8 @@ describe('TimelineDisplay', () => {
         event_type: 'job_created',
         notes: null,
         occurred_at: new Date('2026-04-01T08:00:00Z'),
+        source_type: null,
+        source_id: null,
       },
     ];
 
@@ -221,6 +243,8 @@ describe('TimelineDisplay', () => {
         event_type: 'job_created',
         notes: null,
         occurred_at: new Date('2026-04-01T08:00:00Z'),
+        source_type: null,
+        source_id: null,
       },
     ];
 

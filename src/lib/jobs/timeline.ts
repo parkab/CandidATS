@@ -92,3 +92,146 @@ export async function createArchiveStateEvent(
 
   return createTimelineEvent(jobId, eventType, notes, occurredAt);
 }
+
+/**
+ * Syncs timeline events for an interview.
+ * Creates, updates, or deletes a timeline event based on interview changes.
+ * @param jobId - The job ID
+ * @param interviewId - The interview ID
+ * @param roundType - The round type (e.g., 'Phone Screen', 'Technical', 'Final')
+ * @param scheduledAt - The scheduled date
+ * @param notes - Optional notes about the interview
+ */
+export async function syncInterviewTimeline(
+  jobId: string,
+  interviewId: string,
+  roundType: string,
+  scheduledAt: Date,
+  notes?: string | null,
+) {
+  // Check if timeline event already exists for this interview
+  const existingEvent = await prisma.timelineEvent.findFirst({
+    where: {
+      job_id: jobId,
+      source_type: 'interview',
+      source_id: interviewId,
+    },
+  });
+
+  const eventNotes = notes
+    ? `${roundType}: ${notes}`
+    : `${roundType} interview scheduled`;
+
+  if (existingEvent) {
+    // Update existing timeline event
+    return prisma.timelineEvent.update({
+      where: { id: existingEvent.id },
+      data: {
+        event_type: 'interview_scheduled',
+        notes: eventNotes,
+        occurred_at: scheduledAt,
+      },
+    });
+  } else {
+    // Create new timeline event
+    return prisma.timelineEvent.create({
+      data: {
+        job_id: jobId,
+        source_type: 'interview',
+        source_id: interviewId,
+        event_type: 'interview_scheduled',
+        notes: eventNotes,
+        occurred_at: scheduledAt,
+      },
+    });
+  }
+}
+
+/**
+ * Deletes timeline event for an interview.
+ * @param jobId - The job ID
+ * @param interviewId - The interview ID
+ */
+export async function deleteInterviewTimeline(
+  jobId: string,
+  interviewId: string,
+) {
+  return prisma.timelineEvent.deleteMany({
+    where: {
+      job_id: jobId,
+      source_type: 'interview',
+      source_id: interviewId,
+    },
+  });
+}
+
+/**
+ * Syncs timeline events for a follow-up task.
+ * Creates, updates, or deletes a timeline event based on follow-up changes.
+ * @param jobId - The job ID
+ * @param followUpId - The follow-up task ID
+ * @param title - The follow-up title
+ * @param dueDate - The due date
+ * @param notes - Optional notes about the follow-up
+ */
+export async function syncFollowUpTimeline(
+  jobId: string,
+  followUpId: string,
+  title: string,
+  dueDate?: Date | null,
+  notes?: string | null,
+) {
+  // Check if timeline event already exists for this follow-up
+  const existingEvent = await prisma.timelineEvent.findFirst({
+    where: {
+      job_id: jobId,
+      source_type: 'followup',
+      source_id: followUpId,
+    },
+  });
+
+  const eventNotes = notes ? `${title}: ${notes}` : `Follow-up: ${title}`;
+  const occurredAt = dueDate ?? new Date();
+
+  if (existingEvent) {
+    // Update existing timeline event
+    return prisma.timelineEvent.update({
+      where: { id: existingEvent.id },
+      data: {
+        event_type: 'followup_task',
+        notes: eventNotes,
+        occurred_at: occurredAt,
+      },
+    });
+  } else {
+    // Create new timeline event
+    return prisma.timelineEvent.create({
+      data: {
+        job_id: jobId,
+        source_type: 'followup',
+        source_id: followUpId,
+        event_type: 'followup_task',
+        notes: eventNotes,
+        occurred_at: occurredAt,
+      },
+    });
+  }
+}
+
+/**
+ * Deletes timeline event for a follow-up task.
+ * @param jobId - The job ID
+ * @param followUpId - The follow-up task ID
+ */
+export async function deleteFollowUpTimeline(
+  jobId: string,
+  followUpId: string,
+) {
+  return prisma.timelineEvent.deleteMany({
+    where: {
+      job_id: jobId,
+      source_type: 'followup',
+      source_id: followUpId,
+    },
+  });
+}
