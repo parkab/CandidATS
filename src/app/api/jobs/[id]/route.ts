@@ -6,6 +6,15 @@ import {
   createArchiveStateEvent,
   createStageChangeEvent,
   createStageTransitionHistory,
+  createInterviewScheduledEvent,
+  updateInterviewTimelineEvent,
+  deleteInterviewTimelineEvent,
+  createInterviewDeletedEvent,
+  createFollowUpCreatedEvent,
+  updateFollowUpTimelineEvent,
+  deleteFollowUpTimelineEvent,
+  createFollowUpCompletedEvent,
+  createFollowUpDeletedEvent,
 } from '@/lib/jobs/timeline';
 
 type UpdateJobBody = Record<string, unknown>;
@@ -302,6 +311,15 @@ export async function PATCH(
             where: { id: itemId },
             data: updateData,
           });
+
+          // Update the timeline event for this interview
+          await updateInterviewTimelineEvent(
+            jobId,
+            itemId,
+            roundTypeValue || 'Interview',
+            parsedDate,
+            typeof notes === 'string' ? notes.trim() : null,
+          );
         } else {
           // Create new interview
           const interviewId =
@@ -326,6 +344,15 @@ export async function PATCH(
           if (!interviewId) {
             incomingInterviewIds.add(createdInterview.id);
           }
+
+          // Create timeline event for the new interview
+          await createInterviewScheduledEvent(
+            jobId,
+            createdInterview.id,
+            roundTypeValue || 'Interview',
+            parsedDate,
+            typeof notes === 'string' ? notes.trim() : null,
+          );
         }
       }
 
@@ -333,9 +360,16 @@ export async function PATCH(
         (id) => !incomingInterviewIds.has(id),
       );
       for (const interviewId of interviewsToDelete) {
+        // Get the interview details before deleting to include in timeline
+        const deletedInterview = existingInterviews.find(
+          (i) => i.id === interviewId,
+        );
         await prisma.interview.delete({
           where: { id: interviewId },
         });
+
+        // Delete the timeline event for this interview
+        await deleteInterviewTimelineEvent(jobId, interviewId);
       }
     }
 
@@ -357,6 +391,7 @@ export async function PATCH(
         const title = followUpItem.title;
         const dueDate = followUpItem.date;
         const notes = followUpItem.notes;
+        const completed = followUpItem.completed;
 
         // Validate: require title for follow-ups
         if (!title) {
@@ -385,14 +420,34 @@ export async function PATCH(
         ) {
           incomingFollowUpIds.add(itemId);
           const notesValue = typeof notes === 'string' ? notes.trim() : null;
+          const wasCompleted = existingFollowUps.find(
+            (f) => f.id === itemId,
+          )?.completed;
+          const isNowCompleted = typeof completed === 'boolean' ? completed : null;
+
           await prisma.followUpTask.update({
             where: { id: itemId },
             data: {
               title: titleValue,
               due_date: parsedDate,
               notes: notesValue,
+              completed: isNowCompleted ?? undefined,
             },
           });
+
+          // Update the timeline event if it exists, or create one if just marked complete
+          if (
+            isNowCompleted !== null &&
+            wasCompleted !== undefined &&
+            wasCompleted !== isNowCompleted &&
+            isNowCompleted
+          ) {
+            // Follow-up just completed - create a new completion event
+            await createFollowUpCompletedEvent(jobId, itemId, titleValue);
+          } else {
+            // Update the existing follow-up timeline event
+            await updateFollowUpTimelineEvent(jobId, itemId, titleValue, parsedDate);
+          }
         } else {
           // Create new follow-up
           const followUpId =
@@ -419,6 +474,14 @@ export async function PATCH(
           if (!followUpId) {
             incomingFollowUpIds.add(createdFollowUp.id);
           }
+
+          // Create timeline event for the new follow-up
+          await createFollowUpCreatedEvent(
+            jobId,
+            createdFollowUp.id,
+            titleValue,
+            parsedDate,
+          );
         }
       }
 
@@ -426,9 +489,16 @@ export async function PATCH(
         (id) => !incomingFollowUpIds.has(id),
       );
       for (const followUpId of followUpsToDelete) {
+        // Get the follow-up details before deleting to include in timeline
+        const deletedFollowUp = existingFollowUps.find(
+          (f) => f.id === followUpId,
+        );
         await prisma.followUpTask.delete({
           where: { id: followUpId },
         });
+
+        // Delete the timeline event for this follow-up
+        await deleteFollowUpTimelineEvent(jobId, followUpId);
       }
     }
 
