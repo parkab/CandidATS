@@ -51,6 +51,12 @@ describe('EditJobForm', () => {
         ok: true,
         json: async () => ({ documents: [] }),
       })
+      // JobSavedDocumentsSection also fetches documents; return empty list
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ documents: [] }),
+      })
+      // Final PATCH response
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),
