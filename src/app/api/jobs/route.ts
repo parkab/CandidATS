@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
+import {
+  createInterviewScheduledEvent,
+  createFollowUpCreatedEvent,
+} from '@/lib/jobs/timeline';
 
 type CreateJobBody = Record<string, unknown>;
 
@@ -126,6 +130,135 @@ export async function POST(request: Request) {
         custom_notes: otherNotes,
       },
     });
+
+    // Handle timeline events from form data
+    if (Array.isArray(body.timeline)) {
+      for (const timelineItem of body.timeline as Array<
+        Record<string, unknown>
+      >) {
+        const itemTitle = timelineItem.title;
+        const itemDate = timelineItem.date;
+        const itemNotes = timelineItem.notes;
+
+        if (typeof itemTitle !== 'string' || !itemTitle.trim()) {
+          continue; // Skip items without a title
+        }
+
+        // Use provided date or default to now if not provided or invalid
+        let parsedDate = new Date();
+        if (typeof itemDate === 'string' && itemDate.trim()) {
+          const parsed = new Date(itemDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        await prisma.timelineEvent.create({
+          data: {
+            job_id: createdJob.id,
+            event_type: itemTitle.trim(),
+            notes: typeof itemNotes === 'string' ? itemNotes.trim() : null,
+            occurred_at: parsedDate,
+          },
+        });
+      }
+    }
+
+    // Handle interviews from form data
+    if (Array.isArray(body.interviews)) {
+      for (const interviewItem of body.interviews as Array<
+        Record<string, unknown>
+      >) {
+        const roundType = interviewItem.title;
+        const scheduledDate = interviewItem.date;
+        const notes = interviewItem.notes;
+
+        // Require either round type or notes
+        if (!roundType && !notes) {
+          continue; // Skip items without round type or notes
+        }
+
+        const roundTypeValue =
+          typeof roundType === 'string' ? roundType.trim() : '';
+
+        // Use provided date or default to now if not provided or invalid
+        let parsedDate = new Date();
+        if (typeof scheduledDate === 'string' && scheduledDate.trim()) {
+          const parsed = new Date(scheduledDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        const createdInterview = await prisma.interview.create({
+          data: {
+            job_id: createdJob.id,
+            round_type: roundTypeValue || 'Interview',
+            scheduled_at: parsedDate,
+            notes: typeof notes === 'string' ? notes.trim() : null,
+          },
+        });
+
+        // Create timeline event for the new interview
+        await createInterviewScheduledEvent(
+          createdJob.id,
+          createdInterview.id,
+          roundTypeValue || 'Interview',
+          parsedDate,
+          typeof notes === 'string' ? notes.trim() : null,
+        );
+      }
+    }
+
+    // Handle follow-up tasks from form data
+    if (Array.isArray(body.followUps)) {
+      for (const followUpItem of body.followUps as Array<
+        Record<string, unknown>
+      >) {
+        const title = followUpItem.title;
+        const dueDate = followUpItem.date;
+        const notes = followUpItem.notes;
+
+        // Require title for follow-up tasks
+        if (!title) {
+          continue; // Skip items without a title
+        }
+
+        const titleValue = typeof title === 'string' ? title.trim() : '';
+        // Require a non-empty string title for follow-up tasks
+        if (titleValue.length === 0) {
+          continue; // Skip items without a valid title
+        }
+        // Use provided date or default to null if not provided or invalid
+        let parsedDate: Date | null = null;
+        if (typeof dueDate === 'string' && dueDate.trim()) {
+          const parsed = new Date(dueDate);
+          if (!Number.isNaN(parsed.getTime())) {
+            parsedDate = parsed;
+          }
+        }
+
+        const notesValue = typeof notes === 'string' ? notes.trim() : null;
+
+        const createdFollowUp = await prisma.followUpTask.create({
+          data: {
+            job_id: createdJob.id,
+            title: titleValue,
+            due_date: parsedDate,
+            completed: false,
+            notes: notesValue,
+          },
+        });
+
+        // Create timeline event for the new follow-up
+        await createFollowUpCreatedEvent(
+          createdJob.id,
+          createdFollowUp.id,
+          titleValue,
+          parsedDate,
+        );
+      }
+    }
 
     return NextResponse.json(createdJob, { status: 201 });
   } catch (error) {

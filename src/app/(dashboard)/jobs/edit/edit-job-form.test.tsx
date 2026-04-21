@@ -46,22 +46,68 @@ describe('EditJobForm', () => {
   });
 
   it('submits successfully and routes to dashboard for full-page usage', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    });
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ documents: [] }),
+      })
+      // JobSavedDocumentsSection also fetches documents; return empty list
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ documents: [] }),
+      })
+      // Final PATCH response
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
 
     render(<EditJobForm initialJob={initialJob} />);
+
+    fireEvent.change(screen.getByLabelText(/Compensation/i), {
+      target: { value: '  base + bonus  ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Recruiter Notes/i), {
+      target: { value: '  recruiter pinged me  ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Other Notes/i), {
+      target: { value: '  custom details  ' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/jobs/job-1',
-        expect.objectContaining({ method: 'PATCH' }),
-      );
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
       expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    const patchCall = (global.fetch as jest.Mock).mock.calls.find(
+      ([requestUrl, requestInit]) =>
+        requestUrl === '/api/jobs/job-1' && requestInit?.method === 'PATCH',
+    );
+
+    expect(patchCall).toBeDefined();
+
+    const request = patchCall?.[1] as RequestInit;
+    const payload = JSON.parse(request.body as string);
+
+    expect(payload).toMatchObject({
+      title: 'Backend Engineer',
+      company: 'Acme',
+      location: 'Remote',
+      stage: 'Applied',
+      lastActivityDate: '2026-04-06',
+      deadline: null,
+      priority: false,
+      jobDescription: null,
+      compensation: 'base + bonus',
+      applicationDate: null,
+      recruiterNotes: 'recruiter pinged me',
+      otherNotes: 'custom details',
+      timeline: [],
+      interviews: [],
+      followUps: [],
+      documents: { files: [] },
     });
   });
 });

@@ -15,6 +15,7 @@ model FollowUpTask {
   due_date   DateTime? @db.Date
   completed  Boolean?
   created_at DateTime? @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  notes      String?
   Job        Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
 }
 
@@ -47,6 +48,8 @@ model Job {
   custom_notes            String?
   created_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  archived                Boolean                @default(false)
+  Document                Document[]
   FollowUpTask            FollowUpTask[]
   Interview               Interview[]
   User                    User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -77,15 +80,20 @@ model TimelineEvent {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model User {
-  id             String    @id
-  email          String    @unique
-  hashedPassword String
-  firstName      String?
-  lastName       String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  Job            Job[]
-  Profile        Profile?
+  id                String             @id
+  email             String             @unique
+  hashedPassword    String
+  firstName         String?
+  lastName          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  CareerPreferences CareerPreferences?
+  Document          Document[]
+  Education         Education[]
+  Experience        Experience[]
+  Job               Job[]
+  Profile           Profile?
+  Skill             Skill[]
 }
 
 model Profile {
@@ -101,6 +109,77 @@ model Profile {
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Experience {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String
+  type            String
+  title           String
+  organization    String
+  role            String?
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  description     String?
+  accomplishments String?
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String
+  name             String
+  category         String?
+  proficiencyLabel String?  @map("proficiency_label")
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String
+  institution  String
+  degree       String
+  fieldOfStudy String    @map("field_of_study")
+  startDate    DateTime  @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  honors       String?
+  gpa          String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CareerPreferences {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @unique
+  targetRoles      String?  @map("target_roles")
+  targetLocations  String?  @map("target_locations")
+  workMode         String?  @map("work_mode")
+  salaryPreference String?  @map("salary_preference")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Document {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String
+  job_id     String   @db.Uuid
+  title      String
+  content    String
+  /// Expected values: 'resume' or 'cover_letter'.
+  type       String
+  created_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  updated_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  Job        Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
 enum job_activity_type {
   Interview
   Tasks
@@ -114,5 +193,4 @@ enum stage {
   Interview
   Offer
   Rejected
-  Archived
 }

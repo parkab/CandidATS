@@ -1,41 +1,21 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  APPLICATION_STATUS_COLOR,
-  type ApplicationStatus,
-} from '@/lib/jobs/status';
-
-const STAGE_OPTIONS: ApplicationStatus[] = [
-  'Interested',
-  'Applied',
-  'Interview',
-  'Offer',
-  'Rejected',
-  'Archived',
-];
-
-const REQUIRED_FIELD_NAMES = [
-  'title',
-  'company',
-  'location',
-  'stage',
-  'lastActivityDate',
-] as const;
-
-type RequiredFieldName = (typeof REQUIRED_FIELD_NAMES)[number];
-
-const REQUIRED_FIELD_MESSAGE = 'This field is required.';
-const STAGE_COLOR_MIX_RATIO = 75;
-
-function getMixedStageColor(stage: ApplicationStatus) {
-  return `color-mix(in oklab, ${APPLICATION_STATUS_COLOR[stage]} ${STAGE_COLOR_MIX_RATIO}%, var(--foreground))`;
-}
+import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
+import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
+import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
+import type {
+  JobMultiStepDraft,
+  JobOverviewDraft,
+  JobSectionItemDraft,
+} from '@/lib/jobs/multi-step-form';
+import type { ApplicationStatus } from '@/lib/jobs/status';
 
 type EditJobFormProps = {
   inModal?: boolean;
   onSuccess?: () => void;
+  onCancel?: () => void;
   initialJob: {
     id: string;
     title: string;
@@ -51,7 +31,18 @@ type EditJobFormProps = {
     recruiterNotes: string | null;
     otherNotes: string | null;
   };
+  initialTimeline?: JobSectionItemDraft[];
+  initialInterviews?: JobSectionItemDraft[];
+  initialFollowUps?: JobSectionItemDraft[];
 };
+
+const STAGE_OPTIONS: ApplicationStatus[] = [
+  'Interested',
+  'Applied',
+  'Interview',
+  'Offer',
+  'Rejected',
+];
 
 function toDateInputValue(value: Date | string | null) {
   if (!value) {
@@ -73,107 +64,167 @@ function toStageValue(stage: string): ApplicationStatus {
     : 'Interested';
 }
 
+function toOptionalString(value: string) {
+  const normalizedValue = value.trim();
+  return normalizedValue.length > 0 ? normalizedValue : null;
+}
+
+function toOverviewDraft(
+  initialJob: EditJobFormProps['initialJob'],
+): JobOverviewDraft {
+  return {
+    id: initialJob.id,
+    title: initialJob.title,
+    company: initialJob.company,
+    location: initialJob.location,
+    stage: toStageValue(initialJob.stage),
+    lastActivityDate: toDateInputValue(initialJob.lastActivityDate),
+    deadline: toDateInputValue(initialJob.deadline),
+    priority: Boolean(initialJob.priority),
+    jobDescription: initialJob.jobDescription ?? '',
+    compensation: initialJob.compensation ?? '',
+    applicationDate: toDateInputValue(initialJob.applicationDate),
+    recruiterNotes: initialJob.recruiterNotes ?? '',
+    otherNotes: initialJob.otherNotes ?? '',
+  };
+}
+
 export default function EditJobForm({
   inModal = false,
   onSuccess,
+  onCancel,
   initialJob,
+  initialTimeline = [],
+  initialInterviews = [],
+  initialFollowUps = [],
 }: EditJobFormProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<RequiredFieldName, string>>
-  >({});
-  const [selectedStage, setSelectedStage] = useState<ApplicationStatus>(
-    toStageValue(initialJob.stage),
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(
+    initialTimeline,
   );
+  const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
-  function getRequiredFieldValue(
-    formData: FormData,
-    fieldName: RequiredFieldName,
-  ) {
-    const value = formData.get(fieldName);
-    return typeof value === 'string' ? value.trim() : '';
+  function handleCancel() {
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+
+    if (inModal) {
+      onSuccess?.();
+      return;
+    }
+
+    router.push('/dashboard');
   }
 
-  function clearFieldError(fieldName: RequiredFieldName) {
-    setFieldErrors((previous) => {
-      if (!previous[fieldName]) {
-        return previous;
+  async function handleDelete() {
+    setDeleteError(null);
+    setIsDeleting(true);
+
+    try {
+      const jobId = initialJob.id.trim();
+
+      if (!jobId) {
+        throw new Error('Job ID is required to delete a job.');
       }
 
-      return {
-        ...previous,
-        [fieldName]: undefined,
-      };
-    });
+      const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const responseBody = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          responseBody?.error ?? 'Unable to delete job right now.',
+        );
+      }
+
+      // Close modal if in modal view
+      if (inModal) {
+        onSuccess?.();
+      }
+
+      // Navigate back to dashboard and refresh data
+      if (!inModal) {
+        router.push('/dashboard');
+      }
+
+      // Refresh to update metrics and jobs list
+      router.refresh();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred.';
+      setDeleteError(errorMessage);
+      throw error;
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  async function handleFinalSave(draft: JobMultiStepDraft) {
+    const jobId = draft.overview.id?.trim();
 
-    const formData = new FormData(event.currentTarget);
-
-    const missingFields = REQUIRED_FIELD_NAMES.filter(
-      (fieldName) => getRequiredFieldValue(formData, fieldName).length === 0,
-    );
-
-    if (missingFields.length > 0) {
-      setFieldErrors(
-        missingFields.reduce<Partial<Record<RequiredFieldName, string>>>(
-          (accumulator, fieldName) => {
-            accumulator[fieldName] = REQUIRED_FIELD_MESSAGE;
-            return accumulator;
-          },
-          {},
-        ),
-      );
-      return;
+    if (!jobId) {
+      throw new Error('Job ID is required to update a job.');
     }
-
-    setFieldErrors({});
-    setIsSubmitting(true);
 
     const payload = {
-      title: formData.get('title'),
-      company: formData.get('company'),
-      location: formData.get('location'),
-      stage: formData.get('stage'),
-      lastActivityDate: formData.get('lastActivityDate'),
-      deadline: formData.get('deadline'),
-      priority: formData.get('priority') === 'on',
-      jobDescription: formData.get('jobDescription'),
-      compensation: formData.get('compensation'),
-      applicationDate: formData.get('applicationDate'),
-      recruiterNotes: formData.get('recruiterNotes'),
-      otherNotes: formData.get('otherNotes'),
+      title: draft.overview.title,
+      company: draft.overview.company,
+      location: draft.overview.location,
+      stage: draft.overview.stage,
+      lastActivityDate: draft.overview.lastActivityDate,
+      deadline: toOptionalString(draft.overview.deadline),
+      priority: draft.overview.priority,
+      jobDescription: toOptionalString(draft.overview.jobDescription),
+      compensation: toOptionalString(draft.overview.compensation),
+      applicationDate: toOptionalString(draft.overview.applicationDate),
+      recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
+      otherNotes: toOptionalString(draft.overview.otherNotes),
+      timeline: draft.timeline,
+      interviews: draft.interviews,
+      followUps: draft.followUps,
+      documents: draft.documents,
     };
 
-    const jobId = formData.get('jobId');
-
-    if (typeof jobId !== 'string' || jobId.trim().length === 0) {
-      setError('Job ID is required to update a job.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const response = await fetch(
-      `/api/jobs/${encodeURIComponent(jobId.trim())}`,
-      {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      },
-    );
+    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const responseBody = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
-      setError(responseBody?.error ?? 'Unable to update job right now.');
-      setIsSubmitting(false);
-      return;
+      throw new Error(responseBody?.error ?? 'Unable to update job right now.');
+    }
+
+    // Fetch fresh timeline data to reflect newly saved events
+    try {
+      const timelineResponse = await fetch(
+        `/api/jobs/${encodeURIComponent(jobId)}/timeline`,
+        {
+          method: 'GET',
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+
+      if (timelineResponse.ok) {
+        const freshEvents = (await timelineResponse.json()) as JobSectionItemDraft[];
+        setTimelineData(freshEvents);
+      }
+    } catch (error) {
+      console.error('Failed to fetch fresh timeline data:', error);
     }
 
     onSuccess?.();
@@ -184,353 +235,43 @@ export default function EditJobForm({
   }
 
   return (
-    <form
-      className={
-        inModal
-          ? 'mx-auto grid w-full max-w-2xl gap-6'
-          : 'mx-auto mt-10 grid w-full max-w-2xl gap-6 rounded-xl border border-(--surface-border) bg-(--background) p-6 shadow-sm'
-      }
-      onSubmit={handleSubmit}
-      noValidate
-    >
-      <input type="hidden" name="jobId" value={initialJob.id} />
-
-      <section className="grid gap-4">
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="title"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Job Position
-            <span className="ml-1 text-(--danger-text)" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only"> required</span>
-          </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(fieldErrors.title)}
-          >
-            <input
-              id="title"
-              name="title"
-              type="text"
-              required
-              defaultValue={initialJob.title}
-              className="profile-input"
-              placeholder="Software Engineer"
-              onChange={() => clearFieldError('title')}
-            />
-          </div>
-          {fieldErrors.title ? (
-            <p
-              className="text-xs font-medium text-(--danger-text)"
-              role="alert"
-            >
-              {fieldErrors.title}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="company"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Company Name
-            <span className="ml-1 text-(--danger-text)" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only"> required</span>
-          </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(fieldErrors.company)}
-          >
-            <input
-              id="company"
-              name="company"
-              type="text"
-              required
-              defaultValue={initialJob.company}
-              className="profile-input"
-              placeholder="Google"
-              onChange={() => clearFieldError('company')}
-            />
-          </div>
-          {fieldErrors.company ? (
-            <p
-              className="text-xs font-medium text-(--danger-text)"
-              role="alert"
-            >
-              {fieldErrors.company}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="location"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Location
-            <span className="ml-1 text-(--danger-text)" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only"> required</span>
-          </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(fieldErrors.location)}
-          >
-            <input
-              id="location"
-              name="location"
-              type="text"
-              required
-              defaultValue={initialJob.location}
-              className="profile-input"
-              placeholder="New York, NY"
-              onChange={() => clearFieldError('location')}
-            />
-          </div>
-          {fieldErrors.location ? (
-            <p
-              className="text-xs font-medium text-(--danger-text)"
-              role="alert"
-            >
-              {fieldErrors.location}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="stage"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Stage
-            <span className="ml-1 text-(--danger-text)" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only"> required</span>
-          </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(fieldErrors.stage)}
-          >
-            <select
-              id="stage"
-              name="stage"
-              required
-              className="profile-input"
-              value={selectedStage}
-              onChange={(event) => {
-                setSelectedStage(event.target.value as ApplicationStatus);
-                clearFieldError('stage');
-              }}
-              style={{ color: getMixedStageColor(selectedStage) }}
-            >
-              {STAGE_OPTIONS.map((stage) => (
-                <option
-                  key={stage}
-                  value={stage}
-                  style={{ color: getMixedStageColor(stage) }}
-                >
-                  {stage}
-                </option>
-              ))}
-            </select>
-          </div>
-          {fieldErrors.stage ? (
-            <p
-              className="text-xs font-medium text-(--danger-text)"
-              role="alert"
-            >
-              {fieldErrors.stage}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="last-activity-date"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Last Activity Date
-            <span className="ml-1 text-(--danger-text)" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only"> required</span>
-          </label>
-          <div
-            className="profile-input-wrap"
-            data-error={Boolean(fieldErrors.lastActivityDate)}
-          >
-            <input
-              id="last-activity-date"
-              name="lastActivityDate"
-              type="date"
-              required
-              defaultValue={toDateInputValue(initialJob.lastActivityDate)}
-              className="profile-input"
-              onChange={() => clearFieldError('lastActivityDate')}
-            />
-          </div>
-          {fieldErrors.lastActivityDate ? (
-            <p
-              className="text-xs font-medium text-(--danger-text)"
-              role="alert"
-            >
-              {fieldErrors.lastActivityDate}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="deadline"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Deadline
-          </label>
-          <div className="profile-input-wrap">
-            <input
-              id="deadline"
-              name="deadline"
-              type="date"
-              defaultValue={toDateInputValue(initialJob.deadline)}
-              className="profile-input"
-            />
-          </div>
-        </div>
-
-        <label
-          htmlFor="priority"
-          className="flex items-center gap-3 rounded-md border border-(--surface-border) px-3 py-2"
-        >
-          <input
-            id="priority"
-            name="priority"
-            type="checkbox"
-            defaultChecked={Boolean(initialJob.priority)}
-            className="h-4 w-4 accent-(--foreground)"
-          />
-          <span className="text-sm font-semibold text-(--foreground)">
-            Priority
-          </span>
-        </label>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="job-description"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Job Description
-          </label>
-          <div className="profile-input-wrap">
-            <textarea
-              id="job-description"
-              name="jobDescription"
-              rows={4}
-              defaultValue={initialJob.jobDescription ?? ''}
-              className="profile-input profile-textarea"
-              placeholder="Role summary, requirements, and responsibilities"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="compensation"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Compensation
-          </label>
-          <div className="profile-input-wrap">
-            <input
-              id="compensation"
-              name="compensation"
-              type="text"
-              defaultValue={initialJob.compensation ?? ''}
-              className="profile-input"
-              placeholder="$200,000 base + $50,000 bonus"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="application-date"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Application Date
-          </label>
-          <div className="profile-input-wrap">
-            <input
-              id="application-date"
-              name="applicationDate"
-              type="date"
-              defaultValue={toDateInputValue(initialJob.applicationDate)}
-              className="profile-input"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="recruiter-notes"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Recruiter Notes
-          </label>
-          <div className="profile-input-wrap">
-            <textarea
-              id="recruiter-notes"
-              name="recruiterNotes"
-              rows={3}
-              defaultValue={initialJob.recruiterNotes ?? ''}
-              className="profile-input profile-textarea"
-              placeholder="Recruiter contact details and notes"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-1.5">
-          <label
-            htmlFor="other-notes"
-            className="text-sm font-semibold text-(--foreground)"
-          >
-            Other Notes
-          </label>
-          <div className="profile-input-wrap">
-            <textarea
-              id="other-notes"
-              name="otherNotes"
-              rows={4}
-              defaultValue={initialJob.otherNotes ?? ''}
-              className="profile-input profile-textarea"
-              placeholder="Anything else worth tracking"
-            />
-          </div>
-        </div>
-      </section>
-
-      <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-(--foreground) px-5 py-2.5 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isSubmitting ? 'Updating...' : 'Save changes'}
-        </button>
+    <>
+      <JobMultiStepForm
+        initialOverview={toOverviewDraft(initialJob)}
+        initialDraft={{
+          timeline: timelineData,
+          interviews: initialInterviews,
+          followUps: initialFollowUps,
+        }}
+        submitLabel="Save changes"
+        onCancel={handleCancel}
+        onFinalSave={handleFinalSave}
+        onDocumentsChanged={() =>
+          setDocumentsRefreshToken((previous) => previous + 1)
+        }
+        onDelete={() => setIsDeleteDialogOpen(true)}
+        stickyFooter={inModal}
+        showFooterCancel={!inModal}
+        deleteError={deleteError}
+        isDeleting={isDeleting}
+      />
+      <DeleteJobDialog
+        jobId={initialJob.id}
+        isOpen={isDeleteDialogOpen}
+        onClose={() => {
+          setIsDeleteDialogOpen(false);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+        jobTitle={initialJob.title}
+        companyName={initialJob.company}
+      />
+      <div className="mx-auto mt-12 max-w-2xl">
+        <JobSavedDocumentsSection
+          key={documentsRefreshToken}
+          jobId={initialJob.id}
+        />
       </div>
-
-      {error ? (
-        <p className="text-sm font-medium text-(--danger-text)" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </form>
+    </>
   );
 }

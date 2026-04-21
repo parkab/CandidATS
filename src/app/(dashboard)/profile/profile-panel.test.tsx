@@ -10,6 +10,13 @@ jest.mock('next/navigation', () => ({
 }));
 
 describe('ProfilePanel', () => {
+  const completionProps = {
+    hasExperience: false,
+    hasEducation: false,
+    hasSkills: false,
+    hasCareerPreferences: false,
+  };
+
   const initialProfile = {
     firstName: 'Jane',
     lastName: 'Doe',
@@ -33,22 +40,30 @@ describe('ProfilePanel', () => {
     global.fetch = originalFetch;
   });
 
-  it('renders baseline completion details from initial profile data', () => {
-    render(<ProfilePanel initialProfile={initialProfile} />);
+  it('renders profile completion details from initial profile data', () => {
+    render(
+      <ProfilePanel
+        initialProfile={initialProfile}
+        hasExperience={completionProps.hasExperience}
+        hasEducation={completionProps.hasEducation}
+        hasSkills={completionProps.hasSkills}
+        hasCareerPreferences={completionProps.hasCareerPreferences}
+      />,
+    );
 
-    expect(screen.getByText('29% complete')).toBeInTheDocument();
+    expect(screen.getByText('18% complete')).toBeInTheDocument();
     expect(
-      screen.getByText('2 of 7 baseline fields complete'),
+      screen.getByText('2 of 11 profile fields complete'),
     ).toBeInTheDocument();
 
     const progress = screen.getByRole('progressbar', {
-      name: 'Baseline profile completion',
+      name: 'Profile completion',
     });
 
-    expect(progress).toHaveAttribute('aria-valuenow', '29');
+    expect(progress).toHaveAttribute('aria-valuenow', '18');
   });
 
-  it('updates baseline completion immediately after successful save', async () => {
+  it('updates profile completion immediately after successful save', async () => {
     const mockFetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -67,7 +82,15 @@ describe('ProfilePanel', () => {
 
     global.fetch = mockFetch as unknown as typeof fetch;
 
-    render(<ProfilePanel initialProfile={initialProfile} />);
+    render(
+      <ProfilePanel
+        initialProfile={initialProfile}
+        hasExperience={completionProps.hasExperience}
+        hasEducation={completionProps.hasEducation}
+        hasSkills={completionProps.hasSkills}
+        hasCareerPreferences={completionProps.hasCareerPreferences}
+      />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
 
@@ -81,11 +104,11 @@ describe('ProfilePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
-      expect(screen.getByText('57% complete')).toBeInTheDocument();
+      expect(screen.getByText('36% complete')).toBeInTheDocument();
     });
 
     expect(
-      screen.getByText('4 of 7 baseline fields complete'),
+      screen.getByText('4 of 11 profile fields complete'),
     ).toBeInTheDocument();
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     expect(mockFetch).toHaveBeenCalledWith(
