@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
+import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
 import type {
   JobMultiStepDraft,
   JobOverviewDraft,
@@ -104,6 +105,7 @@ export default function EditJobForm({
   const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(
     initialTimeline,
   );
+  const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function handleCancel() {
     if (onCancel) {
@@ -244,6 +246,9 @@ export default function EditJobForm({
         submitLabel="Save changes"
         onCancel={handleCancel}
         onFinalSave={handleFinalSave}
+        onDocumentsChanged={() =>
+          setDocumentsRefreshToken((previous) => previous + 1)
+        }
         onDelete={() => setIsDeleteDialogOpen(true)}
         stickyFooter={inModal}
         showFooterCancel={!inModal}
@@ -261,6 +266,12 @@ export default function EditJobForm({
         jobTitle={initialJob.title}
         companyName={initialJob.company}
       />
+      <div className="mx-auto mt-12 max-w-2xl">
+        <JobSavedDocumentsSection
+          key={documentsRefreshToken}
+          jobId={initialJob.id}
+        />
+      </div>
     </>
   );
 }
