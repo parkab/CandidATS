@@ -15,6 +15,7 @@ type CoverLetterStepSectionProps = {
   };
   onCoverLetterChange: (content: string) => void;
   onRefreshDocuments?: () => void;
+  onSavedAsDocument?: (content: string) => void;
 };
 
 export default function CoverLetterStepSection({
@@ -23,6 +24,7 @@ export default function CoverLetterStepSection({
   jobData,
   onCoverLetterChange,
   onRefreshDocuments,
+  onSavedAsDocument,
 }: CoverLetterStepSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -208,6 +210,10 @@ export default function CoverLetterStepSection({
         onRefreshDocuments();
       }
 
+      if (onSavedAsDocument) {
+        onSavedAsDocument(coverLetter.content);
+      }
+
       // Show success message (you could add a toast notification here)
       alert('Cover letter saved successfully!');
     } catch (error) {
@@ -230,7 +236,8 @@ export default function CoverLetterStepSection({
               type="button"
               onClick={generateCoverLetter}
               disabled={isDisabled}
-              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:opacity-50"
+              title="Generate a tailored cover letter for this job"
+              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition-all hover:-translate-y-0.5 hover:bg-(--inverse-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGenerating ? 'Generating...' : 'Generate Cover Letter'}
             </button>
@@ -238,7 +245,8 @@ export default function CoverLetterStepSection({
               type="button"
               onClick={saveCoverLetter}
               disabled={!coverLetter.content.trim() || isSaving}
-              className="rounded-md border border-(--surface-border) bg-(--background) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--surface-hover) disabled:opacity-50"
+              title="Save this cover letter to the job documents list"
+              className="rounded-md border border-(--surface-border) bg-(--background) px-4 py-2 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--surface-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Cover Letter'}
             </button>
@@ -248,6 +256,9 @@ export default function CoverLetterStepSection({
               {!jobId && !jobData ? 'Job details required' : ''}
             </p>
           )}
+          <p className="text-xs text-(--text-muted)">
+            Saved cover letters appear in the job documents list below.
+          </p>
         </div>
       </div>
       <div className="grid gap-2">
@@ -264,7 +275,7 @@ export default function CoverLetterStepSection({
                 type="button"
                 onClick={() => editContent('rewrite')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Rewrite selected text or entire cover letter"
               >
                 ✏️ Rewrite
@@ -273,7 +284,7 @@ export default function CoverLetterStepSection({
                 type="button"
                 onClick={() => editContent('concise')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Make selected text more concise"
               >
                 📉 Concise
@@ -282,7 +293,7 @@ export default function CoverLetterStepSection({
                 type="button"
                 onClick={() => editContent('detail')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Add more details to selected text"
               >
                 📈 Detail
@@ -291,7 +302,7 @@ export default function CoverLetterStepSection({
                 type="button"
                 onClick={() => editContent('tone')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Adjust tone of selected text"
               >
                 🎯 Tone
@@ -304,7 +315,7 @@ export default function CoverLetterStepSection({
           value={coverLetter.content}
           onChange={(event) => onCoverLetterChange(event.target.value)}
           placeholder="Your AI-generated cover letter will appear here. Select any text and use the action buttons to refine it."
-          className="min-h-[400px] w-full resize-y rounded-md border border-(--border) bg-(--background) p-3 text-sm text-(--foreground) placeholder-(--text-muted) focus:border-(--ring) focus:outline-none disabled:opacity-50"
+          className="min-h-[100px] w-full resize-y rounded-md border border-(--surface-border) bg-(--background) p-3 text-sm text-(--foreground) placeholder:text-(--text-muted) focus:border-(--foreground) focus:outline-none disabled:opacity-50"
           disabled={isGenerating || isEditing}
         />
       </div>
