@@ -315,7 +315,7 @@ export default function CoverLetterStepSection({
           value={coverLetter.content}
           onChange={(event) => onCoverLetterChange(event.target.value)}
           placeholder="Your AI-generated cover letter will appear here. Select any text and use the action buttons to refine it."
-          className="min-h-100 w-full resize-y rounded-md border border-(--border) bg-(--background) p-3 text-sm text-(--foreground) placeholder-(--text-muted) focus:border-(--ring) focus:outline-none disabled:opacity-50"
+          className="min-h-[100px] w-full resize-y rounded-md border border-(--surface-border) bg-(--background) p-3 text-sm text-(--foreground) placeholder:text-(--text-muted) focus:border-(--foreground) focus:outline-none disabled:opacity-50"
           disabled={isGenerating || isEditing}
         />
       </div>
