@@ -102,6 +102,46 @@ export default function JobMultiStepForm({
   const [documentDraft, setDocumentDraft] = useState<JobDocumentItemDraft>(() =>
     createDocumentDraftItem(),
   );
+
+  function addAiGeneratedDocument(
+    type: 'resume' | 'cover_letter',
+    content: string,
+  ) {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const title = type === 'resume' ? 'Resume' : 'Cover Letter';
+    const notes =
+      type === 'resume' ? 'AI-generated resume' : 'AI-generated cover letter';
+    const fileName =
+      type === 'resume' ? `resume-${today}.md` : `cover-letter-${today}.md`;
+    const markdownFile = new File([trimmedContent], fileName, {
+      type: 'text/markdown',
+    });
+    const objectUrl = URL.createObjectURL(markdownFile);
+
+    const documentItem: JobDocumentItemDraft = {
+      id: crypto.randomUUID(),
+      title,
+      date: today,
+      notes,
+      name: markdownFile.name,
+      size: markdownFile.size,
+      mimeType: markdownFile.type,
+      objectUrl,
+    };
+
+    setDraft((previous) => ({
+      ...previous,
+      documents: {
+        files: [...previous.documents.files, documentItem],
+      },
+    }));
+  }
+
   function refreshDocuments() {
     onDocumentsChanged?.();
   }
@@ -672,6 +712,9 @@ export default function JobMultiStepForm({
                 }))
               }
               onRefreshDocuments={refreshDocuments}
+              onSavedAsDocument={(content) =>
+                addAiGeneratedDocument('resume', content)
+              }
             />
           ) : null}
 
@@ -699,6 +742,9 @@ export default function JobMultiStepForm({
                 }))
               }
               onRefreshDocuments={refreshDocuments}
+              onSavedAsDocument={(content) =>
+                addAiGeneratedDocument('cover_letter', content)
+              }
             />
           ) : null}
         </section>

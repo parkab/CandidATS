@@ -167,16 +167,16 @@ model CareerPreferences {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Document {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id   String
-  job_id    String   @db.Uuid
-  title     String
-  content   String
-  type      String   // 'resume' or 'cover_letter'
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String
+  job_id     String   @db.Uuid
+  title      String
+  content    String
+  type       String
   created_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
-  Job       Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
-  User      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Job        Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 enum job_activity_type {

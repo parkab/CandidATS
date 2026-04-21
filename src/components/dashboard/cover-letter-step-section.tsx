@@ -15,6 +15,7 @@ type CoverLetterStepSectionProps = {
   };
   onCoverLetterChange: (content: string) => void;
   onRefreshDocuments?: () => void;
+  onSavedAsDocument?: (content: string) => void;
 };
 
 export default function CoverLetterStepSection({
@@ -23,6 +24,7 @@ export default function CoverLetterStepSection({
   jobData,
   onCoverLetterChange,
   onRefreshDocuments,
+  onSavedAsDocument,
 }: CoverLetterStepSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -208,6 +210,10 @@ export default function CoverLetterStepSection({
         onRefreshDocuments();
       }
 
+      if (onSavedAsDocument) {
+        onSavedAsDocument(coverLetter.content);
+      }
+
       // Show success message (you could add a toast notification here)
       alert('Cover letter saved successfully!');
     } catch (error) {
@@ -309,7 +315,7 @@ export default function CoverLetterStepSection({
           value={coverLetter.content}
           onChange={(event) => onCoverLetterChange(event.target.value)}
           placeholder="Your AI-generated cover letter will appear here. Select any text and use the action buttons to refine it."
-          className="min-h-[400px] w-full resize-y rounded-md border border-(--border) bg-(--background) p-3 text-sm text-(--foreground) placeholder-(--text-muted) focus:border-(--ring) focus:outline-none disabled:opacity-50"
+          className="min-h-100 w-full resize-y rounded-md border border-(--border) bg-(--background) p-3 text-sm text-(--foreground) placeholder-(--text-muted) focus:border-(--ring) focus:outline-none disabled:opacity-50"
           disabled={isGenerating || isEditing}
         />
       </div>

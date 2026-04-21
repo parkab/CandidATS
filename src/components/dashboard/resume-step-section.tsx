@@ -15,6 +15,7 @@ type ResumeStepSectionProps = {
   };
   onResumeChange: (content: string) => void;
   onRefreshDocuments?: () => void;
+  onSavedAsDocument?: (content: string) => void;
 };
 
 export default function ResumeStepSection({
@@ -23,6 +24,7 @@ export default function ResumeStepSection({
   jobData,
   onResumeChange,
   onRefreshDocuments,
+  onSavedAsDocument,
 }: ResumeStepSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -204,11 +206,13 @@ export default function ResumeStepSection({
         onRefreshDocuments();
       }
 
-      // Show success message (you could add a toast notification here)
-      alert('Resume saved successfully!');
+      if (onSavedAsDocument) {
+        onSavedAsDocument(resume.content);
+      }
+
+      // Show success message
     } catch (error) {
       console.error('Error saving resume:', error);
-      alert('Failed to save resume. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -308,7 +312,7 @@ export default function ResumeStepSection({
           value={resume.content}
           onChange={(e) => onResumeChange(e.target.value)}
           placeholder="Your AI-generated resume will appear here. You can edit it as needed. Select any text and use the action buttons to refine it."
-          className="min-h-[400px] w-full rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--foreground) placeholder:text-(--text-muted) focus:border-(--foreground) focus:outline-none"
+          className="min-h-100 w-full rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-sm text-(--foreground) placeholder:text-(--text-muted) focus:border-(--foreground) focus:outline-none"
           disabled={isGenerating || isEditing}
         />
         {resume.content && (
