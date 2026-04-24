@@ -30,6 +30,9 @@ export function createDocumentDraftItem(): JobDocumentItemDraft {
     title: '',
     date: '',
     notes: '',
+    documentType: 'other',
+    status: 'draft',
+    tags: [],
     name: '',
     size: 0,
     mimeType: '',
@@ -49,10 +52,14 @@ export function normalizeDocumentDraft(
     title: document.title ?? '',
     date: document.date ?? '',
     notes: document.notes ?? '',
+    documentType: document.documentType ?? 'other',
+    status: document.status ?? 'draft',
+    tags: Array.isArray(document.tags) ? document.tags : [],
     name: document.name ?? '',
     size: document.size ?? 0,
     mimeType: document.mimeType ?? '',
     objectUrl: document.objectUrl,
+    storagePath: document.storagePath,
   };
 }
 

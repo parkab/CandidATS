@@ -51,9 +51,27 @@ type PersistedDocument = {
   id: string;
   title: string;
   content: string;
-  type: 'resume' | 'cover_letter';
+  type: 'resume' | 'cover_letter' | 'other';
+  status: 'draft' | 'ready' | 'archived';
+  tags: string[];
   created_at: string;
+  storage: {
+    path: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+    note?: string;
+    signedUrl: string | null;
+  } | null;
 };
+
+function revokeObjectUrlIfBlob(objectUrl?: string) {
+  if (!objectUrl || !objectUrl.startsWith('blob:')) {
+    return;
+  }
+
+  URL.revokeObjectURL(objectUrl);
+}
 
 export default function JobMultiStepForm({
   initialOverview,
@@ -139,6 +157,9 @@ export default function JobMultiStepForm({
       title,
       date: today,
       notes,
+      documentType: type,
+      status: 'ready',
+      tags: ['ai-generated', type === 'resume' ? 'resume' : 'cover-letter'],
       name: markdownFile.name,
       size: markdownFile.size,
       mimeType: markdownFile.type,
@@ -468,8 +489,14 @@ export default function JobMultiStepForm({
     }));
   }
 
-  function saveDocumentItem() {
+  async function saveDocumentItem() {
     if (documentDraft.name.trim().length === 0) {
+      return;
+    }
+
+    const jobId = draft.overview.id?.trim();
+    if (!jobId) {
+      setDocumentsError('Save the job first before adding persistent documents.');
       return;
     }
 
@@ -478,77 +505,143 @@ export default function JobMultiStepForm({
         ? draft.documents.files.find((file) => file.id === editingDocumentId)
         : null;
 
-    const nextObjectUrl = pendingDocumentFile
-      ? URL.createObjectURL(pendingDocumentFile)
-      : existingDocument?.objectUrl;
+    setDocumentsError(null);
+    setDocumentsLoading(true);
 
-    const sanitizedDocument: JobDocumentItemDraft = {
-      ...documentDraft,
-      id: existingDocument?.id ?? documentDraft.id,
-      title: documentDraft.title.trim(),
-      date: documentDraft.date,
-      notes: documentDraft.notes.trim(),
-      name: documentDraft.name,
-      size: documentDraft.size,
-      mimeType: documentDraft.mimeType,
-      objectUrl: nextObjectUrl,
-    };
+    try {
+      let response: Response;
 
-    if (
-      existingDocument?.objectUrl &&
-      pendingDocumentFile &&
-      existingDocument.objectUrl !== nextObjectUrl
-    ) {
-      URL.revokeObjectURL(existingDocument.objectUrl);
-    }
+      if (pendingDocumentFile) {
+        const formData = new FormData();
+        formData.append('jobId', jobId);
+        formData.append('title', documentDraft.title.trim());
+        formData.append('type', documentDraft.documentType);
+        formData.append('status', documentDraft.status);
+        documentDraft.tags.forEach((tag) => {
+          formData.append('tags', tag);
+        });
+        formData.append('note', documentDraft.notes.trim());
+        formData.append('file', pendingDocumentFile);
 
-    setDraft((previous) => ({
-      ...previous,
-      documents: {
-        files:
-          documentComposerMode === 'edit' && editingDocumentId
-            ? previous.documents.files.map((existingFile) =>
-                existingFile.id === editingDocumentId
-                  ? sanitizedDocument
-                  : existingFile,
-              )
-            : [...previous.documents.files, sanitizedDocument],
-      },
-    }));
-
-    closeDocumentComposer();
-  }
-
-  function viewDocument(id: string) {
-    const existingDocument = draft.documents.files.find(
-      (file) => file.id === id,
-    );
-    if (!existingDocument?.objectUrl) {
-      return;
-    }
-
-    window.open(existingDocument.objectUrl, '_blank', 'noopener,noreferrer');
-  }
-
-  function removeDocument(id: string) {
-    setDraft((previous) => {
-      const removedDocument = previous.documents.files.find(
-        (file) => file.id === id,
-      );
-      if (removedDocument?.objectUrl) {
-        URL.revokeObjectURL(removedDocument.objectUrl);
+        response = await fetch(
+          existingDocument
+            ? `/api/documents/${encodeURIComponent(existingDocument.id)}`
+            : '/api/documents',
+          {
+            method: existingDocument ? 'PATCH' : 'POST',
+            body: formData,
+          },
+        );
+      } else {
+        response = await fetch(
+          existingDocument
+            ? `/api/documents/${encodeURIComponent(existingDocument.id)}`
+            : '/api/documents',
+          {
+            method: existingDocument ? 'PATCH' : 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jobId,
+              title: documentDraft.title.trim() || documentDraft.name,
+              type: documentDraft.documentType,
+              status: documentDraft.status,
+              tags: documentDraft.tags,
+              note: documentDraft.notes.trim(),
+              content:
+                existingDocument || documentDraft.notes.trim().length === 0
+                  ? undefined
+                  : documentDraft.notes.trim(),
+            }),
+          },
+        );
       }
 
-      return {
-        ...previous,
-        documents: {
-          files: previous.documents.files.filter((file) => file.id !== id),
-        },
-      };
-    });
+      if (!response.ok) {
+        throw new Error('Unable to save document.');
+      }
 
-    if (editingDocumentId === id) {
       closeDocumentComposer();
+      refreshDocuments();
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : 'Unable to save document.';
+      setDocumentsError(message);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }
+
+  async function viewDocument(id: string) {
+    try {
+      const response = await fetch(`/api/documents/${encodeURIComponent(id)}`);
+      if (!response.ok) {
+        throw new Error('Unable to retrieve document.');
+      }
+
+      const payload = (await response.json()) as {
+        document?: PersistedDocument;
+      };
+
+      const document = payload.document;
+      if (!document) {
+        return;
+      }
+
+      if (document.storage?.signedUrl) {
+        window.open(document.storage.signedUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(
+        new Blob([document.content], { type: 'text/plain' }),
+      );
+      window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+      }, 60_000);
+    } catch {
+      setDocumentsError('Unable to retrieve document.');
+    }
+  }
+
+  async function removeDocument(id: string) {
+    try {
+      setDocumentsError(null);
+      const response = await fetch(`/api/documents/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to delete document.');
+      }
+
+      setDraft((previous) => {
+        const removedDocument = previous.documents.files.find(
+          (file) => file.id === id,
+        );
+        revokeObjectUrlIfBlob(removedDocument?.objectUrl);
+
+        return {
+          ...previous,
+          documents: {
+            files: previous.documents.files.filter((file) => file.id !== id),
+          },
+        };
+      });
+
+      if (editingDocumentId === id) {
+        closeDocumentComposer();
+      }
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : 'Unable to delete document.';
+      setDocumentsError(message);
     }
   }
 
@@ -601,14 +694,22 @@ export default function JobMultiStepForm({
               id: document.id,
               title: document.title,
               date,
+              documentType: document.type,
+              status: document.status,
+              tags: Array.isArray(document.tags) ? document.tags : [],
               notes:
-                document.type === 'resume'
+                document.storage?.note ??
+                (document.type === 'resume'
                   ? 'Saved resume'
-                  : 'Saved cover letter',
-              name: `${document.title}.txt`,
-              size: contentBlob.size,
-              mimeType: 'text/plain',
-              objectUrl: URL.createObjectURL(contentBlob),
+                  : document.type === 'cover_letter'
+                    ? 'Saved cover letter'
+                    : 'Saved document'),
+              name: document.storage?.fileName ?? `${document.title}.txt`,
+              size: document.storage?.size ?? contentBlob.size,
+              mimeType: document.storage?.mimeType ?? 'text/plain',
+              objectUrl:
+                document.storage?.signedUrl ?? URL.createObjectURL(contentBlob),
+              storagePath: document.storage?.path,
             };
           },
         );
@@ -622,7 +723,7 @@ export default function JobMultiStepForm({
 
           previous.documents.files.forEach((file) => {
             if (file.objectUrl && !nextObjectUrls.has(file.objectUrl)) {
-              URL.revokeObjectURL(file.objectUrl);
+              revokeObjectUrlIfBlob(file.objectUrl);
             }
           });
 
@@ -679,7 +780,7 @@ export default function JobMultiStepForm({
     return () => {
       const uniqueObjectUrls = new Set(documentObjectUrlsRef.current);
       uniqueObjectUrls.forEach((objectUrl) => {
-        URL.revokeObjectURL(objectUrl);
+        revokeObjectUrlIfBlob(objectUrl);
       });
     };
   }, []);
