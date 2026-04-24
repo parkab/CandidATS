@@ -3,9 +3,11 @@ import { getSession } from '@/lib/auth/session';
 import {
   buildStoragePath,
   DOCUMENTS_BUCKET,
+  type DocumentType,
   encodeStoredFileContent,
   isSupportedDocumentStatus,
   isSupportedDocumentType,
+  type StoredFileDocumentContent,
   tryParseStoredFileContent,
 } from '@/lib/documents/metadata';
 import { prisma } from '@/lib/prisma';
@@ -117,6 +119,43 @@ async function deleteStoredFileIfPresent(content: string) {
   }
 
   await supabaseAdmin.storage.from(metadata.bucket).remove([metadata.path]);
+}
+
+async function moveStoredFileToTypeFolder(params: {
+  metadata: StoredFileDocumentContent;
+  userId: string;
+  type: DocumentType;
+}): Promise<StoredFileDocumentContent> {
+  if (!supabaseAdmin) {
+    throw new Error('Storage service unavailable');
+  }
+
+  const nextPath = buildStoragePath({
+    userId: params.userId,
+    type: params.type,
+    fileName: params.metadata.fileName,
+  });
+
+  const storage = supabaseAdmin.storage.from(params.metadata.bucket);
+  const copyResult = await storage.copy(params.metadata.path, nextPath);
+
+  if (copyResult.error) {
+    throw new Error(copyResult.error.message);
+  }
+
+  const removeResult = await storage.remove([params.metadata.path]);
+  if (removeResult.error) {
+    console.warn('Moved document file but failed to delete old path:', {
+      oldPath: params.metadata.path,
+      newPath: nextPath,
+      details: removeResult.error.message,
+    });
+  }
+
+  return {
+    ...params.metadata,
+    path: nextPath,
+  };
 }
 
 export async function GET(
@@ -343,18 +382,48 @@ export async function PATCH(
     const existingFileMetadata = tryParseStoredFileContent(
       existingDocument.content,
     );
+    let nextFileMetadata = existingFileMetadata;
+
+    if (
+      existingFileMetadata &&
+      body.type &&
+      body.type !== existingDocument.type
+    ) {
+      if (!supabaseAdmin) {
+        return NextResponse.json(
+          { error: 'Storage service unavailable' },
+          { status: 503 },
+        );
+      }
+
+      try {
+        nextFileMetadata = await moveStoredFileToTypeFolder({
+          metadata: existingFileMetadata,
+          userId: session.userId,
+          type: body.type as DocumentType,
+        });
+      } catch (moveError) {
+        const details =
+          moveError instanceof Error ? moveError.message : 'Unknown error';
+        return NextResponse.json(
+          { error: 'Failed to move stored file', details },
+          { status: 500 },
+        );
+      }
+    }
+
     const mergedTags = Array.isArray(body.tags)
       ? parseTags(body.tags)
       : existingDocument.tags;
 
     const mergedContent = (() => {
-      if (existingFileMetadata) {
+      if (nextFileMetadata) {
         return encodeStoredFileContent({
-          ...existingFileMetadata,
+          ...nextFileMetadata,
           note:
             typeof body.note === 'string'
               ? body.note.trim() || undefined
-              : existingFileMetadata.note,
+              : nextFileMetadata.note,
         });
       }
 

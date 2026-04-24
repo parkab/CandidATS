@@ -100,7 +100,7 @@ export default function DocumentsStepSection({
         <ul className="grid gap-3" aria-label="Document items">
           {files.map((file) => (
             <li key={file.id} className="item-card rounded-lg p-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-(--foreground)">
                     {file.title || 'Document'}
@@ -108,7 +108,7 @@ export default function DocumentsStepSection({
                   {file.date ? (
                     <p className="text-xs text-(--text-muted)">{file.date}</p>
                   ) : null}
-                  <p className="text-xs text-(--text-muted)">
+                  <p className="text-xs text-(--text-muted) wrap-break-word">
                     Status: {file.status}
                     {file.tags.length > 0
                       ? ` • Tags: ${file.tags.join(', ')}`
@@ -120,26 +120,26 @@ export default function DocumentsStepSection({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:self-start">
                   <button
                     type="button"
                     onClick={() => onViewDocument(file.id)}
                     disabled={!file.objectUrl}
-                    className="rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex-none whitespace-nowrap rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     View
                   </button>
                   <button
                     type="button"
                     onClick={() => onEditDocument(file.id)}
-                    className="rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                    className="flex-none whitespace-nowrap rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
                   >
                     Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemoveDocument(file.id)}
-                    className="rounded-md border border-(--danger-border) px-3 py-1.5 text-xs font-semibold text-(--danger-text) transition hover:bg-(--danger-bg)"
+                    className="flex-none whitespace-nowrap rounded-md border border-(--danger-border) px-3 py-1.5 text-xs font-semibold text-(--danger-text) transition hover:bg-(--danger-bg)"
                   >
                     Remove
                   </button>
