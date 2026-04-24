@@ -175,6 +175,9 @@ model Document {
   content    String
   /// Expected values: 'resume' or 'cover_letter'.
   type       String
+  /// Expected values: 'draft', 'ready', and 'archived'.
+  status     String   @default("draft")
+  tags       String[]
   created_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   status     String   @default("draft")

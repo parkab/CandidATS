@@ -46,6 +46,8 @@ export default function DocumentsStepSection({
   const titleId = 'document-title';
   const dateId = 'document-date';
   const notesId = 'document-notes';
+  const statusId = 'document-status';
+  const tagsId = 'document-tags';
   const fileId = 'document-file';
 
   return (
@@ -65,11 +67,18 @@ export default function DocumentsStepSection({
           titleId={titleId}
           dateId={dateId}
           notesId={notesId}
+          statusId={statusId}
+          tagsId={tagsId}
           fileId={fileId}
           documentDraft={documentDraft}
           onTitleChange={(value) => onDocumentDraftChange('title', value)}
           onDateChange={(value) => onDocumentDraftChange('date', value)}
           onNotesChange={(value) => onDocumentDraftChange('notes', value)}
+          onDocumentTypeChange={(value) =>
+            onDocumentDraftChange('documentType', value)
+          }
+          onStatusChange={(value) => onDocumentDraftChange('status', value)}
+          onTagsChange={(value) => onDocumentDraftChange('tags', value)}
           onFileChange={onDocumentFileSelected}
           onClose={onCloseComposer}
           onSave={onSaveDocument}
@@ -99,6 +108,12 @@ export default function DocumentsStepSection({
                   {file.date ? (
                     <p className="text-xs text-(--text-muted)">{file.date}</p>
                   ) : null}
+                  <p className="text-xs text-(--text-muted)">
+                    Status: {file.status}
+                    {file.tags.length > 0
+                      ? ` • Tags: ${file.tags.join(', ')}`
+                      : ''}
+                  </p>
                   {file.notes ? (
                     <p className="mt-1 text-sm text-(--text-muted)">
                       {file.notes}
@@ -139,6 +154,8 @@ export default function DocumentsStepSection({
                     titleId={titleId}
                     dateId={dateId}
                     notesId={notesId}
+                    statusId={statusId}
+                    tagsId={tagsId}
                     fileId={fileId}
                     documentDraft={documentDraft}
                     onTitleChange={(value) =>
@@ -149,6 +166,15 @@ export default function DocumentsStepSection({
                     }
                     onNotesChange={(value) =>
                       onDocumentDraftChange('notes', value)
+                    }
+                    onDocumentTypeChange={(value) =>
+                      onDocumentDraftChange('documentType', value)
+                    }
+                    onStatusChange={(value) =>
+                      onDocumentDraftChange('status', value)
+                    }
+                    onTagsChange={(value) =>
+                      onDocumentDraftChange('tags', value)
                     }
                     onFileChange={onDocumentFileSelected}
                     onClose={onCloseComposer}

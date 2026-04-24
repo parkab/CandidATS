@@ -1,17 +1,22 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { JobDocumentItemDraft } from '@/lib/jobs/multi-step-form';
 
 type DocumentItemComposerProps = {
   titleId: string;
   dateId: string;
   notesId: string;
+  statusId: string;
+  tagsId: string;
   fileId: string;
   documentDraft: JobDocumentItemDraft;
   onTitleChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onNotesChange: (value: string) => void;
+  onDocumentTypeChange: (value: 'resume' | 'cover_letter' | 'other') => void;
+  onStatusChange: (value: 'draft' | 'ready' | 'archived') => void;
+  onTagsChange: (value: string[]) => void;
   onFileChange: (file: File | null) => void;
   onClose: () => void;
   onSave: () => void;
@@ -22,17 +27,39 @@ export default function DocumentItemComposer({
   titleId,
   dateId,
   notesId,
+  statusId,
+  tagsId,
   fileId,
   documentDraft,
   onTitleChange,
   onDateChange,
   onNotesChange,
+  onDocumentTypeChange,
+  onStatusChange,
+  onTagsChange,
   onFileChange,
   onClose,
   onSave,
   saveLabel,
 }: DocumentItemComposerProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [newTag, setNewTag] = useState('');
+
+  function addTag() {
+    const tag = newTag.trim();
+    if (!tag) return;
+    if (!documentDraft.tags.includes(tag)) {
+      onTagsChange([...documentDraft.tags, tag]);
+    }
+    setNewTag('');
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addTag();
+    }
+  }
 
   return (
     <div className="grid gap-4 rounded-lg border border-(--surface-border) bg-(--background) p-4">
@@ -93,6 +120,52 @@ export default function DocumentItemComposer({
       </div>
 
       <div className="grid gap-1.5">
+        <label className="text-sm font-semibold text-(--foreground)">
+          Category
+        </label>
+        <div className="profile-input-wrap">
+          <select
+            value={documentDraft.documentType}
+            onChange={(event) =>
+              onDocumentTypeChange(
+                event.target.value as 'resume' | 'cover_letter' | 'other',
+              )
+            }
+            className="profile-input"
+          >
+            <option value="resume">Resume</option>
+            <option value="cover_letter">Cover letter</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-1.5">
+        <label
+          htmlFor={statusId}
+          className="text-sm font-semibold text-(--foreground)"
+        >
+          Status
+        </label>
+        <div className="profile-input-wrap">
+          <select
+            id={statusId}
+            value={documentDraft.status}
+            onChange={(event) =>
+              onStatusChange(
+                event.target.value as 'draft' | 'ready' | 'archived',
+              )
+            }
+            className="profile-input"
+          >
+            <option value="draft">Draft</option>
+            <option value="ready">Ready</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-1.5">
         <label
           htmlFor={fileId}
           className="text-sm font-semibold text-(--foreground)"
@@ -124,6 +197,59 @@ export default function DocumentItemComposer({
                 {documentDraft.name}
               </p>
             ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-1.5">
+        <label
+          htmlFor={tagsId}
+          className="text-sm font-semibold text-(--foreground)"
+        >
+          Tags
+        </label>
+        <div className="grid gap-2">
+          <div className="flex gap-2 items-end">
+            <div className="profile-input-wrap flex-1 min-w-0">
+              <input
+                id={tagsId}
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="profile-input"
+                placeholder="eg: interview"
+                aria-label="Add tag input"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={addTag}
+              className="flex-none rounded-md border border-(--action-border) px-3 py-1 text-sm font-semibold transition hover:bg-(--action-bg)"
+            >
+              Add
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {documentDraft.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex max-w-full items-center gap-2 rounded-full bg-(--surface) px-3 py-1 text-xs"
+              >
+                <span className="break-all">{tag}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onTagsChange(documentDraft.tags.filter((t) => t !== tag))
+                  }
+                  className="ml-1 text-(--danger-text)"
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
           </div>
         </div>
       </div>
