@@ -209,7 +209,7 @@ export default function DocumentItemComposer({
           Tags
         </label>
         <div className="grid gap-2">
-          <div className="flex gap-2 items-end">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
             <div className="profile-input-wrap flex-1 min-w-0">
               <input
                 id={tagsId}
@@ -231,7 +231,8 @@ export default function DocumentItemComposer({
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="max-h-24 overflow-y-auto pr-1">
+            <div className="flex flex-wrap gap-2">
             {documentDraft.tags.map((tag) => (
               <span
                 key={tag}
@@ -250,6 +251,7 @@ export default function DocumentItemComposer({
                 </button>
               </span>
             ))}
+            </div>
           </div>
         </div>
       </div>

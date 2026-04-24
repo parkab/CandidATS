@@ -36,6 +36,7 @@ jest.mock('@/lib/auth/session', () => ({
 const storageStub = {
   upload: jest.fn(),
   createSignedUrl: jest.fn(),
+  copy: jest.fn(),
   remove: jest.fn(),
 };
 
@@ -91,6 +92,7 @@ describe('Documents API integration', () => {
     storageStub.createSignedUrl.mockResolvedValue({
       data: { signedUrl: 'https://signed.example' },
     });
+    storageStub.copy.mockResolvedValue({ data: {}, error: null });
     storageStub.remove.mockResolvedValue({ data: null, error: null });
   });
 
@@ -226,6 +228,74 @@ describe('Documents API integration', () => {
 
     const body = await response.json();
     expect(body.document).toBeDefined();
+  });
+
+  it('moves stored file path when type changes via PATCH (JSON)', async () => {
+    mockedGetSession.mockResolvedValue({
+      userId: 'user-1',
+      email: 'u@e',
+    } satisfies NonNullable<SessionResult>);
+
+    const storedContent = encodeStoredFileContent({
+      kind: 'file',
+      bucket: DOCUMENTS_BUCKET,
+      path: 'user-1/resumes/original.pdf',
+      fileName: 'original.pdf',
+      mimeType: 'application/pdf',
+      size: 42,
+      note: 'initial',
+    });
+
+    mockedDocFindFirst.mockResolvedValue({
+      id: 'doc-3',
+      user_id: 'user-1',
+      job_id: 'job-1',
+      title: 'Stored',
+      content: storedContent,
+      type: 'resume',
+      status: 'ready',
+      tags: ['one'],
+      created_at: new Date('2026-04-01T00:00:00.000Z'),
+      updated_at: new Date('2026-04-01T00:00:00.000Z'),
+    } as NonNullable<DocumentFindFirstResult>);
+
+    mockedDocUpdate.mockResolvedValue({
+      id: 'doc-3',
+      user_id: 'user-1',
+      job_id: 'job-1',
+      title: 'Stored',
+      content: storedContent,
+      type: 'cover_letter',
+      status: 'ready',
+      tags: ['one'],
+      created_at: new Date('2026-04-01T00:00:00.000Z'),
+      updated_at: new Date('2026-04-01T00:00:00.000Z'),
+    } as DocumentUpdateResult);
+
+    const request = new Request('http://localhost/api/documents/doc-3', {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        cookie: 'sb-access-token=test-token',
+      },
+      body: JSON.stringify({ type: 'cover_letter' }),
+    });
+
+    const response = await PATCH_ITEM(request, documentRouteContext('doc-3'));
+
+    expect(response.status).toBe(200);
+    expect(storageStub.copy).toHaveBeenCalledWith(
+      'user-1/resumes/original.pdf',
+      expect.stringContaining('user-1/cover-letters/'),
+    );
+    expect(storageStub.remove).toHaveBeenCalledWith(['user-1/resumes/original.pdf']);
+
+    const updateArg = mockedDocUpdate.mock.calls[0]?.[0] as {
+      data: { content: string; type: string };
+    };
+    const nextContent = JSON.parse(updateArg.data.content) as { path: string };
+    expect(updateArg.data.type).toBe('cover_letter');
+    expect(nextContent.path).toContain('user-1/cover-letters/');
   });
 
   it('deletes document and removes stored file when present', async () => {
