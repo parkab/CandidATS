@@ -26,6 +26,7 @@ type DashboardJob = {
   compensation_notes: string | null;
   application_date: Date | null;
   recruiter_contact_notes: string | null;
+  interview_prep_notes: string | null;
   custom_notes: string | null;
 };
 
@@ -171,6 +172,7 @@ function getJobWhere(
       {
         recruiter_contact_notes: { contains: searchQuery, mode: 'insensitive' },
       },
+      { interview_prep_notes: { contains: searchQuery, mode: 'insensitive' } },
       { custom_notes: { contains: searchQuery, mode: 'insensitive' } },
     ];
   }
@@ -286,6 +288,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       compensation_notes: true,
       application_date: true,
       recruiter_contact_notes: true,
+      interview_prep_notes: true,
       custom_notes: true,
       TimelineEvent: {
         select: {
@@ -356,6 +359,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     compensation_notes: job.compensation_notes,
     application_date: job.application_date,
     recruiter_contact_notes: job.recruiter_contact_notes,
+    interview_prep_notes: job.interview_prep_notes,
     custom_notes: job.custom_notes,
   }));
 
@@ -545,6 +549,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           ? job.application_date.toISOString()
           : null,
         recruiterNotes: job.recruiter_contact_notes,
+        prepNotes: job.interview_prep_notes,
         otherNotes: job.custom_notes,
         archived: Boolean(job.archived),
       },

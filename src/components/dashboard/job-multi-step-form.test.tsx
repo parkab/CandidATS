@@ -15,6 +15,7 @@ const VALID_OVERVIEW: JobOverviewDraft = {
   compensation: '',
   applicationDate: '',
   recruiterNotes: '',
+  prepNotes: '',
   otherNotes: '',
 };
 

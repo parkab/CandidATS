@@ -25,6 +25,7 @@ export type JobOverviewDraft = {
   compensation: string;
   applicationDate: string;
   recruiterNotes: string;
+  prepNotes: string;
   otherNotes: string;
 };
 

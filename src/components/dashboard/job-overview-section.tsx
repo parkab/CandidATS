@@ -324,6 +324,27 @@ export default function JobOverviewSection({
 
       <div className="grid gap-1.5">
         <label
+          htmlFor="prep-notes"
+          className="text-sm font-semibold text-(--foreground)"
+        >
+          Interview Prep Notes
+        </label>
+        <div className="profile-input-wrap">
+          <textarea
+            id="prep-notes"
+            rows={6}
+            value={overview.prepNotes}
+            className="profile-input profile-textarea"
+            placeholder="Key talking points, questions to ask, company research highlights, or any technical prep notes should go here!"
+            onChange={(event) =>
+              setOverviewField('prepNotes', event.target.value)
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-1.5">
+        <label
           htmlFor="other-notes"
           className="text-sm font-semibold text-(--foreground)"
         >

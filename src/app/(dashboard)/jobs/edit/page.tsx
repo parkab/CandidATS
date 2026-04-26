@@ -137,6 +137,7 @@ export default async function EditJobApplication({
           compensation: job.compensation_notes,
           applicationDate: job.application_date,
           recruiterNotes: job.recruiter_contact_notes,
+          prepNotes: job.interview_prep_notes,
           otherNotes: job.custom_notes,
         }}
         initialTimeline={timelineItems}

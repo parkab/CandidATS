@@ -37,6 +37,7 @@ type DashboardJobForModal = {
     compensation: string | null;
     applicationDate: string | null;
     recruiterNotes: string | null;
+    prepNotes: string | null;
     otherNotes: string | null;
     archived: boolean;
   };
@@ -152,6 +153,7 @@ export default function JobsModalGrid({
           compensation: oldJob.formData.compensation,
           applicationDate: oldJob.formData.applicationDate,
           recruiterNotes: oldJob.formData.recruiterNotes,
+          prepNotes: oldJob.formData.prepNotes,
           otherNotes: oldJob.formData.otherNotes,
         }),
       });
@@ -239,6 +241,7 @@ export default function JobsModalGrid({
           compensation: oldJob.formData.compensation,
           applicationDate: oldJob.formData.applicationDate,
           recruiterNotes: oldJob.formData.recruiterNotes,
+          prepNotes: oldJob.formData.prepNotes,
           otherNotes: oldJob.formData.otherNotes,
           archived: nextArchived,
         }),
