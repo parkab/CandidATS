@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
             note: note ?? undefined,
           }),
           type: typeValue,
-          status: statusValue ?? 'ready',
+          status: statusValue ?? 'draft',
           tags,
         },
       });
