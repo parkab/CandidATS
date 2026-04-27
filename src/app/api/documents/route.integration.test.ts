@@ -7,7 +7,6 @@ import {
 } from '@/lib/documents/metadata';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase';
 
 import { POST, GET } from './route';
 import {
