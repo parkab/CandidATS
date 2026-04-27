@@ -59,6 +59,11 @@ describe('CreateJobForm', () => {
     fireEvent.change(screen.getByLabelText(/Recruiter Notes/i), {
       target: { value: '  Recruiter reached out  ' },
     });
+    fireEvent.change(screen.getByLabelText(/Prep Notes/i), {
+      target: {
+        value: '  Talking points: ownership\nQuestions to ask: team roadmap  ',
+      },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Create job' }));
 
@@ -85,6 +90,7 @@ describe('CreateJobForm', () => {
       compensation: '$200k',
       applicationDate: null,
       recruiterNotes: 'Recruiter reached out',
+      prepNotes: 'Talking points: ownership\nQuestions to ask: team roadmap',
       otherNotes: null,
       timeline: [],
       interviews: [],

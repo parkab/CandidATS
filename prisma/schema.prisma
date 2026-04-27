@@ -45,6 +45,7 @@ model Job {
   compensation_notes      String?
   application_date        DateTime?              @db.Date
   recruiter_contact_notes String?
+  interview_prep_notes    String?
   custom_notes            String?
   created_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at              DateTime               @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
@@ -176,6 +177,8 @@ model Document {
   type       String
   created_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
+  status     String   @default("draft")
+  tags       String[]
   Job        Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
   User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }

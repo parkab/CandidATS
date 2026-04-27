@@ -85,6 +85,7 @@ export async function POST(request: Request) {
   const compensation = asOptionalString(body.compensation);
   const applicationDate = asOptionalDate(body.applicationDate);
   const recruiterNotes = asOptionalString(body.recruiterNotes);
+  const prepNotes = asOptionalString(body.prepNotes);
   const otherNotes = asOptionalString(body.otherNotes);
 
   if (!title || !company || !location || !stage || !lastActivityDate) {
@@ -127,6 +128,7 @@ export async function POST(request: Request) {
         compensation_notes: compensation,
         application_date: applicationDate,
         recruiter_contact_notes: recruiterNotes,
+        interview_prep_notes: prepNotes,
         custom_notes: otherNotes,
       },
     });

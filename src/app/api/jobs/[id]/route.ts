@@ -94,6 +94,7 @@ export async function PATCH(
   const compensation = asOptionalString(body.compensation);
   const applicationDate = asOptionalDate(body.applicationDate);
   const recruiterNotes = asOptionalString(body.recruiterNotes);
+  const prepNotes = asOptionalString(body.prepNotes);
   const otherNotes = asOptionalString(body.otherNotes);
   const archived = typeof body.archived === 'boolean' ? body.archived : null;
 
@@ -149,6 +150,7 @@ export async function PATCH(
       compensation_notes: compensation,
       application_date: applicationDate,
       recruiter_contact_notes: recruiterNotes,
+      interview_prep_notes: prepNotes,
       custom_notes: otherNotes,
     };
 
@@ -423,7 +425,8 @@ export async function PATCH(
           const wasCompleted = existingFollowUps.find(
             (f) => f.id === itemId,
           )?.completed;
-          const isNowCompleted = typeof completed === 'boolean' ? completed : null;
+          const isNowCompleted =
+            typeof completed === 'boolean' ? completed : null;
 
           await prisma.followUpTask.update({
             where: { id: itemId },
@@ -446,7 +449,12 @@ export async function PATCH(
             await createFollowUpCompletedEvent(jobId, itemId, titleValue);
           } else {
             // Update the existing follow-up timeline event
-            await updateFollowUpTimelineEvent(jobId, itemId, titleValue, parsedDate);
+            await updateFollowUpTimelineEvent(
+              jobId,
+              itemId,
+              titleValue,
+              parsedDate,
+            );
           }
         } else {
           // Create new follow-up
