@@ -172,7 +172,7 @@ model Document {
   job_id     String   @db.Uuid
   title      String
   content    String
-  /// Expected values: 'resume' or 'cover_letter'.
+  /// Expected values: 'resume', 'cover_letter', and 'other'.
   type       String
   /// Expected values: 'draft', 'ready', and 'archived'.
   status     String   @default("draft")
