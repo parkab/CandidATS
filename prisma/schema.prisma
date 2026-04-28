@@ -180,8 +180,6 @@ model Document {
   tags       String[]
   created_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
   updated_at DateTime @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamptz(6)
-  status     String   @default("draft")
-  tags       String[]
   Job        Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
   User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
