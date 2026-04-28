@@ -15,6 +15,7 @@ type Document = {
     size: number;
     note?: string;
     signedUrl: string | null;
+    signedUrlError?: string;
   } | null;
 };
 
@@ -144,6 +145,8 @@ export default function JobSavedDocumentsSection({
 
 function DocumentCard({ document }: { document: Document }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -179,6 +182,43 @@ function DocumentCard({ document }: { document: Document }) {
     return 'bg-amber-100 text-amber-800';
   };
 
+  const openStoredDocument = async () => {
+    if (!document.storage) {
+      return;
+    }
+
+    try {
+      setIsOpening(true);
+      setOpenError(null);
+      const response = await fetch(
+        `/api/documents/${encodeURIComponent(document.id)}`,
+      );
+
+      if (!response.ok) {
+        throw new Error('Unable to open document.');
+      }
+
+      const payload = (await response.json()) as { document?: Document };
+      const fetchedDocument = payload.document;
+      const signedUrl = fetchedDocument?.storage?.signedUrl ?? null;
+      const signedUrlError = fetchedDocument?.storage?.signedUrlError ?? null;
+
+      if (!signedUrl) {
+        throw new Error(signedUrlError || 'Unable to access stored file.');
+      }
+
+      window.open(signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : 'Unable to open document.';
+      setOpenError(message);
+    } finally {
+      setIsOpening(false);
+    }
+  };
+
   return (
     <div className="rounded-md border border-(--surface-border) bg-(--surface-dimmed) p-3">
       <div className="flex items-start justify-between">
@@ -210,15 +250,18 @@ function DocumentCard({ document }: { document: Document }) {
 
       {isExpanded && (
         <div className="mt-3">
-          {document.storage?.signedUrl ? (
-            <a
-              href={document.storage.signedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mb-3 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+          {document.storage ? (
+            <button
+              type="button"
+              onClick={openStoredDocument}
+              disabled={isOpening}
+              className="mb-3 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Open file
-            </a>
+              {isOpening ? 'Opening...' : 'Open file'}
+            </button>
+          ) : null}
+          {openError ? (
+            <p className="mb-2 text-xs text-(--danger-text)">{openError}</p>
           ) : null}
           <div className="rounded border bg-(--background) p-3">
             <pre className="whitespace-pre-wrap text-xs text-(--foreground) leading-relaxed">

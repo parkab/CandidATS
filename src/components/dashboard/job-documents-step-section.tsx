@@ -46,6 +46,7 @@ export default function DocumentsStepSection({
   const titleId = 'document-title';
   const dateId = 'document-date';
   const notesId = 'document-notes';
+  const categoryId = 'document-category';
   const statusId = 'document-status';
   const tagsId = 'document-tags';
   const fileId = 'document-file';
@@ -67,6 +68,7 @@ export default function DocumentsStepSection({
           titleId={titleId}
           dateId={dateId}
           notesId={notesId}
+          categoryId={categoryId}
           statusId={statusId}
           tagsId={tagsId}
           fileId={fileId}
@@ -124,7 +126,7 @@ export default function DocumentsStepSection({
                   <button
                     type="button"
                     onClick={() => onViewDocument(file.id)}
-                    disabled={!file.objectUrl}
+                    disabled={!file.objectUrl && !file.storagePath}
                     className="flex-none whitespace-nowrap rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     View
@@ -154,6 +156,7 @@ export default function DocumentsStepSection({
                     titleId={titleId}
                     dateId={dateId}
                     notesId={notesId}
+                    categoryId={categoryId}
                     statusId={statusId}
                     tagsId={tagsId}
                     fileId={fileId}

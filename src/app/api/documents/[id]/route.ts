@@ -84,6 +84,17 @@ async function verifyJobOwnership(jobId: string, userId: string) {
 }
 
 async function toApiDocument(document: PersistedDocument) {
+  return toApiDocumentWithOptions(document, { includeSignedUrl: true });
+}
+
+type ToApiDocumentOptions = {
+  includeSignedUrl?: boolean;
+};
+
+async function toApiDocumentWithOptions(
+  document: PersistedDocument,
+  options: ToApiDocumentOptions,
+) {
   const storedFile = tryParseStoredFileContent(document.content);
 
   if (!storedFile) {
@@ -93,13 +104,31 @@ async function toApiDocument(document: PersistedDocument) {
     };
   }
 
+  const includeSignedUrl = options.includeSignedUrl ?? true;
+
+  if (!includeSignedUrl) {
+    return {
+      ...document,
+      storage: {
+        ...storedFile,
+        signedUrl: null,
+      },
+    };
+  }
+
   let signedUrl: string | null = null;
+  let signedUrlError: string | null = null;
 
   if (supabaseAdmin) {
-    const { data } = await supabaseAdmin.storage
+    const { data, error } = await supabaseAdmin.storage
       .from(storedFile.bucket)
       .createSignedUrl(storedFile.path, 60 * 60);
     signedUrl = data?.signedUrl ?? null;
+    if (error) {
+      signedUrlError = error.message;
+    }
+  } else {
+    signedUrlError = 'Storage service unavailable';
   }
 
   return {
@@ -107,6 +136,7 @@ async function toApiDocument(document: PersistedDocument) {
     storage: {
       ...storedFile,
       signedUrl,
+      signedUrlError: signedUrlError ?? undefined,
     },
   };
 }

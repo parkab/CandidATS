@@ -62,6 +62,7 @@ type PersistedDocument = {
     size: number;
     note?: string;
     signedUrl: string | null;
+    signedUrlError?: string;
   } | null;
 };
 
@@ -496,7 +497,9 @@ export default function JobMultiStepForm({
 
     const jobId = draft.overview.id?.trim();
     if (!jobId) {
-      setDocumentsError('Save the job first before adding persistent documents.');
+      setDocumentsError(
+        'Save the job first before adding persistent documents.',
+      );
       return;
     }
 
@@ -550,9 +553,9 @@ export default function JobMultiStepForm({
               tags: documentDraft.tags,
               note: documentDraft.notes.trim(),
               content:
-                existingDocument || documentDraft.notes.trim().length === 0
+                existingDocument && existingDocument.storagePath
                   ? undefined
-                  : documentDraft.notes.trim(),
+                  : documentDraft.notes,
             }),
           },
         );
@@ -592,7 +595,19 @@ export default function JobMultiStepForm({
       }
 
       if (document.storage?.signedUrl) {
-        window.open(document.storage.signedUrl, '_blank', 'noopener,noreferrer');
+        window.open(
+          document.storage.signedUrl,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        return;
+      }
+
+      if (document.storage) {
+        const message =
+          document.storage.signedUrlError?.trim() ||
+          'Unable to access stored file.';
+        setDocumentsError(message);
         return;
       }
 
@@ -686,9 +701,15 @@ export default function JobMultiStepForm({
             const date = Number.isNaN(createdDate.getTime())
               ? ''
               : createdDate.toISOString().split('T')[0];
-            const contentBlob = new Blob([document.content], {
-              type: 'text/plain',
-            });
+            const hasStoredFile = Boolean(document.storage);
+            const contentBlob = hasStoredFile
+              ? null
+              : new Blob([document.content], {
+                  type: 'text/plain',
+                });
+            const fallbackObjectUrl = contentBlob
+              ? URL.createObjectURL(contentBlob)
+              : undefined;
 
             return {
               id: document.id,
@@ -705,10 +726,9 @@ export default function JobMultiStepForm({
                     ? 'Saved cover letter'
                     : 'Saved document'),
               name: document.storage?.fileName ?? `${document.title}.txt`,
-              size: document.storage?.size ?? contentBlob.size,
+              size: document.storage?.size ?? contentBlob?.size ?? 0,
               mimeType: document.storage?.mimeType ?? 'text/plain',
-              objectUrl:
-                document.storage?.signedUrl ?? URL.createObjectURL(contentBlob),
+              objectUrl: document.storage?.signedUrl ?? fallbackObjectUrl,
               storagePath: document.storage?.path,
             };
           },

@@ -7,6 +7,7 @@ type DocumentItemComposerProps = {
   titleId: string;
   dateId: string;
   notesId: string;
+  categoryId: string;
   statusId: string;
   tagsId: string;
   fileId: string;
@@ -27,6 +28,7 @@ export default function DocumentItemComposer({
   titleId,
   dateId,
   notesId,
+  categoryId,
   statusId,
   tagsId,
   fileId,
@@ -120,11 +122,15 @@ export default function DocumentItemComposer({
       </div>
 
       <div className="grid gap-1.5">
-        <label className="text-sm font-semibold text-(--foreground)">
+        <label
+          htmlFor={categoryId}
+          className="text-sm font-semibold text-(--foreground)"
+        >
           Category
         </label>
         <div className="profile-input-wrap">
           <select
+            id={categoryId}
             value={documentDraft.documentType}
             onChange={(event) =>
               onDocumentTypeChange(
@@ -233,24 +239,24 @@ export default function DocumentItemComposer({
 
           <div className="max-h-24 overflow-y-auto pr-1">
             <div className="flex flex-wrap gap-2">
-            {documentDraft.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex max-w-full items-center gap-2 rounded-full bg-(--surface) px-3 py-1 text-xs"
-              >
-                <span className="break-all">{tag}</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onTagsChange(documentDraft.tags.filter((t) => t !== tag))
-                  }
-                  className="ml-1 text-(--danger-text)"
-                  aria-label={`Remove tag ${tag}`}
+              {documentDraft.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex max-w-full items-center gap-2 rounded-full bg-(--surface) px-3 py-1 text-xs"
                 >
-                  ×
-                </button>
-              </span>
-            ))}
+                  <span className="break-all">{tag}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onTagsChange(documentDraft.tags.filter((t) => t !== tag))
+                    }
+                    className="ml-1 text-(--danger-text)"
+                    aria-label={`Remove tag ${tag}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
           </div>
         </div>
