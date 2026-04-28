@@ -4,6 +4,7 @@ import type {
   SectionStep,
 } from './job-multi-step-form-section-types';
 import SectionItemComposer from './job-section-item-composer';
+import { extractIdMarker, extractNotesContent } from '@/lib/utils/timelineNotes';
 
 type ItemStepSectionProps = {
   stepId: SectionStep;
@@ -88,25 +89,37 @@ export default function ItemStepSection({
                   ) : null}
                   {item.notes ? (
                     <p className="mt-1 text-sm text-(--text-muted)">
-                      {item.notes}
+                      {stepId === 'timeline'
+                        ? extractNotesContent(item.notes)
+                        : item.notes}
                     </p>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onEditItem(stepId, item.id)}
-                    className="rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveItem(stepId, item.id)}
-                    className="rounded-md border border-(--danger-border) px-3 py-1.5 text-xs font-semibold text-(--danger-text) transition hover:bg-(--danger-bg)"
-                  >
-                    Remove
-                  </button>
+                  {(() => {
+                    // For timeline items, hide edit/delete buttons if auto-generated (has ID marker)
+                    if (stepId === 'timeline' && item.notes && extractIdMarker(item.notes)) {
+                      return null;
+                    }
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEditItem(stepId, item.id)}
+                          className="rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveItem(stepId, item.id)}
+                          className="rounded-md border border-(--danger-border) px-3 py-1.5 text-xs font-semibold text-(--danger-text) transition hover:bg-(--danger-bg)"
+                        >
+                          Remove
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

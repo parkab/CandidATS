@@ -15,6 +15,7 @@ type ResumeStepSectionProps = {
   };
   onResumeChange: (content: string) => void;
   onRefreshDocuments?: () => void;
+  onSavedAsDocument?: (content: string) => void;
 };
 
 export default function ResumeStepSection({
@@ -23,6 +24,7 @@ export default function ResumeStepSection({
   jobData,
   onResumeChange,
   onRefreshDocuments,
+  onSavedAsDocument,
 }: ResumeStepSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -204,11 +206,13 @@ export default function ResumeStepSection({
         onRefreshDocuments();
       }
 
-      // Show success message (you could add a toast notification here)
-      alert('Resume saved successfully!');
+      if (onSavedAsDocument) {
+        onSavedAsDocument(resume.content);
+      }
+
+      // Show success message
     } catch (error) {
       console.error('Error saving resume:', error);
-      alert('Failed to save resume. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -226,7 +230,8 @@ export default function ResumeStepSection({
               type="button"
               onClick={generateResume}
               disabled={isDisabled}
-              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:opacity-50"
+              title="Generate a tailored resume for this job"
+              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition-all hover:-translate-y-0.5 hover:bg-(--inverse-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGenerating ? 'Generating...' : 'Generate Resume'}
             </button>
@@ -234,7 +239,8 @@ export default function ResumeStepSection({
               type="button"
               onClick={saveResume}
               disabled={!resume.content.trim() || isSaving}
-              className="rounded-md border border-(--surface-border) bg-(--background) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--surface-hover) disabled:opacity-50"
+              title="Save this resume to the job documents list"
+              className="rounded-md border border-(--surface-border) bg-(--background) px-4 py-2 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--surface-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Resume'}
             </button>
@@ -246,6 +252,9 @@ export default function ResumeStepSection({
                 : 'Save the job first to enable resume generation'}
             </p>
           )}
+          <p className="text-xs text-(--text-muted)">
+            Saved resumes appear in the job documents list below.
+          </p>
         </div>
       </div>
 
@@ -263,7 +272,7 @@ export default function ResumeStepSection({
                 type="button"
                 onClick={() => editContent('rewrite')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Rewrite selected text or entire resume"
               >
                 ✏️ Rewrite
@@ -272,7 +281,7 @@ export default function ResumeStepSection({
                 type="button"
                 onClick={() => editContent('concise')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Make selected text more concise"
               >
                 📉 Concise
@@ -281,7 +290,7 @@ export default function ResumeStepSection({
                 type="button"
                 onClick={() => editContent('detail')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Add more details to selected text"
               >
                 📈 Detail
@@ -290,7 +299,7 @@ export default function ResumeStepSection({
                 type="button"
                 onClick={() => editContent('tone')}
                 disabled={isEditing || isGenerating}
-                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition hover:bg-[--surface-hover] disabled:opacity-50"
+                className="rounded px-2 py-1 text-xs font-medium text-[--foreground] transition-all hover:-translate-y-0.5 hover:bg-[--surface-hover] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 title="Adjust tone of selected text"
               >
                 🎯 Tone

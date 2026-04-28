@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
+import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
 import type {
   JobMultiStepDraft,
   JobOverviewDraft,
@@ -101,6 +102,10 @@ export default function EditJobForm({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(
+    initialTimeline,
+  );
+  const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function handleCancel() {
     if (onCancel) {
@@ -204,6 +209,24 @@ export default function EditJobForm({
       throw new Error(responseBody?.error ?? 'Unable to update job right now.');
     }
 
+    // Fetch fresh timeline data to reflect newly saved events
+    try {
+      const timelineResponse = await fetch(
+        `/api/jobs/${encodeURIComponent(jobId)}/timeline`,
+        {
+          method: 'GET',
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+
+      if (timelineResponse.ok) {
+        const freshEvents = (await timelineResponse.json()) as JobSectionItemDraft[];
+        setTimelineData(freshEvents);
+      }
+    } catch (error) {
+      console.error('Failed to fetch fresh timeline data:', error);
+    }
+
     onSuccess?.();
     if (!inModal) {
       router.push('/dashboard');
@@ -216,13 +239,16 @@ export default function EditJobForm({
       <JobMultiStepForm
         initialOverview={toOverviewDraft(initialJob)}
         initialDraft={{
-          timeline: initialTimeline,
+          timeline: timelineData,
           interviews: initialInterviews,
           followUps: initialFollowUps,
         }}
         submitLabel="Save changes"
         onCancel={handleCancel}
         onFinalSave={handleFinalSave}
+        onDocumentsChanged={() =>
+          setDocumentsRefreshToken((previous) => previous + 1)
+        }
         onDelete={() => setIsDeleteDialogOpen(true)}
         stickyFooter={inModal}
         showFooterCancel={!inModal}
@@ -240,6 +266,12 @@ export default function EditJobForm({
         jobTitle={initialJob.title}
         companyName={initialJob.company}
       />
+      <div className="mx-auto mt-12 max-w-2xl">
+        <JobSavedDocumentsSection
+          key={documentsRefreshToken}
+          jobId={initialJob.id}
+        />
+      </div>
     </>
   );
 }

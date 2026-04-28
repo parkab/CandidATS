@@ -41,9 +41,18 @@ type JobMultiStepFormProps = {
   onDelete?: () => void;
   deleteError?: string | null;
   isDeleting?: boolean;
+  onDocumentsChanged?: () => void;
   initialDraft?: Partial<JobMultiStepDraft>;
   stickyFooter?: boolean;
   showFooterCancel?: boolean;
+};
+
+type PersistedDocument = {
+  id: string;
+  title: string;
+  content: string;
+  type: 'resume' | 'cover_letter';
+  created_at: string;
 };
 
 export default function JobMultiStepForm({
@@ -55,6 +64,7 @@ export default function JobMultiStepForm({
   onDelete,
   deleteError,
   isDeleting = false,
+  onDocumentsChanged,
   initialDraft,
   stickyFooter = false,
   showFooterCancel = true,
@@ -100,10 +110,52 @@ export default function JobMultiStepForm({
   const [documentDraft, setDocumentDraft] = useState<JobDocumentItemDraft>(() =>
     createDocumentDraftItem(),
   );
-  const [refreshDocumentsKey, setRefreshDocumentsKey] = useState(0);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsError, setDocumentsError] = useState<string | null>(null);
+  const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
+
+  function addAiGeneratedDocument(
+    type: 'resume' | 'cover_letter',
+    content: string,
+  ) {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const title = type === 'resume' ? 'Resume' : 'Cover Letter';
+    const notes =
+      type === 'resume' ? 'AI-generated resume' : 'AI-generated cover letter';
+    const fileName =
+      type === 'resume' ? `resume-${today}.md` : `cover-letter-${today}.md`;
+    const markdownFile = new File([trimmedContent], fileName, {
+      type: 'text/markdown',
+    });
+    const objectUrl = URL.createObjectURL(markdownFile);
+
+    const documentItem: JobDocumentItemDraft = {
+      id: crypto.randomUUID(),
+      title,
+      date: today,
+      notes,
+      name: markdownFile.name,
+      size: markdownFile.size,
+      mimeType: markdownFile.type,
+      objectUrl,
+    };
+
+    setDraft((previous) => ({
+      ...previous,
+      documents: {
+        files: [...previous.documents.files, documentItem],
+      },
+    }));
+  }
 
   function refreshDocuments() {
-    setRefreshDocumentsKey((prev) => prev + 1);
+    setDocumentsRefreshToken((previous) => previous + 1);
+    onDocumentsChanged?.();
   }
   const [pendingDocumentFile, setPendingDocumentFile] = useState<File | null>(
     null,
@@ -500,6 +552,111 @@ export default function JobMultiStepForm({
     }
   }
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadPersistedDocuments() {
+      const jobId = draft.overview.id?.trim();
+
+      if (!jobId) {
+        setDocumentsLoading(false);
+        setDocumentsError(null);
+        return;
+      }
+
+      setDocumentsLoading(true);
+      setDocumentsError(null);
+
+      try {
+        const response = await fetch(
+          `/api/documents?jobId=${encodeURIComponent(jobId)}`,
+        );
+
+        if (!response.ok) {
+          throw new Error('Unable to load persisted documents.');
+        }
+
+        const payload = (await response.json()) as {
+          documents?: PersistedDocument[];
+        };
+        const persistedDocuments = Array.isArray(payload.documents)
+          ? payload.documents
+          : [];
+
+        if (isCancelled) {
+          return;
+        }
+
+        const nextFiles: JobDocumentItemDraft[] = persistedDocuments.map(
+          (document) => {
+            const createdDate = new Date(document.created_at);
+            const date = Number.isNaN(createdDate.getTime())
+              ? ''
+              : createdDate.toISOString().split('T')[0];
+            const contentBlob = new Blob([document.content], {
+              type: 'text/plain',
+            });
+
+            return {
+              id: document.id,
+              title: document.title,
+              date,
+              notes:
+                document.type === 'resume'
+                  ? 'Saved resume'
+                  : 'Saved cover letter',
+              name: `${document.title}.txt`,
+              size: contentBlob.size,
+              mimeType: 'text/plain',
+              objectUrl: URL.createObjectURL(contentBlob),
+            };
+          },
+        );
+
+        setDraft((previous) => {
+          const nextObjectUrls = new Set(
+            nextFiles
+              .map((file) => file.objectUrl)
+              .filter((value): value is string => Boolean(value)),
+          );
+
+          previous.documents.files.forEach((file) => {
+            if (file.objectUrl && !nextObjectUrls.has(file.objectUrl)) {
+              URL.revokeObjectURL(file.objectUrl);
+            }
+          });
+
+          return {
+            ...previous,
+            documents: {
+              files: nextFiles,
+            },
+          };
+        });
+      } catch (caughtError) {
+        if (isCancelled) {
+          return;
+        }
+
+        const message =
+          caughtError instanceof Error && caughtError.message.trim().length > 0
+            ? caughtError.message
+            : 'Unable to load persisted documents.';
+        setDocumentsError(message);
+      } finally {
+        if (!isCancelled) {
+          setDocumentsLoading(false);
+        }
+      }
+    }
+
+    loadPersistedDocuments();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [draft.overview.id, documentsRefreshToken]);
+
   const sectionTitle = useMemo(() => {
     return JOB_FORM_STEPS.find((step) => step.id === activeStep)?.label;
   }, [activeStep]);
@@ -633,6 +790,8 @@ export default function JobMultiStepForm({
           {activeStep === 'documents' ? (
             <DocumentsStepSection
               files={draft.documents.files}
+              isLoading={documentsLoading}
+              loadError={documentsError}
               documentDraft={documentDraft}
               isComposerOpen={documentComposerOpen}
               composerMode={documentComposerMode}
@@ -652,16 +811,12 @@ export default function JobMultiStepForm({
             <ResumeStepSection
               resume={draft.resume}
               jobId={draft.overview.id}
-              jobData={
-                !draft.overview.id
-                  ? {
-                      title: draft.overview.title,
-                      company_name: draft.overview.company,
-                      location: draft.overview.location,
-                      job_description: draft.overview.jobDescription,
-                    }
-                  : undefined
-              }
+              jobData={{
+                title: draft.overview.title,
+                company_name: draft.overview.company,
+                location: draft.overview.location,
+                job_description: draft.overview.jobDescription,
+              }}
               onResumeChange={(content) =>
                 setDraft((previous) => ({
                   ...previous,
@@ -672,6 +827,9 @@ export default function JobMultiStepForm({
                 }))
               }
               onRefreshDocuments={refreshDocuments}
+              onSavedAsDocument={(content) =>
+                addAiGeneratedDocument('resume', content)
+              }
             />
           ) : null}
 
@@ -679,16 +837,12 @@ export default function JobMultiStepForm({
             <CoverLetterStepSection
               coverLetter={draft.coverLetter}
               jobId={draft.overview.id}
-              jobData={
-                !draft.overview.id
-                  ? {
-                      title: draft.overview.title,
-                      company_name: draft.overview.company,
-                      location: draft.overview.location,
-                      job_description: draft.overview.jobDescription,
-                    }
-                  : undefined
-              }
+              jobData={{
+                title: draft.overview.title,
+                company_name: draft.overview.company,
+                location: draft.overview.location,
+                job_description: draft.overview.jobDescription,
+              }}
               onCoverLetterChange={(content) =>
                 setDraft((previous) => ({
                   ...previous,
@@ -699,6 +853,9 @@ export default function JobMultiStepForm({
                 }))
               }
               onRefreshDocuments={refreshDocuments}
+              onSavedAsDocument={(content) =>
+                addAiGeneratedDocument('cover_letter', content)
+              }
             />
           ) : null}
         </section>

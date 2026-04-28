@@ -145,7 +145,7 @@ export default function JobsModalGrid({
           company: oldJob.formData.company,
           location: oldJob.formData.location,
           stage: newStage,
-          lastActivityDate: oldJob.formData.lastActivityDate,
+          lastActivityDate: new Date().toISOString().split('T')[0],
           deadline: oldJob.formData.deadline,
           priority: oldJob.formData.priority,
           jobDescription: oldJob.formData.jobDescription,
@@ -158,6 +158,38 @@ export default function JobsModalGrid({
 
       if (!response.ok) {
         throw new Error('Failed to update job stage');
+      }
+
+      // Refetch the timeline to get the stage change event
+      const timelineResponse = await fetch(
+        `/api/jobs/${encodeURIComponent(jobId)}/timeline`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (timelineResponse.ok) {
+        const rawTimelineEvents = (await timelineResponse.json()) as Array<{
+          id: string;
+          event_type: string;
+          notes: string | null;
+          occurred_at: string;
+        }>;
+        const updatedTimeline = rawTimelineEvents.map((event) => ({
+          id: event.id,
+          title: event.event_type,
+          date: event.occurred_at.split('T')[0],
+          notes: event.notes ?? '',
+        }));
+        // Update the job with the new timeline
+        setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+            job.id === jobId ? { ...job, timeline: updatedTimeline } : job,
+          ),
+        );
       }
     } catch (error) {
       // Revert optimistic update — locate by id inside the updater to avoid stale index

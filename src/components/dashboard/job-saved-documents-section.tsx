@@ -36,7 +36,7 @@ export default function JobSavedDocumentsSection({
       }
 
       const data = await response.json();
-      setDocuments(data.documents);
+      setDocuments(Array.isArray(data.documents) ? data.documents : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

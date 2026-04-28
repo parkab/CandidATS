@@ -2,6 +2,7 @@
 
 import { TimelineEvent } from '@/lib/jobs/job';
 import { formatDate } from '@/lib/utils/formatDate';
+import { extractNotesContent } from '@/lib/utils/timelineNotes';
 
 export interface TimelineDisplayProps {
   events: TimelineEvent[];
@@ -120,7 +121,7 @@ export function TimelineDisplay({ events, isLoading }: TimelineDisplayProps) {
                 </div>
                 {event.notes && (
                   <p className="mt-2 text-sm text-gray-700 leading-relaxed">
-                    {event.notes}
+                    {extractNotesContent(event.notes)}
                   </p>
                 )}
               </div>

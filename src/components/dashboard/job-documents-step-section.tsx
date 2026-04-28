@@ -7,6 +7,8 @@ import DocumentItemComposer from './job-document-item-composer';
 
 type DocumentsStepSectionProps = {
   files: JobMultiStepDraft['documents']['files'];
+  isLoading?: boolean;
+  loadError?: string | null;
   documentDraft: JobDocumentItemDraft;
   isComposerOpen: boolean;
   composerMode: SectionComposerMode;
@@ -26,6 +28,8 @@ type DocumentsStepSectionProps = {
 
 export default function DocumentsStepSection({
   files,
+  isLoading = false,
+  loadError = null,
   documentDraft,
   isComposerOpen,
   composerMode,
@@ -71,6 +75,16 @@ export default function DocumentsStepSection({
           onSave={onSaveDocument}
           saveLabel="Add document"
         />
+      ) : null}
+
+      {isLoading ? (
+        <p className="text-center text-sm text-(--text-muted)">
+          Loading documents...
+        </p>
+      ) : null}
+
+      {loadError ? (
+        <p className="text-center text-sm text-(--danger-text)">{loadError}</p>
       ) : null}
 
       {files.length > 0 ? (
@@ -146,11 +160,11 @@ export default function DocumentsStepSection({
             </li>
           ))}
         </ul>
-      ) : (
+      ) : !isLoading ? (
         <p className="text-center text-sm text-(--text-muted)">
           No documents added yet.
         </p>
-      )}
+      ) : null}
     </section>
   );
 }
