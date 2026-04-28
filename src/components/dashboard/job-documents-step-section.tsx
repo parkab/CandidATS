@@ -116,6 +116,12 @@ export default function DocumentsStepSection({
                       ? ` • Tags: ${file.tags.join(', ')}`
                       : ''}
                   </p>
+                  <p className="text-xs text-(--text-muted) wrap-break-word">
+                    Status: {file.status}
+                    {file.tags.length > 0
+                      ? ` • Tags: ${file.tags.join(', ')}`
+                      : ''}
+                  </p>
                   {file.notes ? (
                     <p className="mt-1 text-sm text-(--text-muted)">
                       {file.notes}

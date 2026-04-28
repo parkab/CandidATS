@@ -7,7 +7,6 @@ import {
 } from '@/lib/documents/metadata';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase';
 
 import { POST, GET } from './route';
 import {
@@ -288,7 +287,9 @@ describe('Documents API integration', () => {
       'user-1/resumes/original.pdf',
       expect.stringContaining('user-1/cover-letters/'),
     );
-    expect(storageStub.remove).toHaveBeenCalledWith(['user-1/resumes/original.pdf']);
+    expect(storageStub.remove).toHaveBeenCalledWith([
+      'user-1/resumes/original.pdf',
+    ]);
 
     const updateArg = mockedDocUpdate.mock.calls[0]?.[0] as {
       data: { content: string; type: string };
