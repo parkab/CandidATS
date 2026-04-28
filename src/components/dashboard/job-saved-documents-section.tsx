@@ -6,9 +6,17 @@ type Document = {
   id: string;
   title: string;
   content: string;
-  type: 'resume' | 'cover_letter';
+  type: 'resume' | 'cover_letter' | 'other';
   created_at: string;
   updated_at: string;
+  storage: {
+    fileName: string;
+    mimeType: string;
+    size: number;
+    note?: string;
+    signedUrl: string | null;
+    signedUrlError?: string;
+  } | null;
 };
 
 type JobSavedDocumentsSectionProps = {
@@ -71,6 +79,7 @@ export default function JobSavedDocumentsSection({
 
   const resumes = documents.filter((doc) => doc.type === 'resume');
   const coverLetters = documents.filter((doc) => doc.type === 'cover_letter');
+  const otherDocuments = documents.filter((doc) => doc.type === 'other');
 
   if (documents.length === 0) {
     return (
@@ -117,12 +126,27 @@ export default function JobSavedDocumentsSection({
           </div>
         </div>
       )}
+
+      {otherDocuments.length > 0 && (
+        <div className="grid gap-2">
+          <h5 className="text-xs font-semibold text-(--text-muted) uppercase tracking-wide">
+            Other Documents ({otherDocuments.length})
+          </h5>
+          <div className="grid gap-2">
+            {otherDocuments.map((doc) => (
+              <DocumentCard key={doc.id} document={doc} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function DocumentCard({ document }: { document: Document }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -135,13 +159,64 @@ function DocumentCard({ document }: { document: Document }) {
   };
 
   const getTypeLabel = (type: string) => {
-    return type === 'resume' ? 'Resume' : 'Cover Letter';
+    if (type === 'resume') {
+      return 'Resume';
+    }
+
+    if (type === 'cover_letter') {
+      return 'Cover Letter';
+    }
+
+    return 'Other';
   };
 
   const getTypeColor = (type: string) => {
-    return type === 'resume'
-      ? 'bg-blue-100 text-blue-800'
-      : 'bg-green-100 text-green-800';
+    if (type === 'resume') {
+      return 'bg-blue-100 text-blue-800';
+    }
+
+    if (type === 'cover_letter') {
+      return 'bg-green-100 text-green-800';
+    }
+
+    return 'bg-amber-100 text-amber-800';
+  };
+
+  const openStoredDocument = async () => {
+    if (!document.storage) {
+      return;
+    }
+
+    try {
+      setIsOpening(true);
+      setOpenError(null);
+      const response = await fetch(
+        `/api/documents/${encodeURIComponent(document.id)}`,
+      );
+
+      if (!response.ok) {
+        throw new Error('Unable to open document.');
+      }
+
+      const payload = (await response.json()) as { document?: Document };
+      const fetchedDocument = payload.document;
+      const signedUrl = fetchedDocument?.storage?.signedUrl ?? null;
+      const signedUrlError = fetchedDocument?.storage?.signedUrlError ?? null;
+
+      if (!signedUrl) {
+        throw new Error(signedUrlError || 'Unable to access stored file.');
+      }
+
+      window.open(signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : 'Unable to open document.';
+      setOpenError(message);
+    } finally {
+      setIsOpening(false);
+    }
   };
 
   return (
@@ -175,9 +250,24 @@ function DocumentCard({ document }: { document: Document }) {
 
       {isExpanded && (
         <div className="mt-3">
+          {document.storage ? (
+            <button
+              type="button"
+              onClick={openStoredDocument}
+              disabled={isOpening}
+              className="mb-3 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isOpening ? 'Opening...' : 'Open file'}
+            </button>
+          ) : null}
+          {openError ? (
+            <p className="mb-2 text-xs text-(--danger-text)">{openError}</p>
+          ) : null}
           <div className="rounded border bg-(--background) p-3">
             <pre className="whitespace-pre-wrap text-xs text-(--foreground) leading-relaxed">
-              {document.content}
+              {document.storage
+                ? document.storage.note || 'Stored file document'
+                : document.content}
             </pre>
           </div>
         </div>

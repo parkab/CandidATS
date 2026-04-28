@@ -41,10 +41,14 @@ export type JobDocumentItemDraft = {
   title: string;
   date: string;
   notes: string;
+  documentType: 'resume' | 'cover_letter' | 'other';
+  status: 'draft' | 'ready' | 'archived';
+  tags: string[];
   name: string;
   size: number;
   mimeType: string;
   objectUrl?: string;
+  storagePath?: string;
 };
 
 export type JobDocumentsDraft = {
