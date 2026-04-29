@@ -25,6 +25,7 @@ import type {
 import JobOverviewSection from './job-overview-section';
 import ResumeStepSection from './resume-step-section';
 import CoverLetterStepSection from './cover-letter-step-section';
+import CompanyResearchStepSection from './company-research-step-section';
 import {
   buildInitialDraft,
   createDocumentDraftItem,
@@ -134,7 +135,7 @@ export default function JobMultiStepForm({
   const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function addAiGeneratedDocument(
-    type: 'resume' | 'cover_letter',
+    type: 'resume' | 'cover_letter' | 'other',
     content: string,
   ) {
     const trimmedContent = content.trim();
@@ -143,11 +144,24 @@ export default function JobMultiStepForm({
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const title = type === 'resume' ? 'Resume' : 'Cover Letter';
+    const title =
+      type === 'resume'
+        ? 'Resume'
+        : type === 'cover_letter'
+          ? 'Cover Letter'
+          : 'Company Research';
     const notes =
-      type === 'resume' ? 'AI-generated resume' : 'AI-generated cover letter';
+      type === 'resume'
+        ? 'AI-generated resume'
+        : type === 'cover_letter'
+          ? 'AI-generated cover letter'
+          : 'AI-generated company research';
     const fileName =
-      type === 'resume' ? `resume-${today}.md` : `cover-letter-${today}.md`;
+      type === 'resume'
+        ? `resume-${today}.md`
+        : type === 'cover_letter'
+          ? `cover-letter-${today}.md`
+          : `company-research-${today}.md`;
     const markdownFile = new File([trimmedContent], fileName, {
       type: 'text/markdown',
     });
@@ -160,7 +174,14 @@ export default function JobMultiStepForm({
       notes,
       documentType: type,
       status: 'ready',
-      tags: ['ai-generated', type === 'resume' ? 'resume' : 'cover-letter'],
+      tags: [
+        'ai-generated',
+        type === 'resume'
+          ? 'resume'
+          : type === 'cover_letter'
+            ? 'cover-letter'
+            : 'company-research',
+      ],
       name: markdownFile.name,
       size: markdownFile.size,
       mimeType: markdownFile.type,
@@ -925,6 +946,41 @@ export default function JobMultiStepForm({
               onSaveDocument={saveDocumentItem}
               onViewDocument={viewDocument}
               onRemoveDocument={removeDocument}
+            />
+          ) : null}
+
+          {activeStep === 'companyResearch' ? (
+            <CompanyResearchStepSection
+              companyResearch={draft.companyResearch}
+              jobId={draft.overview.id}
+              jobData={{
+                title: draft.overview.title,
+                company_name: draft.overview.company,
+                location: draft.overview.location,
+                job_description: draft.overview.jobDescription,
+              }}
+              onCompanyResearchChange={(content) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  companyResearch: {
+                    ...previous.companyResearch,
+                    content,
+                  },
+                }))
+              }
+              onUserContextChange={(context) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  companyResearch: {
+                    ...previous.companyResearch,
+                    userContext: context,
+                  },
+                }))
+              }
+              onRefreshDocuments={refreshDocuments}
+              onSavedAsDocument={(content) =>
+                addAiGeneratedDocument('other', content)
+              }
             />
           ) : null}
 
