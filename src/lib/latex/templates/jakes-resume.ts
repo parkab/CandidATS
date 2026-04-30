@@ -7,10 +7,68 @@ import type {
   ResumeSkills,
 } from '../types';
 
-// Jake's Resume — MIT License, Jake Gutierrez
-// https://www.overleaf.com/latex/templates/jakes-resume/syzfjbzwjncs
-// This preamble is fixed; user data is injected only via renderResume().
-// String.raw avoids double-escaping backslashes in this constant.
+/**
+ * Portions of this file are derived from the "Jake's Resume" LaTeX template:
+ * https://www.overleaf.com/latex/templates/jakes-resume/syzfjbzwjncs
+ *
+ * MIT License
+ *
+ * Copyright (c) Jake Gutierrez
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * This preamble is fixed; user data is injected only via renderResume().
+ * String.raw avoids double-escaping backslashes in this constant.
+ */
+const EMAIL_REGEX =
+  /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+
+function getSafeEmailAddress(email: string): string | null {
+  const normalized = email.trim();
+  if (!EMAIL_REGEX.test(normalized)) return null;
+  return normalized;
+}
+
+function buildSafeMailtoTarget(email: string): string | null {
+  const safeEmail = getSafeEmailAddress(email);
+  if (!safeEmail) return null;
+  return escapeLatex(`mailto:${safeEmail}`);
+}
+
+function buildSafeHttpsTarget(rawUrl: string): string | null {
+  const trimmed = rawUrl.trim();
+  const normalized = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  if (/\s/.test(normalized) || normalized.includes('\\')) return null;
+
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== 'https:') return null;
+  } catch {
+    return null;
+  }
+
+  return escapeLatex(normalized);
+}
+
 const PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
 
 \usepackage{latexsym}
@@ -102,19 +160,25 @@ export function renderResume(data: ResumeData): string {
 
 function buildHeading(header: ResumeData['header']): string {
   const parts: string[] = [escapeLatex(header.phone)];
+  const emailDisplay = escapeLatex(header.email);
+  const mailtoTarget = buildSafeMailtoTarget(header.email);
 
   parts.push(
-    `\\href{mailto:${header.email}}{\\underline{${escapeLatex(header.email)}}}`,
+    mailtoTarget
+      ? `\\href{${mailtoTarget}}{\\underline{${emailDisplay}}}`
+      : emailDisplay,
   );
 
   if (header.linkedin) {
     const display = escapeLatex(header.linkedin.replace(/^https?:\/\//, ''));
-    parts.push(`\\href{${header.linkedin}}{\\underline{${display}}}`);
+    const target = buildSafeHttpsTarget(header.linkedin);
+    parts.push(target ? `\\href{${target}}{\\underline{${display}}}` : display);
   }
 
   if (header.github) {
     const display = escapeLatex(header.github.replace(/^https?:\/\//, ''));
-    parts.push(`\\href{${header.github}}{\\underline{${display}}}`);
+    const target = buildSafeHttpsTarget(header.github);
+    parts.push(target ? `\\href{${target}}{\\underline{${display}}}` : display);
   }
 
   const contactLine = parts.join(' $|$ ');
@@ -200,9 +264,7 @@ function buildSkillsSection(skills: ResumeSkills): string {
   if (skills.frameworks)
     rows.push(`     \\textbf{Frameworks}{: ${escapeLatex(skills.frameworks)}}`);
   if (skills.tools)
-    rows.push(
-      `     \\textbf{Developer Tools}{: ${escapeLatex(skills.tools)}}`,
-    );
+    rows.push(`     \\textbf{Developer Tools}{: ${escapeLatex(skills.tools)}}`);
   if (skills.libraries)
     rows.push(`     \\textbf{Libraries}{: ${escapeLatex(skills.libraries)}}`);
 

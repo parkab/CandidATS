@@ -65,8 +65,8 @@ export interface CoverLetterData {
   recipientName?: string;
   recipientTitle?: string;
   company: string;
-  /** The role being applied for — used in salutation context */
-  role: string;
+  /** The role being applied for; optional until consumed by the renderer */
+  role?: string;
   /** Each element is one body paragraph */
   paragraphs: string[];
   senderName: string;

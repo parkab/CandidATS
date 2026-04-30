@@ -29,6 +29,39 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
 
 \pdfgentounicode=1`;
 
+const EMAIL_REGEX =
+  /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+
+function getSafeEmailAddress(email: string): string | null {
+  const normalized = email.trim();
+  if (!EMAIL_REGEX.test(normalized)) return null;
+  return normalized;
+}
+
+function buildSafeMailtoTarget(email: string): string | null {
+  const safeEmail = getSafeEmailAddress(email);
+  if (!safeEmail) return null;
+  return escapeLatex(`mailto:${safeEmail}`);
+}
+
+function buildSafeHttpsTarget(rawUrl: string): string | null {
+  const trimmed = rawUrl.trim();
+  const normalized = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  if (/\s/.test(normalized) || normalized.includes('\\')) return null;
+
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== 'https:') return null;
+  } catch {
+    return null;
+  }
+
+  return escapeLatex(normalized);
+}
+
 export function renderCoverLetter(data: CoverLetterData): string {
   const heading = buildHeading(data.header);
   const recipientName = data.recipientName
@@ -84,19 +117,25 @@ ${senderName}`;
 
 function buildHeading(header: CoverLetterData['header']): string {
   const parts: string[] = [escapeLatex(header.phone)];
+  const emailDisplay = escapeLatex(header.email);
+  const mailtoTarget = buildSafeMailtoTarget(header.email);
 
   parts.push(
-    `\\href{mailto:${header.email}}{\\underline{${escapeLatex(header.email)}}}`,
+    mailtoTarget
+      ? `\\href{${mailtoTarget}}{\\underline{${emailDisplay}}}`
+      : emailDisplay,
   );
 
   if (header.linkedin) {
     const display = escapeLatex(header.linkedin.replace(/^https?:\/\//, ''));
-    parts.push(`\\href{${header.linkedin}}{\\underline{${display}}}`);
+    const target = buildSafeHttpsTarget(header.linkedin);
+    parts.push(target ? `\\href{${target}}{\\underline{${display}}}` : display);
   }
 
   if (header.github) {
     const display = escapeLatex(header.github.replace(/^https?:\/\//, ''));
-    parts.push(`\\href{${header.github}}{\\underline{${display}}}`);
+    const target = buildSafeHttpsTarget(header.github);
+    parts.push(target ? `\\href{${target}}{\\underline{${display}}}` : display);
   }
 
   const contactLine = parts.join(' $|$ ');

@@ -66,8 +66,14 @@ app.post(
       res.send(pdfBuffer);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Compilation failed';
+      const isCompileError = message.startsWith('Tectonic error:');
+      const status = isCompileError ? 422 : 500;
+      const clientMessage = isCompileError
+        ? 'Compilation failed'
+        : 'Internal server error';
+
       console.error('[compile] error:', message);
-      res.status(422).json({ error: message });
+      res.status(status).json({ error: clientMessage });
     } finally {
       if (tmpDir !== undefined) {
         await rm(tmpDir, { recursive: true, force: true }).catch(
