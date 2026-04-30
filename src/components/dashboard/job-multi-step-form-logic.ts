@@ -83,12 +83,18 @@ export function buildInitialDraft(
     content: '',
     isGenerating: false,
   };
+  const companyResearch = initialDraft?.companyResearch ?? {
+    content: '',
+    isGenerating: false,
+    userContext: '',
+  };
 
   return {
     overview: initialOverview,
     timeline: timeline,
     interviews: interviews,
     followUps: followUps,
+    companyResearch: companyResearch,
     documents: documents,
     resume: resume,
     coverLetter: coverLetter,

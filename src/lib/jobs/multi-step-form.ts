@@ -5,6 +5,7 @@ export const JOB_FORM_STEPS = [
   { id: 'timeline', label: 'Timeline' },
   { id: 'interviews', label: 'Interviews' },
   { id: 'followUps', label: 'Follow-ups' },
+  { id: 'companyResearch', label: 'Company Research' },
   { id: 'documents', label: 'Documents' },
   { id: 'resume', label: 'Resume' },
   { id: 'coverLetter', label: 'Cover Letter' },
@@ -65,11 +66,18 @@ export type JobCoverLetterDraft = {
   isGenerating: boolean;
 };
 
+export type JobCompanyResearchDraft = {
+  content: string;
+  isGenerating: boolean;
+  userContext: string;
+};
+
 export type JobMultiStepDraft = {
   overview: JobOverviewDraft;
   timeline: JobSectionItemDraft[];
   interviews: JobSectionItemDraft[];
   followUps: JobSectionItemDraft[];
+  companyResearch: JobCompanyResearchDraft;
   documents: JobDocumentsDraft;
   resume: JobResumeDraft;
   coverLetter: JobCoverLetterDraft;

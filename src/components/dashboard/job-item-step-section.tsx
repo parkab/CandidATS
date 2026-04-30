@@ -4,7 +4,10 @@ import type {
   SectionStep,
 } from './job-multi-step-form-section-types';
 import SectionItemComposer from './job-section-item-composer';
-import { extractIdMarker, extractNotesContent } from '@/lib/utils/timelineNotes';
+import {
+  extractIdMarker,
+  extractNotesContent,
+} from '@/lib/utils/timelineNotes';
 
 type ItemStepSectionProps = {
   stepId: SectionStep;
@@ -98,7 +101,11 @@ export default function ItemStepSection({
                 <div className="flex items-center gap-2">
                   {(() => {
                     // For timeline items, hide edit/delete buttons if auto-generated (has ID marker)
-                    if (stepId === 'timeline' && item.notes && extractIdMarker(item.notes)) {
+                    if (
+                      stepId === 'timeline' &&
+                      item.notes &&
+                      extractIdMarker(item.notes)
+                    ) {
                       return null;
                     }
                     return (
