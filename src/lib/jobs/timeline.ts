@@ -118,7 +118,11 @@ export async function createInterviewScheduledEvent(
 ) {
   const roundTypeText = roundType || 'Interview';
   const eventNotes = notes ? `${roundTypeText}: ${notes}` : roundTypeText;
-  const formattedNotes = formatNotesWithId('interview', interviewId, eventNotes);
+  const formattedNotes = formatNotesWithId(
+    'interview',
+    interviewId,
+    eventNotes,
+  );
 
   return createTimelineEvent(
     jobId,
@@ -145,7 +149,11 @@ export async function updateInterviewTimelineEvent(
 ) {
   const roundTypeText = roundType || 'Interview';
   const eventNotes = notes ? `${roundTypeText}: ${notes}` : roundTypeText;
-  const formattedNotes = formatNotesWithId('interview', interviewId, eventNotes);
+  const formattedNotes = formatNotesWithId(
+    'interview',
+    interviewId,
+    eventNotes,
+  );
 
   // Find the existing timeline event for this interview
   const existingEvent = await prisma.timelineEvent.findFirst({
@@ -229,7 +237,12 @@ export async function createFollowUpCreatedEvent(
   const eventNotes = `${taskTitle}`;
   const formattedNotes = formatNotesWithId('followup', followUpId, eventNotes);
 
-  return createTimelineEvent(jobId, 'follow_up_created', formattedNotes, dueDate ?? undefined);
+  return createTimelineEvent(
+    jobId,
+    'follow_up_created',
+    formattedNotes,
+    dueDate ?? undefined,
+  );
 }
 
 /**

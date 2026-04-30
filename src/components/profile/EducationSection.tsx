@@ -75,7 +75,8 @@ export default function EducationSection({
   initialEducation,
   onCompletionChange,
 }: EducationSectionProps) {
-  const [education, setEducation] = useState<EducationEntry[]>(initialEducation);
+  const [education, setEducation] =
+    useState<EducationEntry[]>(initialEducation);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);

@@ -39,6 +39,8 @@ describe('JobSortControl', () => {
 
     await userEvent.selectOptions(screen.getByRole('combobox'), 'company');
 
-    expect(replaceMock).toHaveBeenCalledWith('/dashboard?sort=company&stage=all');
+    expect(replaceMock).toHaveBeenCalledWith(
+      '/dashboard?sort=company&stage=all',
+    );
   });
 });
