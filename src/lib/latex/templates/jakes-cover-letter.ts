@@ -9,7 +9,9 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
 \usepackage[hidelinks]{hyperref}
 \usepackage{fancyhdr}
 \usepackage{tabularx}
+\ifdefined\pdfglyphtounicode
 \input{glyphtounicode}
+\fi
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -27,7 +29,9 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
 \raggedbottom
 \raggedright
 
-\pdfgentounicode=1`;
+\ifdefined\pdfgentounicode
+\pdfgentounicode=1
+\fi`;
 
 const EMAIL_REGEX =
   /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;

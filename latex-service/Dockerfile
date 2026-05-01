@@ -24,6 +24,32 @@ RUN apk add --no-cache curl tar \
   # Smoke-test: verify Tectonic is executable.
   && tectonic --version
 
+# Pre-warm Tectonic package cache by compiling a document that uses every
+# package in the Jake's Resume / Cover Letter templates. This bakes all
+# CTAN package downloads into the image layer so cold starts don't need
+# network access to compile the first document.
+RUN echo '\documentclass[letterpaper,11pt]{article}' > /tmp/warmup.tex \
+  && echo '\usepackage{latexsym}' >> /tmp/warmup.tex \
+  && echo '\usepackage[empty]{fullpage}' >> /tmp/warmup.tex \
+  && echo '\usepackage{titlesec}' >> /tmp/warmup.tex \
+  && echo '\usepackage{marvosym}' >> /tmp/warmup.tex \
+  && echo '\usepackage[usenames,dvipsnames]{color}' >> /tmp/warmup.tex \
+  && echo '\usepackage{verbatim}' >> /tmp/warmup.tex \
+  && echo '\usepackage{enumitem}' >> /tmp/warmup.tex \
+  && echo '\usepackage[hidelinks]{hyperref}' >> /tmp/warmup.tex \
+  && echo '\usepackage{fancyhdr}' >> /tmp/warmup.tex \
+  && echo '\usepackage[english]{babel}' >> /tmp/warmup.tex \
+  && echo '\usepackage{tabularx}' >> /tmp/warmup.tex \
+  && echo '\ifdefined\pdfglyphtounicode' >> /tmp/warmup.tex \
+  && echo '\input{glyphtounicode}' >> /tmp/warmup.tex \
+  && echo '\fi' >> /tmp/warmup.tex \
+  && echo '\ifdefined\pdfgentounicode' >> /tmp/warmup.tex \
+  && echo '\pdfgentounicode=1' >> /tmp/warmup.tex \
+  && echo '\fi' >> /tmp/warmup.tex \
+  && echo '\begin{document}warmup\end{document}' >> /tmp/warmup.tex \
+  && tectonic --chatter minimal /tmp/warmup.tex \
+  && rm -f /tmp/warmup.pdf /tmp/warmup.tex
+
 WORKDIR /app
 
 COPY package*.json ./
