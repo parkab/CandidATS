@@ -14,6 +14,7 @@ type SaveVersionBody = {
   templateName?: unknown;
   structuredData?: unknown;
   changeNotes?: unknown;
+  title?: unknown;
 };
 
 export async function GET(
@@ -30,7 +31,7 @@ export async function GET(
 
     const document = await prisma.document.findFirst({
       where: { id: documentId, user_id: session.userId },
-      select: { id: true },
+      select: { id: true, title: true },
     });
 
     if (!document) {
@@ -45,7 +46,7 @@ export async function GET(
       orderBy: { versionNumber: 'desc' },
     });
 
-    return NextResponse.json({ version: version ?? null });
+    return NextResponse.json({ version: version ?? null, title: document.title });
   } catch (error) {
     console.error('[version GET] unexpected error:', error);
     return NextResponse.json(
@@ -108,6 +109,10 @@ export async function PATCH(
     const templateName = body.templateName as TemplateName;
     const changeNotes =
       typeof body.changeNotes === 'string' ? body.changeNotes : null;
+    const newTitle =
+      typeof body.title === 'string' && body.title.trim().length > 0
+        ? body.title.trim()
+        : null;
 
     let latexSource: string;
     try {
@@ -164,6 +169,13 @@ export async function PATCH(
           pdfUrl: pdfPath,
           changeNotes,
         },
+      });
+    }
+
+    if (newTitle) {
+      await prisma.document.update({
+        where: { id: documentId },
+        data: { title: newTitle },
       });
     }
 
