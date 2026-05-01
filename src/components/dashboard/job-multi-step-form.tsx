@@ -986,7 +986,6 @@ export default function JobMultiStepForm({
 
           {activeStep === 'resume' ? (
             <ResumeStepSection
-              resume={draft.resume}
               jobId={draft.overview.id}
               jobData={{
                 title: draft.overview.title,
@@ -994,25 +993,11 @@ export default function JobMultiStepForm({
                 location: draft.overview.location,
                 job_description: draft.overview.jobDescription,
               }}
-              onResumeChange={(content) =>
-                setDraft((previous) => ({
-                  ...previous,
-                  resume: {
-                    ...previous.resume,
-                    content,
-                  },
-                }))
-              }
-              onRefreshDocuments={refreshDocuments}
-              onSavedAsDocument={(content) =>
-                addAiGeneratedDocument('resume', content)
-              }
             />
           ) : null}
 
           {activeStep === 'coverLetter' ? (
             <CoverLetterStepSection
-              coverLetter={draft.coverLetter}
               jobId={draft.overview.id}
               jobData={{
                 title: draft.overview.title,
@@ -1020,19 +1005,6 @@ export default function JobMultiStepForm({
                 location: draft.overview.location,
                 job_description: draft.overview.jobDescription,
               }}
-              onCoverLetterChange={(content) =>
-                setDraft((previous) => ({
-                  ...previous,
-                  coverLetter: {
-                    ...previous.coverLetter,
-                    content,
-                  },
-                }))
-              }
-              onRefreshDocuments={refreshDocuments}
-              onSavedAsDocument={(content) =>
-                addAiGeneratedDocument('cover_letter', content)
-              }
             />
           ) : null}
         </section>

@@ -14,7 +14,7 @@ const textareaCls =
 const labelCls = 'mb-1 block text-xs font-medium text-(--text-muted)';
 const sectionTitleCls = 'text-sm font-semibold text-(--foreground)';
 const addBtnCls =
-  'mt-1 rounded border border-(--surface-border) px-2 py-1 text-xs text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--foreground)';
+  'mt-1 rounded border border-(--surface-border) px-2 py-1 text-xs text-(--text-muted) hover:bg-(--action-hover) hover:text-(--foreground)';
 const removeBtnCls =
   'rounded px-2 py-0.5 text-xs text-(--danger-text) hover:bg-(--danger-bg)';
 

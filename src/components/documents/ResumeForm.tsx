@@ -18,7 +18,7 @@ const labelCls = 'mb-1 block text-xs font-medium text-(--text-muted)';
 const sectionTitleCls = 'text-sm font-semibold text-(--foreground)';
 const cardCls = 'rounded-lg border border-(--surface-border) p-3 mb-2';
 const addBtnCls =
-  'mt-1 rounded border border-(--surface-border) px-2 py-1 text-xs text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--foreground)';
+  'mt-1 rounded border border-(--surface-border) px-2 py-1 text-xs text-(--text-muted) hover:bg-(--action-hover) hover:text-(--foreground)';
 const removeBtnCls =
   'rounded px-2 py-0.5 text-xs text-(--danger-text) hover:bg-(--danger-bg)';
 
@@ -231,7 +231,7 @@ export default function ResumeForm({ data, onChange }: Props) {
               {exp.bullets.map((b, bi) => (
                 <div key={bi} className="mb-1 flex gap-1">
                   <input className={inputCls} value={b} onChange={(e) => updateExpBullet(ei, bi, e.target.value)} placeholder="Achievement or responsibility..." />
-                  <button type="button" className={removeBtnCls + ' shrink-0'} onClick={() => removeExpBullet(ei, bi)}>×</button>
+                  <button type="button" aria-label="Remove bullet" className={removeBtnCls + ' shrink-0'} onClick={() => removeExpBullet(ei, bi)}>×</button>
                 </div>
               ))}
               <button type="button" className={addBtnCls} onClick={() => addExpBullet(ei)}>+ Add bullet</button>
@@ -272,7 +272,7 @@ export default function ResumeForm({ data, onChange }: Props) {
               {proj.bullets.map((b, bi) => (
                 <div key={bi} className="mb-1 flex gap-1">
                   <input className={inputCls} value={b} onChange={(e) => updateProjBullet(pi, bi, e.target.value)} placeholder="What you built and its impact..." />
-                  <button type="button" className={removeBtnCls + ' shrink-0'} onClick={() => removeProjBullet(pi, bi)}>×</button>
+                  <button type="button" aria-label="Remove project bullet" className={removeBtnCls + ' shrink-0'} onClick={() => removeProjBullet(pi, bi)}>×</button>
                 </div>
               ))}
               <button type="button" className={addBtnCls} onClick={() => addProjBullet(pi)}>+ Add bullet</button>

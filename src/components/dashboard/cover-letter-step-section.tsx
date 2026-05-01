@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { JobCoverLetterDraft } from '@/lib/jobs/multi-step-form';
 
 type CoverLetterStepSectionProps = {
-  coverLetter: JobCoverLetterDraft;
   jobId?: string;
   jobData?: {
     title: string;
@@ -13,9 +11,6 @@ type CoverLetterStepSectionProps = {
     location: string;
     job_description: string;
   };
-  onCoverLetterChange: (content: string) => void;
-  onRefreshDocuments?: () => void;
-  onSavedAsDocument?: (content: string) => void;
 };
 
 export default function CoverLetterStepSection({

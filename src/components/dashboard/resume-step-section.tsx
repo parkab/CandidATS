@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { JobResumeDraft } from '@/lib/jobs/multi-step-form';
 
 type ResumeStepSectionProps = {
-  resume: JobResumeDraft;
   jobId?: string;
   jobData?: {
     title: string;
@@ -13,9 +11,6 @@ type ResumeStepSectionProps = {
     location: string;
     job_description: string;
   };
-  onResumeChange: (content: string) => void;
-  onRefreshDocuments?: () => void;
-  onSavedAsDocument?: (content: string) => void;
 };
 
 export default function ResumeStepSection({

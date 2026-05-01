@@ -49,8 +49,11 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
     }
 
     fetch(`/api/documents/${documentId}/version`)
-      .then((res) => res.json())
-      .then((data: { version: VersionPayload; title: string }) => {
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load document (${res.status})`);
+        return res.json() as Promise<{ version: VersionPayload; title: string }>;
+      })
+      .then((data) => {
         setTitle(data.title ?? '');
         if (pendingParsed) {
           setDraft(pendingParsed);
@@ -290,7 +293,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-(--surface-border) px-4 py-2 text-sm font-semibold text-(--foreground) hover:bg-(--surface-hover)"
+          className="rounded-md border border-(--surface-border) px-4 py-2 text-sm font-semibold text-(--foreground) hover:bg-(--action-hover)"
         >
           Go Back
         </button>
@@ -305,7 +308,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded px-2 py-1 text-sm text-(--text-muted) hover:bg-(--surface-hover)"
+          className="rounded px-2 py-1 text-sm text-(--text-muted) hover:bg-(--action-hover)"
         >
           ← Back
         </button>
@@ -334,7 +337,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
             type="button"
             onClick={handleSave}
             disabled={busy}
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--surface-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--action-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save'}
           </button>
@@ -342,7 +345,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
             type="button"
             onClick={handleSaveNewVersion}
             disabled={busy}
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--surface-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--action-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
           >
             Save as New Version
           </button>
@@ -350,7 +353,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
             type="button"
             onClick={handleDownload}
             disabled={busy}
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--surface-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--action-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
           >
             Download PDF
           </button>

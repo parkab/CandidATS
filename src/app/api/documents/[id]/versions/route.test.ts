@@ -7,12 +7,18 @@ import { uploadPdf } from '@/lib/storage/pdf';
 import { POST } from './route';
 
 jest.mock('@/lib/auth/session', () => ({ getSession: jest.fn() }));
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    document: { findFirst: jest.fn() },
-    documentVersion: { findFirst: jest.fn(), create: jest.fn() },
-  },
-}));
+jest.mock('@/lib/prisma', () => {
+  const mockDocVersion = { findFirst: jest.fn(), create: jest.fn() };
+  return {
+    prisma: {
+      document: { findFirst: jest.fn() },
+      documentVersion: mockDocVersion,
+      $transaction: jest.fn().mockImplementation(async (fn: (tx: unknown) => unknown) =>
+        fn({ documentVersion: mockDocVersion }),
+      ),
+    },
+  };
+});
 jest.mock('@/lib/latex/compile', () => ({ compileLatex: jest.fn() }));
 jest.mock('@/lib/storage/pdf', () => ({ uploadPdf: jest.fn() }));
 

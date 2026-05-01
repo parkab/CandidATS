@@ -1,11 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import CoverLetterStepSection from '@/components/dashboard/cover-letter-step-section';
-import type { JobCoverLetterDraft } from '@/lib/jobs/multi-step-form';
 
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
 
-const mockCoverLetter: JobCoverLetterDraft = { content: '', isGenerating: false };
 const mockJobData = {
   title: 'Product Manager',
   company_name: 'TechCo',
@@ -36,24 +34,12 @@ describe('CoverLetterStepSection', () => {
   });
 
   it('renders with a Generate Cover Letter button', () => {
-    render(
-      <CoverLetterStepSection
-        coverLetter={mockCoverLetter}
-        jobId="job-1"
-        jobData={mockJobData}
-        onCoverLetterChange={jest.fn()}
-      />,
-    );
+    render(<CoverLetterStepSection jobId="job-1" jobData={mockJobData} />);
     expect(screen.getByRole('button', { name: /generate cover letter/i })).toBeInTheDocument();
   });
 
   it('disables button when no job data is provided', () => {
-    render(
-      <CoverLetterStepSection
-        coverLetter={mockCoverLetter}
-        onCoverLetterChange={jest.fn()}
-      />,
-    );
+    render(<CoverLetterStepSection />);
     expect(screen.getByRole('button', { name: /generate cover letter/i })).toBeDisabled();
   });
 
@@ -62,14 +48,7 @@ describe('CoverLetterStepSection', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => MOCK_AI_RESPONSE })
       .mockResolvedValueOnce({ ok: true, json: async () => MOCK_DOC_RESPONSE });
 
-    render(
-      <CoverLetterStepSection
-        coverLetter={mockCoverLetter}
-        jobId="job-1"
-        jobData={mockJobData}
-        onCoverLetterChange={jest.fn()}
-      />,
-    );
+    render(<CoverLetterStepSection jobId="job-1" jobData={mockJobData} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generate cover letter/i }));
 
@@ -84,14 +63,7 @@ describe('CoverLetterStepSection', () => {
       json: async () => ({ error: 'AI service unavailable' }),
     });
 
-    render(
-      <CoverLetterStepSection
-        coverLetter={mockCoverLetter}
-        jobId="job-1"
-        jobData={mockJobData}
-        onCoverLetterChange={jest.fn()}
-      />,
-    );
+    render(<CoverLetterStepSection jobId="job-1" jobData={mockJobData} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generate cover letter/i }));
 

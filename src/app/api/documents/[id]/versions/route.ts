@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { compileLatex } from '@/lib/latex/compile';
+import type { Prisma } from '@/generated/prisma/client';
 import {
   isSupportedTemplate,
   renderTemplate,
@@ -98,25 +99,37 @@ export async function POST(
       type: documentTypeFromTemplate(templateName),
     });
 
-    const latestVersion = await prisma.documentVersion.findFirst({
-      where: { documentId },
-      orderBy: { versionNumber: 'desc' },
-      select: { versionNumber: true },
-    });
-
-    const nextVersionNumber = (latestVersion?.versionNumber ?? 0) + 1;
-
-    const newVersion = await prisma.documentVersion.create({
-      data: {
-        documentId,
-        versionNumber: nextVersionNumber,
-        templateName,
-        structuredData: body.structuredData,
-        latexSource,
-        pdfUrl: pdfPath,
-        changeNotes,
-      },
-    });
+    let newVersion;
+    try {
+      newVersion = await prisma.$transaction(async (tx) => {
+        const latest = await tx.documentVersion.findFirst({
+          where: { documentId },
+          orderBy: { versionNumber: 'desc' },
+          select: { versionNumber: true },
+        });
+        const nextVersionNumber = (latest?.versionNumber ?? 0) + 1;
+        return tx.documentVersion.create({
+          data: {
+            documentId,
+            versionNumber: nextVersionNumber,
+            templateName,
+            structuredData: body.structuredData as Prisma.InputJsonValue,
+            latexSource,
+            pdfUrl: pdfPath,
+            changeNotes,
+          },
+        });
+      });
+    } catch (err) {
+      const code = err instanceof Error && 'code' in err ? (err as { code: string }).code : '';
+      if (code === 'P2002') {
+        return NextResponse.json(
+          { error: 'Version conflict — please retry' },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
 
     return NextResponse.json({ version: newVersion }, { status: 201 });
   } catch (error) {

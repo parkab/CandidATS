@@ -1,11 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ResumeStepSection from '@/components/dashboard/resume-step-section';
-import type { JobResumeDraft } from '@/lib/jobs/multi-step-form';
 
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
 
-const mockResume: JobResumeDraft = { content: '', isGenerating: false };
 const mockJobData = {
   title: 'Software Engineer',
   company_name: 'Google',
@@ -30,24 +28,12 @@ describe('ResumeStepSection', () => {
   });
 
   it('renders with a Generate Resume button', () => {
-    render(
-      <ResumeStepSection
-        resume={mockResume}
-        jobId="job-1"
-        jobData={mockJobData}
-        onResumeChange={jest.fn()}
-      />,
-    );
+    render(<ResumeStepSection jobId="job-1" jobData={mockJobData} />);
     expect(screen.getByRole('button', { name: /generate resume/i })).toBeInTheDocument();
   });
 
   it('disables button when no job data is provided', () => {
-    render(
-      <ResumeStepSection
-        resume={mockResume}
-        onResumeChange={jest.fn()}
-      />,
-    );
+    render(<ResumeStepSection />);
     expect(screen.getByRole('button', { name: /generate resume/i })).toBeDisabled();
   });
 
@@ -56,14 +42,7 @@ describe('ResumeStepSection', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => MOCK_AI_RESPONSE })
       .mockResolvedValueOnce({ ok: true, json: async () => MOCK_DOC_RESPONSE });
 
-    render(
-      <ResumeStepSection
-        resume={mockResume}
-        jobId="job-1"
-        jobData={mockJobData}
-        onResumeChange={jest.fn()}
-      />,
-    );
+    render(<ResumeStepSection jobId="job-1" jobData={mockJobData} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generate resume/i }));
 
@@ -78,14 +57,7 @@ describe('ResumeStepSection', () => {
       json: async () => ({ error: 'AI service unavailable' }),
     });
 
-    render(
-      <ResumeStepSection
-        resume={mockResume}
-        jobId="job-1"
-        jobData={mockJobData}
-        onResumeChange={jest.fn()}
-      />,
-    );
+    render(<ResumeStepSection jobId="job-1" jobData={mockJobData} />);
 
     fireEvent.click(screen.getByRole('button', { name: /generate resume/i }));
 
