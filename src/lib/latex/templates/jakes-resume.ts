@@ -82,7 +82,9 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
 \usepackage{fancyhdr}
 \usepackage[english]{babel}
 \usepackage{tabularx}
+\ifdefined\pdfglyphtounicode
 \input{glyphtounicode}
+\fi
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -105,7 +107,9 @@ const PREAMBLE = String.raw`\documentclass[letterpaper,11pt]{article}
   \vspace{-4pt}\scshape\raggedright\large
 }{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
 
+\ifdefined\pdfgentounicode
 \pdfgentounicode=1
+\fi
 
 \newcommand{\resumeItem}[1]{
   \item\small{
