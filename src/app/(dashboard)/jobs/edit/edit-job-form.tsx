@@ -29,6 +29,7 @@ type EditJobFormProps = {
     compensation: string | null;
     applicationDate: Date | string | null;
     recruiterNotes: string | null;
+    prepNotes: string | null;
     otherNotes: string | null;
   };
   initialTimeline?: JobSectionItemDraft[];
@@ -85,6 +86,7 @@ function toOverviewDraft(
     compensation: initialJob.compensation ?? '',
     applicationDate: toDateInputValue(initialJob.applicationDate),
     recruiterNotes: initialJob.recruiterNotes ?? '',
+    prepNotes: initialJob.prepNotes ?? '',
     otherNotes: initialJob.otherNotes ?? '',
   };
 }
@@ -102,9 +104,8 @@ export default function EditJobForm({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(
-    initialTimeline,
-  );
+  const [timelineData, setTimelineData] =
+    useState<JobSectionItemDraft[]>(initialTimeline);
   const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function handleCancel() {
@@ -189,6 +190,7 @@ export default function EditJobForm({
       compensation: toOptionalString(draft.overview.compensation),
       applicationDate: toOptionalString(draft.overview.applicationDate),
       recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
+      prepNotes: toOptionalString(draft.overview.prepNotes),
       otherNotes: toOptionalString(draft.overview.otherNotes),
       timeline: draft.timeline,
       interviews: draft.interviews,
@@ -220,7 +222,8 @@ export default function EditJobForm({
       );
 
       if (timelineResponse.ok) {
-        const freshEvents = (await timelineResponse.json()) as JobSectionItemDraft[];
+        const freshEvents =
+          (await timelineResponse.json()) as JobSectionItemDraft[];
         setTimelineData(freshEvents);
       }
     } catch (error) {

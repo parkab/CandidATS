@@ -121,6 +121,7 @@ describe('POST /api/jobs', () => {
         compensation: '$180k',
         applicationDate: '2026-04-02',
         recruiterNotes: 'Recruiter notes',
+        prepNotes: 'Prep notes',
         otherNotes: 'Other notes',
       }),
     );
@@ -137,6 +138,7 @@ describe('POST /api/jobs', () => {
         job_description: 'Build things',
         compensation_notes: '$180k',
         recruiter_contact_notes: 'Recruiter notes',
+        interview_prep_notes: 'Prep notes',
         custom_notes: 'Other notes',
       }),
     });
@@ -201,6 +203,7 @@ describe('POST /api/jobs', () => {
       data: expect.objectContaining({
         job_description: null,
         application_date: null,
+        interview_prep_notes: null,
         custom_notes: null,
       }),
     });

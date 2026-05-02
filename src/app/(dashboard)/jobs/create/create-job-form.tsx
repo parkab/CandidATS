@@ -25,6 +25,7 @@ const EMPTY_OVERVIEW_DRAFT: JobOverviewDraft = {
   compensation: '',
   applicationDate: '',
   recruiterNotes: '',
+  prepNotes: '',
   otherNotes: '',
 };
 
@@ -67,6 +68,7 @@ export default function CreateJobForm({
       compensation: toOptionalString(draft.overview.compensation),
       applicationDate: toOptionalString(draft.overview.applicationDate),
       recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
+      prepNotes: toOptionalString(draft.overview.prepNotes),
       otherNotes: toOptionalString(draft.overview.otherNotes),
       // These frontend-only section arrays are intentionally left for backend integration.
       timeline: draft.timeline,

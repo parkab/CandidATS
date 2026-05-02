@@ -144,6 +144,7 @@ describe('PATCH /api/jobs/[id]', () => {
         compensation: '$180k',
         applicationDate: '2026-04-02',
         recruiterNotes: '',
+        prepNotes: 'Interview prep notes',
         otherNotes: 'Updated notes',
       }),
       { params: Promise.resolve({ id: 'job-1' }) },
@@ -170,6 +171,7 @@ describe('PATCH /api/jobs/[id]', () => {
         priority_flag: false,
         job_description: 'Build things',
         compensation_notes: '$180k',
+        interview_prep_notes: 'Interview prep notes',
         custom_notes: 'Updated notes',
       }),
     });
@@ -261,6 +263,7 @@ describe('PATCH /api/jobs/[id]', () => {
       data: expect.objectContaining({
         job_description: null,
         application_date: null,
+        interview_prep_notes: null,
         custom_notes: null,
       }),
     });
