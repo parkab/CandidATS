@@ -45,6 +45,46 @@ function asOptionalDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+export async function GET(request: Request) {
+  let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
+
+  try {
+    authResult = await getSupabaseUserFromRequest(request);
+  } catch {
+    return NextResponse.json(
+      { error: 'Authentication service unavailable' },
+      { status: 503 },
+    );
+  }
+
+  const { data, error } = authResult;
+
+  if (error || !data.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const userId = data.user.id;
+
+  try {
+    const jobs = await prisma.job.findMany({
+      where: { user_id: userId },
+      select: { id: true },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return NextResponse.json({
+      jobIds: jobs.map((job) => job.id),
+    });
+  } catch (err) {
+    console.error('Failed to list job ids:', err);
+
+    return NextResponse.json(
+      { error: 'Unable to load jobs right now.' },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: Request) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
 
@@ -272,3 +312,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
