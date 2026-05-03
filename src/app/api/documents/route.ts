@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       const title = asNonEmptyString(formData.get('title'));
       const typeValue = asNonEmptyString(formData.get('type'));
       const statusValue = asNonEmptyString(formData.get('status'));
-      const note = asNonEmptyString(formData.get('note'));
+      // const note = asNonEmptyString(formData.get('note'));
       const tags = parseTags(formData.getAll('tags'));
       const file = formData.get('file');
 
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
                 ? file.type
                 : 'application/octet-stream',
             size: file.size,
-            note: note ?? undefined,
+            //note: note ?? undefined,
           }),
           type: typeValue,
           status: statusValue ?? 'ready',
@@ -333,24 +333,28 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
     const library = searchParams.get('library') === 'true';
 
-    let whereClause: any = {
-      user_id: session.userId,
-    };
+    const whereClause: {
+  user_id: string;
+  job_id?: string | null;
+} = {
+  user_id: session.userId,
+};
 
-    if (jobId) {
-      const job = await verifyJobOwnership(jobId, session.userId);
-      if (!job) {
-        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-      }
-      whereClause.job_id = jobId;
-    } else if (library) {
-      whereClause.job_id = null;
-    } else {
-      return NextResponse.json(
-        { error: 'Either jobId or library=true query parameter is required' },
-        { status: 400 },
-      );
-    }
+if (jobId) {
+  const job = await verifyJobOwnership(jobId, session.userId);
+  if (!job) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  }
+
+  whereClause.job_id = jobId;
+} else if (library) {
+  whereClause.job_id = null;
+} else {
+  return NextResponse.json(
+    { error: 'Either jobId or library=true query parameter is required' },
+    { status: 400 },
+  );
+}
 
     const documents = await prisma.document.findMany({
       where: whereClause,
