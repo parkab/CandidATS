@@ -6,6 +6,7 @@ import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
 import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
 import type {
+  JobFormStepId,
   JobMultiStepDraft,
   JobOverviewDraft,
   JobSectionItemDraft,
@@ -16,6 +17,7 @@ type EditJobFormProps = {
   inModal?: boolean;
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialStep?: JobFormStepId;
   initialJob: {
     id: string;
     title: string;
@@ -95,6 +97,7 @@ export default function EditJobForm({
   inModal = false,
   onSuccess,
   onCancel,
+  initialStep,
   initialJob,
   initialTimeline = [],
   initialInterviews = [],
@@ -246,6 +249,7 @@ export default function EditJobForm({
           interviews: initialInterviews,
           followUps: initialFollowUps,
         }}
+        initialStep={initialStep}
         submitLabel="Save changes"
         onCancel={handleCancel}
         onFinalSave={handleFinalSave}

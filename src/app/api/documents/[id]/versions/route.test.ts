@@ -93,6 +93,30 @@ describe('POST /api/documents/[id]/versions', () => {
     );
   });
 
+  it('creates sequential versions: v1 then v2', async () => {
+    // First save: no prior versions → creates version 1
+    const res1 = await POST(
+      buildRequest({ templateName: 'jakes-resume', structuredData: RESUME_DATA }),
+      CONTEXT,
+    );
+    expect(res1.status).toBe(201);
+    expect(mockedVersionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ versionNumber: 1 }) }),
+    );
+
+    // Second save: latest is now version 1 → creates version 2
+    mockedVersionCreate.mockClear();
+    mockedVersionFindFirst.mockResolvedValue({ versionNumber: 1 } as never);
+    const res2 = await POST(
+      buildRequest({ templateName: 'jakes-resume', structuredData: RESUME_DATA }),
+      CONTEXT,
+    );
+    expect(res2.status).toBe(201);
+    expect(mockedVersionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ versionNumber: 2 }) }),
+    );
+  });
+
   it('returns 401 when not authenticated', async () => {
     mockedGetSession.mockResolvedValue(null);
     const res = await POST(

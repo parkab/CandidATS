@@ -9,6 +9,8 @@ import {
   useState,
 } from 'react';
 import type { ApplicationStatus } from '@/lib/jobs/status';
+import type { JobFormStepId } from '@/lib/jobs/multi-step-form';
+import { JOB_FORM_STEPS } from '@/lib/jobs/multi-step-form';
 import PolaroidAddCard from '@/components/dashboard/polaroid-add-card';
 import PolaroidCard from '@/components/dashboard/polaroid-card';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
@@ -61,12 +63,28 @@ type DashboardJobForModal = {
   }>;
 };
 
-type ModalState = { type: 'create' } | { type: 'edit'; jobId: string } | null;
+type ModalState =
+  | { type: 'create' }
+  | { type: 'edit'; jobId: string; initialStep?: JobFormStepId }
+  | null;
+
+const VALID_STEP_IDS = new Set(JOB_FORM_STEPS.map((s) => s.id));
+
+function parseTabParam(tab: string | undefined): JobFormStepId | undefined {
+  if (tab && VALID_STEP_IDS.has(tab as JobFormStepId)) {
+    return tab as JobFormStepId;
+  }
+  return undefined;
+}
 
 export default function JobsModalGrid({
   initialJobs,
+  initialOpenJobId,
+  initialTab,
 }: {
   initialJobs: DashboardJobForModal[];
+  initialOpenJobId?: string;
+  initialTab?: string;
 }) {
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
   const [showArchived, setShowArchived] = useState(false);
@@ -76,6 +94,14 @@ export default function JobsModalGrid({
   useEffect(() => {
     setJobs(initialJobs);
   }, [initialJobs]);
+
+  // Auto-open a specific job modal when ?openJob=<id>&tab=<step> is in the URL
+  useEffect(() => {
+    if (!initialOpenJobId) return;
+    const step = parseTabParam(initialTab);
+    setModalState({ type: 'edit', jobId: initialOpenJobId, initialStep: step });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const dialogTitleId = useId();
   const modalRef = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -413,6 +439,9 @@ export default function JobsModalGrid({
                   initialTimeline={selectedJob.timeline}
                   initialInterviews={selectedJob.interviews}
                   initialFollowUps={selectedJob.followUps}
+                  initialStep={
+                    modalState.type === 'edit' ? modalState.initialStep : undefined
+                  }
                 />
               ) : null}
             </div>

@@ -30,7 +30,7 @@ const mockedCompile = jest.mocked(compileLatex);
 const mockedUpload = jest.mocked(uploadPdf);
 
 const SESSION = { userId: 'user-1', email: 'a@b.com' };
-const MOCK_DOC = { id: 'doc-1', title: 'My Resume' };
+const MOCK_DOC = { id: 'doc-1', title: 'My Resume', job_id: 'job-1' };
 const MOCK_VERSION = {
   id: 'ver-1',
   documentId: 'doc-1',
@@ -89,12 +89,13 @@ beforeEach(() => {
 });
 
 describe('GET /api/documents/[id]/version', () => {
-  it('returns the latest version and document title', async () => {
+  it('returns the latest version, document title, and jobId', async () => {
     const res = await GET(buildGetRequest(), buildContext());
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { version: typeof MOCK_VERSION; title: string };
+    const body = (await res.json()) as { version: typeof MOCK_VERSION; title: string; jobId: string };
     expect(body.version.versionNumber).toBe(2);
     expect(body.title).toBe('My Resume');
+    expect(body.jobId).toBe('job-1');
   });
 
   it('returns version: null when no version exists', async () => {

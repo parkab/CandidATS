@@ -19,6 +19,12 @@ type VersionPayload = {
   structuredData: unknown;
 } | null;
 
+type VersionResponse = {
+  version: VersionPayload;
+  title: string;
+  jobId: string | null;
+};
+
 const DETAIL_LABELS = ['Very Brief', 'Concise', 'Balanced', 'Detailed', 'Comprehensive'];
 const TONE_LABELS = ['Casual', 'Informal', 'Professional', 'Formal', 'Executive'];
 
@@ -26,6 +32,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
   const router = useRouter();
   const [draft, setDraft] = useState<DraftData | null>(null);
   const [title, setTitle] = useState('');
+  const [jobId, setJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -51,17 +58,23 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
     fetch(`/api/documents/${documentId}/version`)
       .then((res) => {
         if (!res.ok) throw new Error(`Failed to load document (${res.status})`);
-        return res.json() as Promise<{ version: VersionPayload; title: string }>;
+        return res.json() as Promise<VersionResponse>;
       })
       .then((data) => {
         setTitle(data.title ?? '');
+        setJobId(data.jobId ?? null);
+        let resolvedDraft: DraftData | null = null;
         if (pendingParsed) {
-          setDraft(pendingParsed);
+          resolvedDraft = pendingParsed;
         } else if (data.version) {
-          setDraft({
+          resolvedDraft = {
             templateName: data.version.templateName as TemplateName,
             structuredData: data.version.structuredData,
-          } as DraftData);
+          } as DraftData;
+        }
+        if (resolvedDraft) {
+          setDraft(resolvedDraft);
+          void triggerPreview(resolvedDraft);
         } else {
           setLoadError('No document data found. Please go back and regenerate.');
         }
@@ -69,12 +82,13 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
       .catch(() => {
         if (pendingParsed) {
           setDraft(pendingParsed);
+          void triggerPreview(pendingParsed);
         } else {
           setLoadError('Failed to load document.');
         }
       })
       .finally(() => setLoading(false));
-  }, [documentId]);
+  }, [documentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => {
@@ -87,20 +101,15 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
     setTimeout(() => setStatusMsg(null), 4000);
   }
 
-  async function handlePreview() {
-    if (!draft) return;
+  async function triggerPreview(draftData: DraftData) {
     setIsPreviewing(true);
-    if (pdfBlobUrl) {
-      URL.revokeObjectURL(pdfBlobUrl);
-      setPdfBlobUrl(null);
-    }
     try {
       const res = await fetch(`/api/documents/${documentId}/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateName: draft.templateName,
-          structuredData: draft.structuredData,
+          templateName: draftData.templateName,
+          structuredData: draftData.structuredData,
         }),
       });
       if (!res.ok) {
@@ -110,7 +119,10 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
         throw new Error(err.error);
       }
       const blob = await res.blob();
-      setPdfBlobUrl(URL.createObjectURL(blob));
+      setPdfBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(blob);
+      });
     } catch (err) {
       showStatus({
         type: 'error',
@@ -119,6 +131,11 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
     } finally {
       setIsPreviewing(false);
     }
+  }
+
+  async function handlePreview() {
+    if (!draft) return;
+    await triggerPreview(draft);
   }
 
   async function handleSave() {
@@ -156,12 +173,13 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
     if (!draft) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/documents/${documentId}/versions`, {
+      const res = await fetch(`/api/documents/${documentId}/fork`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           templateName: draft.templateName,
           structuredData: draft.structuredData,
+          title: title.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -170,14 +188,14 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
         };
         throw new Error(err.error);
       }
+      const payload = (await res.json()) as { documentId: string };
       sessionStorage.removeItem(`pendingDraft_${documentId}`);
-      showStatus({ type: 'success', text: 'New version saved.' });
+      router.push(`/documents/${payload.documentId}/edit`);
     } catch (err) {
       showStatus({
         type: 'error',
         text: err instanceof Error ? err.message : 'Save failed',
       });
-    } finally {
       setIsSaving(false);
     }
   }
@@ -231,21 +249,19 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
         throw new Error(err.error);
       }
       const result = (await res.json()) as { structuredData: unknown };
-      if (draft.templateName === 'jakes-resume') {
-        setDraft({ templateName: 'jakes-resume', structuredData: result.structuredData as ResumeData });
-      } else {
-        setDraft({
-          templateName: 'jakes-cover-letter',
-          structuredData: result.structuredData as CoverLetterData,
-        });
-      }
-      showStatus({ type: 'success', text: 'Rewrite complete. Review the form, then save.' });
+      const newDraft: DraftData =
+        draft.templateName === 'jakes-resume'
+          ? { templateName: 'jakes-resume', structuredData: result.structuredData as ResumeData }
+          : { templateName: 'jakes-cover-letter', structuredData: result.structuredData as CoverLetterData };
+      setDraft(newDraft);
+      setIsRewriting(false);
+      showStatus({ type: 'success', text: 'Rewrite complete — generating preview...' });
+      await triggerPreview(newDraft);
     } catch (err) {
       showStatus({
         type: 'error',
         text: err instanceof Error ? err.message : 'Rewrite failed',
       });
-    } finally {
       setIsRewriting(false);
     }
   }
@@ -307,10 +323,19 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
       <div className="flex flex-wrap items-center gap-3 border-b border-(--surface-border) bg-(--background) px-4 py-3">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            sessionStorage.removeItem(`pendingDraft_${documentId}`);
+            if (jobId) {
+              router.push(
+                `/dashboard?openJob=${encodeURIComponent(jobId)}&tab=documents`,
+              );
+            } else {
+              router.back();
+            }
+          }}
           className="rounded px-2 py-1 text-sm text-(--text-muted) hover:bg-(--action-hover)"
         >
-          ← Back
+          ← Done
         </button>
         <div className="flex min-w-0 items-center gap-2">
           <input
