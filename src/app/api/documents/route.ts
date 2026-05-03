@@ -8,6 +8,7 @@ import {
   isSupportedDocumentType,
   isSupportedUploadMimeType,
   MAX_UPLOAD_BYTES,
+  mimeFromFileName,
   tryParseStoredFileContent,
 } from '@/lib/documents/metadata';
 import { prisma } from '@/lib/prisma';
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
       const fileMimeType =
         file.type && file.type.trim().length > 0
           ? file.type
-          : 'application/octet-stream';
+          : mimeFromFileName(file.name);
 
       if (!isSupportedUploadMimeType(fileMimeType)) {
         return NextResponse.json(

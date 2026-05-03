@@ -13,6 +13,15 @@ export function isSupportedUploadMimeType(mimeType: string): boolean {
   return ALLOWED_UPLOAD_MIME_TYPES.has(mimeType);
 }
 
+export function mimeFromFileName(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'docx')
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (ext === 'txt') return 'text/plain';
+  return 'application/octet-stream';
+}
+
 const DOCUMENT_TYPE_SET = new Set<DocumentType>([
   'resume',
   'cover_letter',

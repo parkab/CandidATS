@@ -84,7 +84,7 @@ describe('DocumentsStepSection', () => {
   describe('file list', () => {
     it('renders a file with View link pointing to /documents/[id]/view', () => {
       renderSection({ files: [SAMPLE_FILE] });
-      const viewLink = screen.getByRole('link', { name: 'View' });
+      const viewLink = screen.getByRole('link', { name: 'View/Download' });
       expect(viewLink).toHaveAttribute('href', '/documents/file-1/view');
     });
 
@@ -109,7 +109,7 @@ describe('DocumentsStepSection', () => {
       const uploadedFile = { ...SAMPLE_FILE, id: 'up-1', isAiGenerated: false };
       renderSection({ files: [aiFile, uploadedFile] });
 
-      const viewLinks = screen.getAllByRole('link', { name: 'View' });
+      const viewLinks = screen.getAllByRole('link', { name: 'View/Download' });
       expect(viewLinks).toHaveLength(2);
       expect(viewLinks[0]).toHaveAttribute('href', '/documents/ai-1/view');
       expect(viewLinks[1]).toHaveAttribute('href', '/documents/up-1/view');

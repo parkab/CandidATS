@@ -248,7 +248,7 @@ function DocumentCard({
   }
 
   return (
-    <div className="rounded-md border border-(--surface-border) bg-(--surface-dimmed) p-3">
+    <div className="rounded-md border border-(--surface-border) bg-(--surface) p-3">
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -282,7 +282,7 @@ function DocumentCard({
               href={`/documents/${document.id}/view`}
               className="inline-flex items-center rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
             >
-              View
+              View/Download
             </Link>
             <Link
               href={`/documents/${document.id}/edit`}

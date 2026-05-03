@@ -20,7 +20,8 @@ function fileExtension(mimeType: string): string {
 }
 
 function safeFileName(title: string): string {
-  return (title || 'document').replace(/[^\w\s.-]/g, '-').trim() || 'document';
+  const stripped = (title || 'document').replace(/\.(pdf|docx|doc|txt)$/i, '');
+  return stripped.replace(/[^\w\s.-]/g, '-').trim() || 'document';
 }
 
 export default function DocumentViewPage({ documentId }: { documentId: string }) {

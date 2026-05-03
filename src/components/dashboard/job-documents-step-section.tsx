@@ -130,7 +130,7 @@ export default function DocumentsStepSection({
                       href={`/documents/${file.id}/view`}
                       className="flex-none whitespace-nowrap rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
                     >
-                      View
+                      View/Download
                     </Link>
                     {isGenerated && (
                       <Link

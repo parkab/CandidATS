@@ -9,6 +9,7 @@ import {
   isSupportedDocumentType,
   isSupportedUploadMimeType,
   MAX_UPLOAD_BYTES,
+  mimeFromFileName,
   type StoredFileDocumentContent,
   tryParseStoredFileContent,
 } from '@/lib/documents/metadata';
@@ -292,7 +293,7 @@ export async function PATCH(
       const fileMimeType =
         file.type && file.type.trim().length > 0
           ? file.type
-          : 'application/octet-stream';
+          : mimeFromFileName(file.name);
 
       if (!isSupportedUploadMimeType(fileMimeType)) {
         return NextResponse.json(

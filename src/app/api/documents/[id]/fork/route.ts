@@ -9,7 +9,7 @@ import {
   type TemplateName,
 } from '@/lib/latex/render';
 import { prisma } from '@/lib/prisma';
-import { uploadPdf } from '@/lib/storage/pdf';
+import { deletePdf, uploadPdf } from '@/lib/storage/pdf';
 
 type ForkBody = {
   templateName?: unknown;
@@ -89,33 +89,41 @@ export async function POST(
       type: documentTypeFromTemplate(templateName),
     });
 
-    const newDocument = await prisma.$transaction(async (tx) => {
-      const doc = await tx.document.create({
-        data: {
-          user_id: session.userId,
-          job_id: sourceDocument.job_id,
-          title: newTitle,
-          content: '',
-          type: sourceDocument.type,
-          status: sourceDocument.status,
-          tags: sourceDocument.tags,
-        },
-      });
+    const docType = documentTypeFromTemplate(templateName);
 
-      await tx.documentVersion.create({
-        data: {
-          documentId: doc.id,
-          versionNumber: 1,
-          templateName,
-          structuredData: body.structuredData as Prisma.InputJsonValue,
-          latexSource,
-          pdfUrl: pdfPath,
-          changeNotes: null,
-        },
-      });
+    let newDocument: { id: string };
+    try {
+      newDocument = await prisma.$transaction(async (tx) => {
+        const doc = await tx.document.create({
+          data: {
+            user_id: session.userId,
+            job_id: sourceDocument.job_id,
+            title: newTitle,
+            content: '',
+            type: docType,
+            status: sourceDocument.status,
+            tags: sourceDocument.tags,
+          },
+        });
 
-      return doc;
-    });
+        await tx.documentVersion.create({
+          data: {
+            documentId: doc.id,
+            versionNumber: 1,
+            templateName,
+            structuredData: body.structuredData as Prisma.InputJsonValue,
+            latexSource,
+            pdfUrl: pdfPath,
+            changeNotes: null,
+          },
+        });
+
+        return doc;
+      });
+    } catch (txError) {
+      await deletePdf(pdfPath).catch(() => undefined);
+      throw txError;
+    }
 
     return NextResponse.json({ documentId: newDocument.id }, { status: 201 });
   } catch (error) {

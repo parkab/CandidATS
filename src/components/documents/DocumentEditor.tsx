@@ -196,6 +196,7 @@ export default function DocumentEditor({ documentId }: { documentId: string }) {
         type: 'error',
         text: err instanceof Error ? err.message : 'Save failed',
       });
+    } finally {
       setIsSaving(false);
     }
   }
