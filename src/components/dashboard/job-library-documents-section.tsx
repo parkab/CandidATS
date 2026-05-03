@@ -19,28 +19,30 @@ type Document = {
   } | null;
 };
 
-type JobSavedDocumentsSectionProps = {
+type JobLibraryDocumentsSectionProps = {
   jobId: string;
+  onDocumentLinked?: () => void;
 };
 
-export default function JobSavedDocumentsSection({
+export default function JobLibraryDocumentsSection({
   jobId,
-}: JobSavedDocumentsSectionProps) {
+  onDocumentLinked,
+}: JobLibraryDocumentsSectionProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDocuments();
-  }, [jobId]);
+    fetchLibraryDocuments();
+  }, []);
 
-  async function fetchDocuments() {
+  async function fetchLibraryDocuments() {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/documents?jobId=${jobId}`);
+      const response = await fetch('/api/documents?library=true');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch documents');
+        throw new Error('Failed to fetch library documents');
       }
 
       const data = await response.json();
@@ -52,22 +54,23 @@ export default function JobSavedDocumentsSection({
     }
   }
 
-  async function unlinkDocument(documentId: string) {
+  async function linkDocument(documentId: string) {
     try {
       const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jobId: null }),
+        body: JSON.stringify({ jobId }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to unlink document');
+        throw new Error('Failed to link document');
       }
 
-      // Refresh the documents list
-      await fetchDocuments();
+      // Remove from library list
+      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      onDocumentLinked?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlink document');
+      setError(err instanceof Error ? err.message : 'Failed to link document');
     }
   }
 
@@ -75,11 +78,11 @@ export default function JobSavedDocumentsSection({
     return (
       <div className="grid gap-4">
         <h4 className="text-sm font-semibold text-(--foreground)">
-          Saved Documents
+          Link Library Documents
         </h4>
         <div className="flex items-center gap-2 text-sm text-(--text-muted)">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-(--foreground) border-t-transparent"></div>
-          Loading documents...
+          Loading library documents...
         </div>
       </div>
     );
@@ -89,9 +92,22 @@ export default function JobSavedDocumentsSection({
     return (
       <div className="grid gap-4">
         <h4 className="text-sm font-semibold text-(--foreground)">
-          Saved Documents
+          Link Library Documents
         </h4>
-        <p className="text-sm text-red-600">Error loading documents: {error}</p>
+        <p className="text-sm text-red-600">Error loading library documents: {error}</p>
+      </div>
+    );
+  }
+
+  if (documents.length === 0) {
+    return (
+      <div className="grid gap-4">
+        <h4 className="text-sm font-semibold text-(--foreground)">
+          Link Library Documents
+        </h4>
+        <p className="text-sm text-(--text-muted)">
+          No library documents available to link. Create some documents first.
+        </p>
       </div>
     );
   }
@@ -100,24 +116,10 @@ export default function JobSavedDocumentsSection({
   const coverLetters = documents.filter((doc) => doc.type === 'cover_letter');
   const otherDocuments = documents.filter((doc) => doc.type === 'other');
 
-  if (documents.length === 0) {
-    return (
-      <div className="grid gap-4">
-        <h4 className="text-sm font-semibold text-(--foreground)">
-          Saved Documents
-        </h4>
-        <p className="text-sm text-(--text-muted)">
-          No documents have been saved for this job yet. Generate and save
-          resumes or cover letters to see them here.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="grid gap-4">
       <h4 className="text-sm font-semibold text-(--foreground)">
-        Saved Documents
+        Link Library Documents
       </h4>
 
       {resumes.length > 0 && (
@@ -127,7 +129,11 @@ export default function JobSavedDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {resumes.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onUnlink={unlinkDocument} />
+              <LibraryDocumentCard
+                key={doc.id}
+                document={doc}
+                onLink={() => linkDocument(doc.id)}
+              />
             ))}
           </div>
         </div>
@@ -140,7 +146,11 @@ export default function JobSavedDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {coverLetters.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onUnlink={unlinkDocument} />
+              <LibraryDocumentCard
+                key={doc.id}
+                document={doc}
+                onLink={() => linkDocument(doc.id)}
+              />
             ))}
           </div>
         </div>
@@ -153,7 +163,11 @@ export default function JobSavedDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {otherDocuments.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onUnlink={unlinkDocument} />
+              <LibraryDocumentCard
+                key={doc.id}
+                document={doc}
+                onLink={() => linkDocument(doc.id)}
+              />
             ))}
           </div>
         </div>
@@ -162,10 +176,14 @@ export default function JobSavedDocumentsSection({
   );
 }
 
-function DocumentCard({ document, onUnlink }: { document: Document; onUnlink?: (id: string) => void }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isOpening, setIsOpening] = useState(false);
-  const [openError, setOpenError] = useState<string | null>(null);
+function LibraryDocumentCard({
+  document,
+  onLink,
+}: {
+  document: Document;
+  onLink: () => void;
+}) {
+  const [isLinking, setIsLinking] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -201,40 +219,12 @@ function DocumentCard({ document, onUnlink }: { document: Document; onUnlink?: (
     return 'bg-amber-100 text-amber-800';
   };
 
-  const openStoredDocument = async () => {
-    if (!document.storage) {
-      return;
-    }
-
+  const handleLink = async () => {
+    setIsLinking(true);
     try {
-      setIsOpening(true);
-      setOpenError(null);
-      const response = await fetch(
-        `/api/documents/${encodeURIComponent(document.id)}`,
-      );
-
-      if (!response.ok) {
-        throw new Error('Unable to open document.');
-      }
-
-      const payload = (await response.json()) as { document?: Document };
-      const fetchedDocument = payload.document;
-      const signedUrl = fetchedDocument?.storage?.signedUrl ?? null;
-      const signedUrlError = fetchedDocument?.storage?.signedUrlError ?? null;
-
-      if (!signedUrl) {
-        throw new Error(signedUrlError || 'Unable to access stored file.');
-      }
-
-      window.open(signedUrl, '_blank', 'noopener,noreferrer');
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error && caughtError.message.trim().length > 0
-          ? caughtError.message
-          : 'Unable to open document.';
-      setOpenError(message);
+      await onLink();
     } finally {
-      setIsOpening(false);
+      setIsLinking(false);
     }
   };
 
@@ -260,45 +250,13 @@ function DocumentCard({ document, onUnlink }: { document: Document; onUnlink?: (
           </p>
         </div>
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="ml-2 text-xs text-(--text-muted) hover:text-(--foreground)"
+          onClick={handleLink}
+          disabled={isLinking}
+          className="ml-2 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isExpanded ? 'Collapse' : 'Expand'}
+          {isLinking ? 'Linking...' : 'Link to Job'}
         </button>
-        {onUnlink && (
-          <button
-            onClick={() => onUnlink(document.id)}
-            className="ml-2 text-xs text-red-600 hover:text-red-800"
-          >
-            Unlink
-          </button>
-        )}
       </div>
-
-      {isExpanded && (
-        <div className="mt-3">
-          {document.storage ? (
-            <button
-              type="button"
-              onClick={openStoredDocument}
-              disabled={isOpening}
-              className="mb-3 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isOpening ? 'Opening...' : 'Open file'}
-            </button>
-          ) : null}
-          {openError ? (
-            <p className="mb-2 text-xs text-(--danger-text)">{openError}</p>
-          ) : null}
-          <div className="rounded border bg-(--background) p-3">
-            <pre className="whitespace-pre-wrap text-xs text-(--foreground) leading-relaxed">
-              {document.storage
-                ? document.storage.note || 'Stored file document'
-                : document.content}
-            </pre>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

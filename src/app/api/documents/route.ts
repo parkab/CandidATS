@@ -158,9 +158,9 @@ export async function POST(request: NextRequest) {
       const tags = parseTags(formData.getAll('tags'));
       const file = formData.get('file');
 
-      if (!jobId || !typeValue || !(file instanceof File)) {
+      if (!typeValue || !(file instanceof File)) {
         return NextResponse.json(
-          { error: 'jobId, type, and file are required' },
+          { error: 'type and file are required' },
           { status: 400 },
         );
       }
@@ -179,9 +179,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const job = await verifyJobOwnership(jobId, session.userId);
-      if (!job) {
-        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      if (jobId) {
+        const job = await verifyJobOwnership(jobId, session.userId);
+        if (!job) {
+          return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+        }
       }
 
       if (!supabaseAdmin) {
@@ -221,7 +223,7 @@ export async function POST(request: NextRequest) {
       const document = await prisma.document.create({
         data: {
           user_id: session.userId,
-          job_id: jobId,
+          job_id: jobId ?? null,
           title: title ?? fileName,
           content: encodeStoredFileContent({
             kind: 'file',
@@ -265,9 +267,9 @@ export async function POST(request: NextRequest) {
     const type = asNonEmptyString(body.type);
     const status = asNonEmptyString(body.status);
     const tags = parseTags(body.tags);
-    if (!jobId || !title || !content || !type) {
+    if (!title || !content || !type) {
       return NextResponse.json(
-        { error: 'jobId, title, content, and type are required' },
+        { error: 'title, content, and type are required' },
         { status: 400 },
       );
     }
@@ -286,15 +288,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const job = await verifyJobOwnership(jobId, session.userId);
-    if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (jobId) {
+      const job = await verifyJobOwnership(jobId, session.userId);
+      if (!job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
     }
 
     const document = await prisma.document.create({
       data: {
         user_id: session.userId,
-        job_id: jobId,
+        job_id: jobId ?? null,
         title,
         content,
         type,
@@ -327,25 +331,29 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('jobId');
+    const library = searchParams.get('library') === 'true';
 
-    if (!jobId) {
+    let whereClause: any = {
+      user_id: session.userId,
+    };
+
+    if (jobId) {
+      const job = await verifyJobOwnership(jobId, session.userId);
+      if (!job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
+      whereClause.job_id = jobId;
+    } else if (library) {
+      whereClause.job_id = null;
+    } else {
       return NextResponse.json(
-        { error: 'jobId query parameter is required' },
+        { error: 'Either jobId or library=true query parameter is required' },
         { status: 400 },
       );
     }
 
-    const job = await verifyJobOwnership(jobId, session.userId);
-
-    if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    }
-
     const documents = await prisma.document.findMany({
-      where: {
-        job_id: jobId,
-        user_id: session.userId,
-      },
+      where: whereClause,
       orderBy: {
         created_at: 'desc',
       },
