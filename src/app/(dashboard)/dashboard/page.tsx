@@ -80,6 +80,7 @@ export type DashboardPageProps = {
     location?: string | string[];
     deadlineState?: string | string[];
     openJob?: string | string[];
+    tab?: string | string[];
   }>;
 };
 
@@ -223,6 +224,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const stageFilter = parseStageFilter(params.stage);
   const locationFilter = parseTextQuery(params.location);
   const deadlineState = parseDeadlineState(params.deadlineState);
+  const initialTab = parseTextQuery(params.tab);
 
   if (!session) {
     return (
@@ -590,6 +592,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       <JobsModalGrid
         initialJobs={jobsForModal}
         initialOpenJobId={initialOpenJobId}
+        initialTab={initialTab}
       />
     </section>
   );

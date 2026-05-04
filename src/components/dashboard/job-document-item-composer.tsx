@@ -185,6 +185,7 @@ export default function DocumentItemComposer({
               fileInputRef.current = el;
             }}
             type="file"
+            accept=".pdf,.docx,.txt"
             onChange={(event) =>
               onFileChange(event.currentTarget.files?.[0] ?? null)
             }
@@ -204,6 +205,7 @@ export default function DocumentItemComposer({
               </p>
             ) : null}
           </div>
+          <p className="text-xs text-(--text-muted)">Supported: PDF, DOCX, TXT</p>
         </div>
       </div>
 
