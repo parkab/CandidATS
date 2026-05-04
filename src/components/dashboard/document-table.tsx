@@ -23,6 +23,24 @@ type ApiDocument = {
 type DocType = 'resume' | 'cover_letter' | 'other';
 type ApiStatus = 'draft' | 'ready' | 'archived';
 
+const TYPE_FILTER_ORDER: readonly DocType[] = ['resume', 'cover_letter', 'other'];
+const STATUS_FILTER_ORDER: readonly ApiStatus[] = ['draft', 'ready', 'archived'];
+
+const TYPE_FILTER_OPTIONS: { value: DocType; label: string }[] = [
+  { value: 'resume', label: 'Resume' },
+  { value: 'cover_letter', label: 'Cover letter' },
+  { value: 'other', label: 'Other' },
+];
+
+const STATUS_FILTER_OPTIONS: { value: ApiStatus; label: string }[] = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'ready', label: 'Ready' },
+  { value: 'archived', label: 'Archived' },
+];
+
+const filterCheckboxClass =
+  'h-4 w-4 shrink-0 cursor-pointer rounded border-[--surface-border] bg-[--background] text-[--foreground] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,#70e2ff_50%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[--background]';
+
 type ListRow = {
   id: string;
   jobId: string;
@@ -36,9 +54,6 @@ type ListRow = {
   docType: DocType;
   tags: string[];
 };
-
-type TypeFilter = 'all' | DocType;
-type StatusFilter = 'all' | ApiStatus;
 
 const DEFAULT_SORT_PRIMARY: 'date' | 'title' = 'date';
 const DEFAULT_DATE_ORDER: 'asc' | 'desc' = 'desc';
@@ -163,8 +178,8 @@ export default function DocumentTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [selectedTypes, setSelectedTypes] = useState<DocType[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<ApiStatus[]>([]);
   const [tagQuery, setTagQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -425,10 +440,13 @@ export default function DocumentTable() {
     const to = endOfDayLocal(dateTo);
 
     const filtered = allRows.filter((row) => {
-      if (typeFilter !== 'all' && row.docType !== typeFilter) {
+      if (selectedTypes.length > 0 && !selectedTypes.includes(row.docType)) {
         return false;
       }
-      if (statusFilter !== 'all' && row.statusRaw !== statusFilter) {
+      if (
+        selectedStatuses.length > 0 &&
+        !selectedStatuses.includes(row.statusRaw)
+      ) {
         return false;
       }
       if (tagNeedles.length > 0) {
@@ -481,8 +499,8 @@ export default function DocumentTable() {
     return sorted;
   }, [
     allRows,
-    typeFilter,
-    statusFilter,
+    selectedTypes,
+    selectedStatuses,
     tagQuery,
     dateFrom,
     dateTo,
@@ -498,16 +516,16 @@ export default function DocumentTable() {
       : titleOrder === DEFAULT_TITLE_ORDER);
 
   const hasNonDefaultView =
-    typeFilter !== 'all' ||
-    statusFilter !== 'all' ||
+    selectedTypes.length > 0 ||
+    selectedStatuses.length > 0 ||
     tagQuery.trim().length > 0 ||
     dateFrom.trim().length > 0 ||
     dateTo.trim().length > 0 ||
     !isDefaultSort;
 
   function resetFilters() {
-    setTypeFilter('all');
-    setStatusFilter('all');
+    setSelectedTypes([]);
+    setSelectedStatuses([]);
     setTagQuery('');
     setDateFrom('');
     setDateTo('');
@@ -571,33 +589,77 @@ export default function DocumentTable() {
           role="search"
           aria-label="Document filters"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <label className="flex min-w-[8rem] flex-1 flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              Type
-              <select
-                className={selectControlClass}
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-              >
-                <option value="all">All types</option>
-                <option value="resume">Resume</option>
-                <option value="cover_letter">Cover letter</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-            <label className="flex min-w-[8rem] flex-1 flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              Status
-              <select
-                className={selectControlClass}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              >
-                <option value="all">All statuses</option>
-                <option value="draft">Draft</option>
-                <option value="ready">Ready</option>
-                <option value="archived">Archived</option>
-              </select>
-            </label>
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start">
+            <fieldset className="min-w-0 flex-1 space-y-2 border-0 p-0">
+              <legend className="text-xs font-medium uppercase tracking-wide text-[--text-muted]">
+                Type
+              </legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {TYPE_FILTER_OPTIONS.map(({ value, label }) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer items-center gap-2 text-sm text-[--foreground]"
+                  >
+                    <input
+                      type="checkbox"
+                      className={filterCheckboxClass}
+                      checked={selectedTypes.includes(value)}
+                      onChange={() => {
+                        setSelectedTypes((prev) => {
+                          if (prev.includes(value)) {
+                            return prev.filter((v) => v !== value);
+                          }
+                          return [...prev, value].sort(
+                            (a, b) =>
+                              TYPE_FILTER_ORDER.indexOf(a) -
+                              TYPE_FILTER_ORDER.indexOf(b),
+                          );
+                        });
+                      }}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] leading-snug text-[--text-muted]">
+                Leave all unchecked to show every type.
+              </p>
+            </fieldset>
+            <fieldset className="min-w-0 flex-1 space-y-2 border-0 p-0">
+              <legend className="text-xs font-medium uppercase tracking-wide text-[--text-muted]">
+                Status
+              </legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {STATUS_FILTER_OPTIONS.map(({ value, label }) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer items-center gap-2 text-sm text-[--foreground]"
+                  >
+                    <input
+                      type="checkbox"
+                      className={filterCheckboxClass}
+                      checked={selectedStatuses.includes(value)}
+                      onChange={() => {
+                        setSelectedStatuses((prev) => {
+                          if (prev.includes(value)) {
+                            return prev.filter((v) => v !== value);
+                          }
+                          return [...prev, value].sort(
+                            (a, b) =>
+                              STATUS_FILTER_ORDER.indexOf(a) -
+                              STATUS_FILTER_ORDER.indexOf(b),
+                          );
+                        });
+                      }}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] leading-snug text-[--text-muted]">
+                Leave all unchecked to show every status.
+              </p>
+            </fieldset>
             <label className="flex min-w-[10rem] flex-[2] flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
               Tags (all must match)
               <input
