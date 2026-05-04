@@ -65,17 +65,31 @@ type ModalState = { type: 'create' } | { type: 'edit'; jobId: string } | null;
 
 export default function JobsModalGrid({
   initialJobs,
+  initialOpenJobId,
 }: {
   initialJobs: DashboardJobForModal[];
+  initialOpenJobId?: string;
 }) {
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
   const [showArchived, setShowArchived] = useState(false);
   const [modalState, setModalState] = useState<ModalState>(null);
+  const autoOpenHandledRef = useRef(false);
 
   // Keep jobs in sync when the parent re-fetches (e.g. after router.refresh())
   useEffect(() => {
     setJobs(initialJobs);
   }, [initialJobs]);
+
+  useEffect(() => {
+    if (autoOpenHandledRef.current || !initialOpenJobId) {
+      return;
+    }
+    if (!initialJobs.some((job) => job.id === initialOpenJobId)) {
+      return;
+    }
+    autoOpenHandledRef.current = true;
+    setModalState({ type: 'edit', jobId: initialOpenJobId });
+  }, [initialOpenJobId, initialJobs]);
   const dialogTitleId = useId();
   const modalRef = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);

@@ -80,17 +80,23 @@ describe('GET /api/jobs', () => {
     } as never);
 
     mockedFindMany.mockResolvedValue([
-      { id: 'job-b' },
-      { id: 'job-a' },
+      { id: 'job-b', title: 'Role B', company_name: 'Co B' },
+      { id: 'job-a', title: 'Role A', company_name: 'Co A' },
     ] as never);
 
     const response = await GET(buildGetRequest());
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ jobIds: ['job-b', 'job-a'] });
+    expect(await response.json()).toEqual({
+      jobIds: ['job-b', 'job-a'],
+      jobs: [
+        { id: 'job-b', title: 'Role B', company_name: 'Co B' },
+        { id: 'job-a', title: 'Role A', company_name: 'Co A' },
+      ],
+    });
     expect(mockedFindMany).toHaveBeenCalledWith({
       where: { user_id: 'user-123' },
-      select: { id: true },
+      select: { id: true, title: true, company_name: true },
       orderBy: { created_at: 'desc' },
     });
   });
@@ -106,7 +112,7 @@ describe('GET /api/jobs', () => {
     const response = await GET(buildGetRequest());
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ jobIds: [] });
+    expect(await response.json()).toEqual({ jobIds: [], jobs: [] });
   });
 });
 

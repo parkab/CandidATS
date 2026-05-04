@@ -68,12 +68,17 @@ export async function GET(request: Request) {
   try {
     const jobs = await prisma.job.findMany({
       where: { user_id: userId },
-      select: { id: true },
+      select: { id: true, title: true, company_name: true },
       orderBy: { created_at: 'desc' },
     });
 
     return NextResponse.json({
       jobIds: jobs.map((job) => job.id),
+      jobs: jobs.map((job) => ({
+        id: job.id,
+        title: job.title,
+        company_name: job.company_name,
+      })),
     });
   } catch (err) {
     console.error('Failed to list job ids:', err);

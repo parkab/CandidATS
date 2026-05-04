@@ -1,104 +1,361 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 
 type DocumentRowProps = {
-  job: string;
+  jobId: string;
+  documentId: string;
+  jobTitle: string;
+  companyName: string;
   documentTitle: string;
   lastUpdated: string;
-  status: 'Ready' | 'Needs review' | 'Draft';
+  status: 'Ready' | 'Needs review' | 'Draft' | 'Archived';
+  docTypeLabel: string;
+  tags: string[];
 };
 
 const STATUS_STYLES: Record<DocumentRowProps['status'], string> = {
   Ready:
-    'border-emerald-200/70 bg-emerald-50 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-300',
+    'border-emerald-400/25 bg-emerald-500/10 text-emerald-200/95 ring-1 ring-inset ring-emerald-400/15',
   'Needs review':
-    'border-amber-200/70 bg-amber-50 text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300',
+    'border-amber-400/25 bg-amber-500/10 text-amber-100/95 ring-1 ring-inset ring-amber-400/15',
   Draft:
-    'border-slate-200/70 bg-slate-50 text-slate-700 dark:border-slate-400/40 dark:bg-slate-500/10 dark:text-slate-300',
+    'border-[--surface-border] bg-[--surface] text-[--text-muted] ring-1 ring-inset ring-[--surface-divider]',
+  Archived:
+    'border-zinc-500/25 bg-zinc-500/10 text-zinc-200/90 ring-1 ring-inset ring-zinc-400/10',
 };
 
+const MENU_MIN_WIDTH_PX = 208;
+const MENU_GAP_PX = 6;
+const VIEW_MARGIN = 10;
+
+function IconDocument() {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-[--text-muted]"
+      aria-hidden
+    >
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <path d="M14 2v6h6" />
+    </svg>
+  );
+}
+
+function IconBriefcase() {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-[--text-muted]"
+      aria-hidden
+    >
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className="opacity-75 transition group-hover/menu:opacity-100"
+      aria-hidden
+    >
+      <circle cx="5" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="19" cy="12" r="2" />
+    </svg>
+  );
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+const MAX_TAG_CHIPS = 4;
+
 export default function DocumentRow({
-  job,
+  jobId,
+  documentId,
+  jobTitle,
+  companyName,
   documentTitle,
   lastUpdated,
   status,
+  docTypeLabel,
+  tags,
 }: DocumentRowProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+    minWidth: number;
+  } | null>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
+
+  const documentHref = `/documents/${encodeURIComponent(documentId)}/edit`;
+  const jobHref = `/dashboard?openJob=${encodeURIComponent(jobId)}`;
+
+  const computeMenuLayout = useCallback((menuEl: HTMLDivElement | null) => {
+    const btn = buttonRef.current;
+    if (!btn) return null;
+
+    const rect = btn.getBoundingClientRect();
+    const measuredW = menuEl?.offsetWidth ?? MENU_MIN_WIDTH_PX;
+    const minWidth = Math.max(
+      MENU_MIN_WIDTH_PX,
+      measuredW,
+      Math.ceil(rect.width),
+    );
+    const menuHeight = menuEl?.offsetHeight ?? 96;
+
+    let left = rect.right - minWidth;
+    left = clamp(left, VIEW_MARGIN, window.innerWidth - minWidth - VIEW_MARGIN);
+
+    const spaceBelow = window.innerHeight - rect.bottom - VIEW_MARGIN;
+    const spaceAbove = rect.top - VIEW_MARGIN;
+    const fitsBelow = spaceBelow >= menuHeight + MENU_GAP_PX;
+    const fitsAbove = spaceAbove >= menuHeight + MENU_GAP_PX;
+
+    let top: number;
+    if (fitsBelow || !fitsAbove) {
+      top = rect.bottom + MENU_GAP_PX;
+      if (top + menuHeight > window.innerHeight - VIEW_MARGIN) {
+        top = window.innerHeight - VIEW_MARGIN - menuHeight;
       }
-    };
+    } else {
+      top = rect.top - MENU_GAP_PX - menuHeight;
+    }
 
-    window.addEventListener('mousedown', handleClickOutside);
-    return () => window.removeEventListener('mousedown', handleClickOutside);
+    top = clamp(top, VIEW_MARGIN, window.innerHeight - menuHeight - VIEW_MARGIN);
+
+    return { top, left, minWidth };
   }, []);
 
-  return (
-    <tr className="border-t border-[--surface-border] transition hover:bg-[--surface-hover]">
-      <td className="px-4 py-20 align-middle">
-        <p className="text-sm font-semibold text-[--foreground]">{job}</p>
-      </td>
-      <td className="px-4 py-20 align-middle">
-        <p className="text-sm font-medium text-[--foreground]">{documentTitle}</p>
-      </td>
-      <td className="px-4 py-20 align-middle text-sm text-[--foreground-muted]">
-        {lastUpdated}
-      </td>
-      <td className="px-4 py-20 align-middle">
-        <span
-          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[status]}`}
-        >
-          {status}
-        </span>
-      </td>
-      <td className="px-4 py-20 text-right align-middle">
-        <div className="relative inline-block text-left" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            aria-expanded={isMenuOpen}
-            aria-haspopup="menu"
-            className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-[--surface-border] bg-[--surface] px-3 py-1.5 text-xs font-medium text-[--foreground] shadow-sm transition hover:bg-[--surface-hover] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-1"
-          >
-            Actions
-            <span
-              aria-hidden
-              className={`transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
-            >
-              ▾
-            </span>
-          </button>
+  const updateMenuPosition = useCallback(() => {
+    const next = computeMenuLayout(menuPanelRef.current);
+    if (next) setMenuStyle(next);
+  }, [computeMenuLayout]);
 
-          {isMenuOpen ? (
-            <div
-              role="menu"
-              className="absolute right-0 z-10 mt-1 min-w-[10rem] rounded-md border border-[--surface-border] bg-[--surface] p-1 shadow-md"
+  function openMenuFromButton() {
+    const btn = buttonRef.current;
+    if (!btn) {
+      setIsMenuOpen(true);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const minWidth = Math.max(MENU_MIN_WIDTH_PX, Math.ceil(rect.width));
+    let left = rect.right - minWidth;
+    left = clamp(left, VIEW_MARGIN, window.innerWidth - minWidth - VIEW_MARGIN);
+
+    const estH = 96;
+    let top = rect.bottom + MENU_GAP_PX;
+    if (
+      rect.bottom + MENU_GAP_PX + estH > window.innerHeight - VIEW_MARGIN &&
+      rect.top > estH + VIEW_MARGIN
+    ) {
+      top = rect.top - MENU_GAP_PX - estH;
+    }
+    top = clamp(top, VIEW_MARGIN, window.innerHeight - estH - VIEW_MARGIN);
+
+    setMenuStyle({ top, left, minWidth });
+    setIsMenuOpen(true);
+  }
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isMenuOpen || !mounted) {
+      setMenuStyle(null);
+      return;
+    }
+
+    updateMenuPosition();
+    const id = requestAnimationFrame(() => updateMenuPosition());
+    return () => cancelAnimationFrame(id);
+  }, [isMenuOpen, mounted, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const onReposition = () => updateMenuPosition();
+    window.addEventListener('resize', onReposition);
+    window.addEventListener('scroll', onReposition, true);
+
+    return () => {
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
+    };
+  }, [isMenuOpen, updateMenuPosition]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (menuPanelRef.current?.contains(target)) return;
+      setIsMenuOpen(false);
+    };
+
+    if (!isMenuOpen) return;
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [isMenuOpen]);
+
+  const jobLine =
+    companyName.trim().length > 0
+      ? `${jobTitle} · ${companyName.trim()}`
+      : jobTitle;
+
+  const itemClass =
+    'flex cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-[--foreground] outline-none transition-colors hover:bg-[var(--popover-hover)] focus-visible:bg-[var(--popover-hover)]';
+
+  const menuPanel =
+    isMenuOpen && mounted && menuStyle ? (
+      <div
+        ref={menuPanelRef}
+        role="menu"
+        aria-orientation="vertical"
+        className="fixed z-[200] overflow-hidden rounded-2xl border border-solid p-1 opacity-100 [background-color:var(--popover-bg)] [border-color:var(--popover-border)] [box-shadow:var(--popover-shadow)]"
+        style={{
+          top: menuStyle.top,
+          left: menuStyle.left,
+          minWidth: menuStyle.minWidth,
+        }}
+      >
+        <Link
+          href={documentHref}
+          role="menuitem"
+          onClick={() => setIsMenuOpen(false)}
+          className={`${itemClass} rounded-xl`}
+        >
+          <IconDocument />
+          <span className="min-w-0">Open document</span>
+        </Link>
+        <div
+          className="mx-1.5 h-px [background-color:var(--popover-border)]"
+          role="separator"
+        />
+        <Link
+          href={jobHref}
+          role="menuitem"
+          onClick={() => setIsMenuOpen(false)}
+          className={`${itemClass} rounded-xl`}
+        >
+          <IconBriefcase />
+          <span className="min-w-0">Open job</span>
+        </Link>
+      </div>
+    ) : null;
+
+  return (
+    <li>
+      <div className="group/item relative rounded-2xl border border-[--surface-border] bg-[--surface] p-4 shadow-[0_1px_0_color-mix(in_oklab,var(--foreground)_6%,transparent)] transition duration-200 hover:border-[--action-border] hover:bg-[--surface-hover] sm:p-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--foreground)_18%,transparent)] to-transparent opacity-0 transition group-hover/item:opacity-100" />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Link
+              href={documentHref}
+              className="block font-semibold leading-snug text-[--foreground] underline-offset-2 transition hover:underline"
             >
+              <span className="line-clamp-2 sm:line-clamp-1">{documentTitle}</span>
+            </Link>
+            <p className="text-sm leading-relaxed text-[--text-muted]">{jobLine}</p>
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <span className="inline-flex rounded-md border border-[--surface-border] bg-[color-mix(in_oklab,var(--foreground)_5%,var(--background))] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[--text-muted]">
+                {docTypeLabel}
+              </span>
+              {tags.slice(0, MAX_TAG_CHIPS).map((tag, index) => (
+                <span
+                  key={`${tag}-${index}`}
+                  className="inline-flex max-w-[10rem] truncate rounded-md border border-[--surface-border] px-2 py-0.5 text-[0.65rem] text-[--text-muted]"
+                  title={tag}
+                >
+                  {tag}
+                </span>
+              ))}
+              {tags.length > MAX_TAG_CHIPS ? (
+                <span className="text-[0.65rem] text-[--text-muted]">
+                  +{tags.length - MAX_TAG_CHIPS} more
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center gap-3 sm:gap-4">
+            <span className="text-xs tabular-nums text-[--text-muted] sm:text-[0.7rem]">
+              {lastUpdated}
+            </span>
+            <span
+              className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase ${STATUS_STYLES[status]}`}
+            >
+              {status}
+            </span>
+
+            <div className="relative ml-auto sm:ml-0">
               <button
+                ref={buttonRef}
                 type="button"
-                role="menuitem"
-                onClick={() => setIsMenuOpen(false)}
-                className="block w-full cursor-pointer rounded px-3 py-2 text-left text-xs text-[--foreground] transition hover:bg-[--surface-hover] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                onClick={() => {
+                  if (isMenuOpen) {
+                    setIsMenuOpen(false);
+                    return;
+                  }
+                  openMenuFromButton();
+                }}
+                aria-expanded={isMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Document actions"
+                className={`group/menu flex cursor-pointer items-center justify-center rounded-xl border p-2 text-[--foreground] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,#70e2ff_55%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[--background] ${
+                  isMenuOpen
+                    ? 'border-[--action-border] bg-[--action-bg] shadow-sm'
+                    : 'border-transparent hover:border-[--surface-border] hover:bg-[color-mix(in_oklab,var(--foreground)_6%,var(--background))]'
+                }`}
               >
-                Open document
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => setIsMenuOpen(false)}
-                className="block w-full cursor-pointer rounded px-3 py-2 text-left text-xs text-[--foreground] transition hover:bg-[--surface-hover] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-              >
-                Open job
+                <MoreIcon />
               </button>
             </div>
-          ) : null}
+          </div>
         </div>
-      </td>
-    </tr>
+      </div>
+
+      {mounted && menuPanel ? createPortal(menuPanel, document.body) : null}
+    </li>
   );
 }
