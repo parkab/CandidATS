@@ -44,6 +44,7 @@ type JobMultiStepFormProps = {
   isDeleting?: boolean;
   onDocumentsChanged?: () => void;
   initialDraft?: Partial<JobMultiStepDraft>;
+  initialStep?: JobFormStepId;
   stickyFooter?: boolean;
   showFooterCancel?: boolean;
 };
@@ -86,10 +87,14 @@ export default function JobMultiStepForm({
   isDeleting = false,
   onDocumentsChanged,
   initialDraft,
+  initialStep,
   stickyFooter = false,
   showFooterCancel = true,
 }: JobMultiStepFormProps) {
-  const [activeStep, setActiveStep] = useState<JobFormStepId>('overview');
+  const [activeStep, setActiveStep] = useState<JobFormStepId>(
+    initialStep ?? 'overview',
+  );
+  const prevJobIdRef = useRef<string | undefined>(initialOverview.id);
   const [draft, setDraft] = useState<JobMultiStepDraft>(() =>
     buildInitialDraft(initialOverview, initialDraft),
   );
@@ -599,51 +604,6 @@ export default function JobMultiStepForm({
     }
   }
 
-  async function viewDocument(id: string) {
-    try {
-      const response = await fetch(`/api/documents/${encodeURIComponent(id)}`);
-      if (!response.ok) {
-        throw new Error('Unable to retrieve document.');
-      }
-
-      const payload = (await response.json()) as {
-        document?: PersistedDocument;
-      };
-
-      const document = payload.document;
-      if (!document) {
-        return;
-      }
-
-      if (document.storage?.signedUrl) {
-        window.open(
-          document.storage.signedUrl,
-          '_blank',
-          'noopener,noreferrer',
-        );
-        return;
-      }
-
-      if (document.storage) {
-        const message =
-          document.storage.signedUrlError?.trim() ||
-          'Unable to access stored file.';
-        setDocumentsError(message);
-        return;
-      }
-
-      const objectUrl = URL.createObjectURL(
-        new Blob([document.content], { type: 'text/plain' }),
-      );
-      window.open(objectUrl, '_blank', 'noopener,noreferrer');
-      setTimeout(() => {
-        URL.revokeObjectURL(objectUrl);
-      }, 60_000);
-    } catch {
-      setDocumentsError('Unable to retrieve document.');
-    }
-  }
-
   async function removeDocument(id: string) {
     try {
       setDocumentsError(null);
@@ -751,6 +711,7 @@ export default function JobMultiStepForm({
               mimeType: document.storage?.mimeType ?? 'text/plain',
               objectUrl: document.storage?.signedUrl ?? fallbackObjectUrl,
               storagePath: document.storage?.path,
+              isAiGenerated: !hasStoredFile,
             };
           },
         );
@@ -803,10 +764,15 @@ export default function JobMultiStepForm({
     return JOB_FORM_STEPS.find((step) => step.id === activeStep)?.label;
   }, [activeStep]);
 
-  // Re-initialize draft only when job ID changes (switching between different jobs)
-  // We watch initialOverview.id to detect when user switches to a different job
+  // Re-initialize draft only when job ID changes (switching between different jobs).
+  // Using prevJobIdRef instead of an isInitialMount ref so that React StrictMode's
+  // double-invoke of effects doesn't reset activeStep on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (prevJobIdRef.current === initialOverview.id) {
+      return;
+    }
+    prevJobIdRef.current = initialOverview.id;
     setDraft(buildInitialDraft(initialOverview, initialDraft));
     setActiveStep('overview');
   }, [initialOverview.id]);
@@ -944,7 +910,6 @@ export default function JobMultiStepForm({
               onDocumentDraftChange={setDocumentDraftField}
               onDocumentFileSelected={onDocumentFileSelected}
               onSaveDocument={saveDocumentItem}
-              onViewDocument={viewDocument}
               onRemoveDocument={removeDocument}
             />
           ) : null}

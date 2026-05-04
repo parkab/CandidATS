@@ -299,6 +299,99 @@ describe('Documents API integration', () => {
     expect(nextContent.path).toContain('user-1/cover-letters/');
   });
 
+  describe('multipart file upload (POST)', () => {
+    function buildMultipartRequest(
+      fields: Record<string, string>,
+      file?: { name: string; type: string; content: string },
+    ) {
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(fields)) {
+        formData.append(key, value);
+      }
+      if (file) {
+        const blob = new Blob([file.content], { type: file.type });
+        formData.append('file', blob, file.name);
+      }
+      return new Request('http://localhost/api/documents', {
+        method: 'POST',
+        body: formData,
+      }) as unknown as NextRequest;
+    }
+
+    beforeEach(() => {
+      mockedGetSession.mockResolvedValue({ userId: 'user-1', email: 'u@e' } as NonNullable<SessionResult>);
+      mockedJobFind.mockResolvedValue({ id: 'job-1' } as NonNullable<JobFindFirstResult>);
+      mockedDocCreate.mockResolvedValue({
+        id: 'doc-upload',
+        user_id: 'user-1',
+        job_id: 'job-1',
+        title: 'cv.pdf',
+        content: '{}',
+        type: 'resume',
+        status: 'ready',
+        tags: [],
+        created_at: new Date('2026-04-01T00:00:00.000Z'),
+        updated_at: new Date('2026-04-01T00:00:00.000Z'),
+      } as DocumentCreateResult);
+    });
+
+    it('accepts a valid PDF upload', async () => {
+      const res = await POST(
+        buildMultipartRequest(
+          { jobId: 'job-1', type: 'resume' },
+          { name: 'cv.pdf', type: 'application/pdf', content: '%PDF-1.4 fake' },
+        ),
+      );
+      expect(res.status).toBe(201);
+    });
+
+    it('rejects unsupported MIME type with 400', async () => {
+      const res = await POST(
+        buildMultipartRequest(
+          { jobId: 'job-1', type: 'resume' },
+          { name: 'photo.jpg', type: 'image/jpeg', content: 'JFIF' },
+        ),
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toMatch(/unsupported file type/i);
+    });
+
+    it('rejects empty file with 400', async () => {
+      const res = await POST(
+        buildMultipartRequest(
+          { jobId: 'job-1', type: 'resume' },
+          { name: 'empty.pdf', type: 'application/pdf', content: '' },
+        ),
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toMatch(/empty/i);
+    });
+
+    it('rejects cross-user job_id with 404', async () => {
+      mockedJobFind.mockResolvedValue(null);
+      const res = await POST(
+        buildMultipartRequest(
+          { jobId: 'job-other-user', type: 'resume' },
+          { name: 'cv.pdf', type: 'application/pdf', content: '%PDF content' },
+        ),
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('rejects unauthenticated upload with 401', async () => {
+      mockedGetSession.mockResolvedValue(null);
+      const res = await POST(
+        buildMultipartRequest(
+          { jobId: 'job-1', type: 'resume' },
+          { name: 'cv.pdf', type: 'application/pdf', content: '%PDF content' },
+        ),
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
   it('deletes document and removes stored file when present', async () => {
     mockedGetSession.mockResolvedValue({
       userId: 'user-1',

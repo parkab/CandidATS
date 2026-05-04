@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 type Document = {
   id: string;
   title: string;
   content: string;
   type: 'resume' | 'cover_letter' | 'other';
+  status: 'draft' | 'ready' | 'archived';
+  tags: string[];
   created_at: string;
   updated_at: string;
   storage: {
@@ -114,6 +117,12 @@ export default function JobSavedDocumentsSection({
     );
   }
 
+  function handleDocumentUpdated(updated: Document) {
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === updated.id ? updated : d)),
+    );
+  }
+
   return (
     <div className="grid gap-4">
       <h4 className="text-sm font-semibold text-(--foreground)">
@@ -127,7 +136,12 @@ export default function JobSavedDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {resumes.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onUnlink={unlinkDocument} />
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onDocumentUpdated={handleDocumentUpdated}
+                onUnlink={unlinkDocument}
+              />
             ))}
           </div>
         </div>
@@ -140,7 +154,12 @@ export default function JobSavedDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {coverLetters.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onUnlink={unlinkDocument} />
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onDocumentUpdated={handleDocumentUpdated}
+                onUnlink={unlinkDocument}
+              />
             ))}
           </div>
         </div>
@@ -153,7 +172,12 @@ export default function JobSavedDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {otherDocuments.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onUnlink={unlinkDocument} />
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onDocumentUpdated={handleDocumentUpdated}
+                onUnlink={unlinkDocument}
+              />
             ))}
           </div>
         </div>
@@ -162,108 +186,153 @@ export default function JobSavedDocumentsSection({
   );
 }
 
-function DocumentCard({ document, onUnlink }: { document: Document; onUnlink?: (id: string) => void }) {
+function DocumentCard({
+  document,
+  onDocumentUpdated,
+  onUnlink,
+}: {
+  document: Document;
+  onDocumentUpdated: (updated: Document) => void;
+  onUnlink?: (id: string) => void;
+}) {
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOpening, setIsOpening] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const [editTitle, setEditTitle] = useState(document.title);
+  const [editType, setEditType] = useState(document.type);
+  const [editStatus, setEditStatus] = useState(document.status);
+  const [editTags, setEditTags] = useState(document.tags.join(', '));
+  const [editNote, setEditNote] = useState(document.storage?.note ?? '');
+
+  const isGenerated = document.storage === null;
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
-  };
 
   const getTypeLabel = (type: string) => {
-    if (type === 'resume') {
-      return 'Resume';
-    }
-
-    if (type === 'cover_letter') {
-      return 'Cover Letter';
-    }
-
+    if (type === 'resume') return 'Resume';
+    if (type === 'cover_letter') return 'Cover Letter';
     return 'Other';
   };
 
   const getTypeColor = (type: string) => {
-    if (type === 'resume') {
-      return 'bg-blue-100 text-blue-800';
-    }
-
-    if (type === 'cover_letter') {
-      return 'bg-green-100 text-green-800';
-    }
-
+    if (type === 'resume') return 'bg-blue-100 text-blue-800';
+    if (type === 'cover_letter') return 'bg-green-100 text-green-800';
     return 'bg-amber-100 text-amber-800';
   };
 
-  const openStoredDocument = async () => {
-    if (!document.storage) {
-      return;
-    }
+  function handleOpenEditDetails() {
+    setEditTitle(document.title);
+    setEditType(document.type);
+    setEditStatus(document.status);
+    setEditTags(document.tags.join(', '));
+    setEditNote(document.storage?.note ?? '');
+    setDetailsError(null);
+    setIsEditingDetails(true);
+  }
 
+  async function handleSaveDetails() {
+    setIsSavingDetails(true);
+    setDetailsError(null);
     try {
-      setIsOpening(true);
-      setOpenError(null);
-      const response = await fetch(
-        `/api/documents/${encodeURIComponent(document.id)}`,
-      );
-
-      if (!response.ok) {
-        throw new Error('Unable to open document.');
+      const tags = editTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+      const res = await fetch(`/api/documents/${encodeURIComponent(document.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle.trim() || document.title,
+          type: editType,
+          status: editStatus,
+          tags,
+          ...(document.storage !== null ? { note: editNote } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({ error: 'Save failed' }))) as {
+          error: string;
+        };
+        throw new Error(err.error);
       }
-
-      const payload = (await response.json()) as { document?: Document };
-      const fetchedDocument = payload.document;
-      const signedUrl = fetchedDocument?.storage?.signedUrl ?? null;
-      const signedUrlError = fetchedDocument?.storage?.signedUrlError ?? null;
-
-      if (!signedUrl) {
-        throw new Error(signedUrlError || 'Unable to access stored file.');
-      }
-
-      window.open(signedUrl, '_blank', 'noopener,noreferrer');
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error && caughtError.message.trim().length > 0
-          ? caughtError.message
-          : 'Unable to open document.';
-      setOpenError(message);
+      const payload = (await res.json()) as { document: Document };
+      onDocumentUpdated(payload.document);
+      setIsEditingDetails(false);
+    } catch (err) {
+      setDetailsError(err instanceof Error ? err.message : 'Save failed');
     } finally {
-      setIsOpening(false);
+      setIsSavingDetails(false);
     }
-  };
+  }
 
   return (
-    <div className="rounded-md border border-(--surface-border) bg-(--surface-dimmed) p-3">
-      <div className="flex items-start justify-between">
+    <div className="rounded-md border border-(--surface-border) bg-(--surface) p-3">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h6 className="text-sm font-semibold text-(--foreground) truncate">
+          <div className="mb-1 flex items-center gap-2">
+            <h6 className="truncate text-sm font-semibold text-(--foreground)">
               {document.title}
             </h6>
             <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTypeColor(document.type)}`}
+              className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${getTypeColor(document.type)}`}
             >
               {getTypeLabel(document.type)}
             </span>
           </div>
           <p className="text-xs text-(--text-muted)">
-            Created: {formatDate(document.created_at)}
-            {document.updated_at !== document.created_at && (
-              <> • Updated: {formatDate(document.updated_at)}</>
+            {formatDate(document.created_at)}
+            {document.status !== 'draft' && (
+              <> · <span className="capitalize">{document.status}</span></>
+            )}
+            {document.tags.length > 0 && (
+              <> · {document.tags.join(', ')}</>
             )}
           </p>
         </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {isGenerated ? (
+          <>
+            <Link
+              href={`/documents/${document.id}/view`}
+              className="inline-flex items-center rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+            >
+              View/Download
+            </Link>
+            <Link
+              href={`/documents/${document.id}/edit`}
+              className="inline-flex items-center rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+            >
+              Edit Document
+            </Link>
+          </>
+        ) : (
+          <Link
+            href={`/documents/${document.id}/view`}
+            className="inline-flex items-center rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+          >
+            View
+          </Link>
+        )}
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="ml-2 text-xs text-(--text-muted) hover:text-(--foreground)"
+          type="button"
+          onClick={isEditingDetails ? () => setIsEditingDetails(false) : handleOpenEditDetails}
+          className="rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
         >
-          {isExpanded ? 'Collapse' : 'Expand'}
+          {isEditingDetails ? 'Cancel' : 'Edit Details'}
         </button>
         {onUnlink && (
           <button
@@ -275,27 +344,91 @@ function DocumentCard({ document, onUnlink }: { document: Document; onUnlink?: (
         )}
       </div>
 
-      {isExpanded && (
-        <div className="mt-3">
-          {document.storage ? (
+      {/* Edit Details inline form */}
+      {isEditingDetails && (
+        <div className="mt-3 grid gap-3 border-t border-(--surface-border) pt-3">
+          <div className="grid gap-1">
+            <label className="text-xs font-medium text-(--foreground)">Title</label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="rounded border border-(--surface-border) bg-(--background) px-2 py-1 text-sm text-(--foreground) focus:outline-none focus:ring-1 focus:ring-(--foreground)"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1">
+              <label className="text-xs font-medium text-(--foreground)">Category</label>
+              <select
+                value={editType}
+                onChange={(e) =>
+                  setEditType(e.target.value as 'resume' | 'cover_letter' | 'other')
+                }
+                className="rounded border border-(--surface-border) bg-(--background) px-2 py-1 text-sm text-(--foreground) focus:outline-none focus:ring-1 focus:ring-(--foreground)"
+              >
+                <option value="resume">Resume</option>
+                <option value="cover_letter">Cover Letter</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="grid gap-1">
+              <label className="text-xs font-medium text-(--foreground)">Status</label>
+              <select
+                value={editStatus}
+                onChange={(e) =>
+                  setEditStatus(e.target.value as 'draft' | 'ready' | 'archived')
+                }
+                className="rounded border border-(--surface-border) bg-(--background) px-2 py-1 text-sm text-(--foreground) focus:outline-none focus:ring-1 focus:ring-(--foreground)"
+              >
+                <option value="draft">Draft</option>
+                <option value="ready">Ready</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-1">
+            <label className="text-xs font-medium text-(--foreground)">
+              Tags <span className="font-normal text-(--text-muted)">(comma-separated)</span>
+            </label>
+            <input
+              type="text"
+              value={editTags}
+              onChange={(e) => setEditTags(e.target.value)}
+              placeholder="e.g. tailored, v2, final"
+              className="rounded border border-(--surface-border) bg-(--background) px-2 py-1 text-sm text-(--foreground) focus:outline-none focus:ring-1 focus:ring-(--foreground)"
+            />
+          </div>
+          {document.storage !== null && (
+            <div className="grid gap-1">
+              <label className="text-xs font-medium text-(--foreground)">Note</label>
+              <input
+                type="text"
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+                placeholder="Optional note"
+                className="rounded border border-(--surface-border) bg-(--background) px-2 py-1 text-sm text-(--foreground) focus:outline-none focus:ring-1 focus:ring-(--foreground)"
+              />
+            </div>
+          )}
+          {detailsError && (
+            <p className="text-xs text-(--danger-text)">{detailsError}</p>
+          )}
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={openStoredDocument}
-              disabled={isOpening}
-              className="mb-3 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleSaveDetails}
+              disabled={isSavingDetails}
+              className="rounded-md bg-(--foreground) px-3 py-1.5 text-xs font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isOpening ? 'Opening...' : 'Open file'}
+              {isSavingDetails ? 'Saving...' : 'Save'}
             </button>
-          ) : null}
-          {openError ? (
-            <p className="mb-2 text-xs text-(--danger-text)">{openError}</p>
-          ) : null}
-          <div className="rounded border bg-(--background) p-3">
-            <pre className="whitespace-pre-wrap text-xs text-(--foreground) leading-relaxed">
-              {document.storage
-                ? document.storage.note || 'Stored file document'
-                : document.content}
-            </pre>
+            <button
+              type="button"
+              onClick={() => setIsEditingDetails(false)}
+              className="rounded-md border border-(--surface-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-hover)"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
