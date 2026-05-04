@@ -206,7 +206,8 @@ function DocumentCard({
   const [editTitle, setEditTitle] = useState(document.title);
   const [editType, setEditType] = useState(document.type);
   const [editStatus, setEditStatus] = useState(document.status);
-  const [editTags, setEditTags] = useState(document.tags.join(', '));
+  const safeTags = Array.isArray(document.tags) ? document.tags : [];
+  const [editTags, setEditTags] = useState(safeTags.join(', '));
   const [editNote, setEditNote] = useState(document.storage?.note ?? '');
 
   const isGenerated = document.storage === null;
@@ -231,14 +232,17 @@ function DocumentCard({
   };
 
   function handleOpenEditDetails() {
-    setEditTitle(document.title);
-    setEditType(document.type);
-    setEditStatus(document.status);
-    setEditTags(document.tags.join(', '));
-    setEditNote(document.storage?.note ?? '');
-    setDetailsError(null);
-    setIsEditingDetails(true);
-  }
+  setEditTitle(document.title);
+  setEditType(document.type);
+  setEditStatus(document.status);
+
+  const safeTags = Array.isArray(document.tags) ? document.tags : [];
+  setEditTags(safeTags.join(', '));
+
+  setEditNote(document.storage?.note ?? '');
+  setDetailsError(null);
+  setIsEditingDetails(true);
+}
 
   async function handleSaveDetails() {
     setIsSavingDetails(true);
@@ -295,8 +299,8 @@ function DocumentCard({
             {document.status !== 'draft' && (
               <> · <span className="capitalize">{document.status}</span></>
             )}
-            {document.tags.length > 0 && (
-              <> · {document.tags.join(', ')}</>
+            {safeTags.length > 0 && (
+              <> · {safeTags.join(', ')}</>
             )}
           </p>
         </div>
