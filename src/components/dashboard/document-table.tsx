@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import DocumentRow from './document-row';
 
 type ApiJobSummary = {
@@ -172,15 +172,28 @@ export default function DocumentTable() {
   const [dateOrder, setDateOrder] = useState<'asc' | 'desc'>(DEFAULT_DATE_ORDER);
   const [titleOrder, setTitleOrder] = useState<'asc' | 'desc'>(DEFAULT_TITLE_ORDER);
 
-  useEffect(() => {
-    const ac = new AbortController();
+  const [jobSelectOptions, setJobSelectOptions] = useState<ApiJobSummary[]>([]);
+  const [duplicateRow, setDuplicateRow] = useState<ListRow | null>(null);
+  const [duplicateTitle, setDuplicateTitle] = useState('');
+  const [duplicateJobId, setDuplicateJobId] = useState('');
+  const [duplicateBusy, setDuplicateBusy] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [renameRow, setRenameRow] = useState<ListRow | null>(null);
+  const [renameTitle, setRenameTitle] = useState('');
+  const [renameBusy, setRenameBusy] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const dupDialogTitleId = useId();
+  const renDialogTitleId = useId();
 
-    async function load() {
-      setIsLoading(true);
+  const loadDocuments = useCallback(
+    async (signal: AbortSignal, silent = false) => {
+      if (!silent) {
+        setIsLoading(true);
+      }
       setError(null);
 
       try {
-        const jobsRes = await fetch('/api/jobs', { signal: ac.signal });
+        const jobsRes = await fetch('/api/jobs', { signal });
 
         if (!jobsRes.ok) {
           const body = await jobsRes.json().catch(() => null);
@@ -197,7 +210,9 @@ export default function DocumentTable() {
         const jobIds = Array.isArray(jobsPayload.jobIds) ? jobsPayload.jobIds : [];
         const jobById = new Map<string, { title: string; company_name: string }>();
 
-        for (const job of jobsPayload.jobs ?? []) {
+        const rawJobs = jobsPayload.jobs ?? [];
+
+        for (const job of rawJobs) {
           if (job?.id) {
             jobById.set(job.id, {
               title: typeof job.title === 'string' ? job.title : 'Untitled role',
@@ -213,13 +228,27 @@ export default function DocumentTable() {
           }
         }
 
+        const selectOpts: ApiJobSummary[] = jobIds.map((id) => {
+          const m = jobById.get(id) ?? { title: 'Job', company_name: '' };
+          return {
+            id,
+            title: m.title,
+            company_name: m.company_name,
+          };
+        });
+        selectOpts.sort((a, b) => {
+          const ta = `${a.title} ${a.company_name}`;
+          const tb = `${b.title} ${b.company_name}`;
+          return ta.localeCompare(tb, undefined, { sensitivity: 'base' });
+        });
+
         const combined: ListRow[] = [];
 
         await Promise.all(
           jobIds.map(async (jobId) => {
             const docRes = await fetch(
               `/api/documents?jobId=${encodeURIComponent(jobId)}`,
-              { signal: ac.signal },
+              { signal },
             );
 
             if (!docRes.ok) {
@@ -267,24 +296,128 @@ export default function DocumentTable() {
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
         );
 
-        setAllRows(combined);
+        if (!signal.aborted) {
+          setAllRows(combined);
+          setJobSelectOptions(selectOpts);
+        }
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           return;
         }
-        setError(err instanceof Error ? err.message : 'Something went wrong.');
-        setAllRows([]);
+        if (!signal.aborted) {
+          setError(err instanceof Error ? err.message : 'Something went wrong.');
+          setAllRows([]);
+        }
       } finally {
-        if (!ac.signal.aborted) {
+        if (!signal.aborted && !silent) {
           setIsLoading(false);
         }
       }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const ac = new AbortController();
+    void loadDocuments(ac.signal, false);
+    return () => ac.abort();
+  }, [loadDocuments]);
+
+  function openDuplicateDialog(row: ListRow) {
+    setDuplicateError(null);
+    setDuplicateRow(row);
+    setDuplicateTitle(`${row.documentTitle} (copy)`);
+    setDuplicateJobId(row.jobId);
+  }
+
+  function closeDuplicateDialog() {
+    setDuplicateRow(null);
+    setDuplicateError(null);
+    setDuplicateBusy(false);
+  }
+
+  async function submitDuplicate() {
+    if (!duplicateRow) return;
+    const title = duplicateTitle.trim();
+    if (!title) {
+      setDuplicateError('Enter a document name.');
+      return;
+    }
+    if (!duplicateJobId) {
+      setDuplicateError('Select a job.');
+      return;
     }
 
-    void load();
+    setDuplicateBusy(true);
+    setDuplicateError(null);
+    try {
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(duplicateRow.id)}/duplicate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, jobId: duplicateJobId }),
+        },
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          typeof body?.error === 'string' ? body.error : 'Could not duplicate document.';
+        throw new Error(message);
+      }
+      closeDuplicateDialog();
+      const ac = new AbortController();
+      await loadDocuments(ac.signal, true);
+    } catch (err: unknown) {
+      setDuplicateError(err instanceof Error ? err.message : 'Could not duplicate document.');
+    } finally {
+      setDuplicateBusy(false);
+    }
+  }
 
-    return () => ac.abort();
-  }, []);
+  function openRenameDialog(row: ListRow) {
+    setRenameError(null);
+    setRenameRow(row);
+    setRenameTitle(row.documentTitle);
+  }
+
+  function closeRenameDialog() {
+    setRenameRow(null);
+    setRenameError(null);
+    setRenameBusy(false);
+  }
+
+  async function submitRename() {
+    if (!renameRow) return;
+    const title = renameTitle.trim();
+    if (!title) {
+      setRenameError('Enter a document name.');
+      return;
+    }
+
+    setRenameBusy(true);
+    setRenameError(null);
+    try {
+      const res = await fetch(`/api/documents/${encodeURIComponent(renameRow.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          typeof body?.error === 'string' ? body.error : 'Could not rename document.';
+        throw new Error(message);
+      }
+      closeRenameDialog();
+      const ac = new AbortController();
+      await loadDocuments(ac.signal, true);
+    } catch (err: unknown) {
+      setRenameError(err instanceof Error ? err.message : 'Could not rename document.');
+    } finally {
+      setRenameBusy(false);
+    }
+  }
 
   const displayRows = useMemo(() => {
     const tagNeedles = parseTagNeedles(tagQuery);
@@ -597,9 +730,162 @@ export default function DocumentTable() {
               status={doc.status}
               docTypeLabel={docTypeLabel(doc.docType)}
               tags={doc.tags}
+              onDuplicate={() => openDuplicateDialog(doc)}
+              onRename={() => openRenameDialog(doc)}
             />
           ))}
         </ul>
+      ) : null}
+
+      {duplicateRow ? (
+        <div className="fixed inset-0 z-[250] grid place-items-center p-4">
+          <button
+            type="button"
+            onClick={closeDuplicateDialog}
+            aria-label="Close duplicate dialog"
+            className="absolute inset-0 bg-black/55"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dupDialogTitleId}
+            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-[--surface-border] bg-[var(--popover-bg)] shadow-2xl [background-clip:padding-box]"
+          >
+            <div className="border-b border-[--surface-divider] p-5">
+              <h2
+                id={dupDialogTitleId}
+                className="text-lg font-semibold tracking-tight text-[--foreground]"
+              >
+                Duplicate document
+              </h2>
+              <p className="mt-1 text-sm text-[--text-muted]">
+                Choose a name and the job this copy belongs to.
+              </p>
+            </div>
+            <div className="space-y-4 p-5">
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-[--foreground]">
+                Name
+                <input
+                  type="text"
+                  value={duplicateTitle}
+                  onChange={(e) => setDuplicateTitle(e.target.value)}
+                  className="library-filter-input rounded-xl"
+                  autoComplete="off"
+                  disabled={duplicateBusy}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-[--foreground]">
+                Job
+                <select
+                  className="library-filter-select rounded-xl"
+                  value={duplicateJobId}
+                  onChange={(e) => setDuplicateJobId(e.target.value)}
+                  disabled={duplicateBusy}
+                >
+                  {jobSelectOptions.map((job) => (
+                    <option key={job.id} value={job.id}>
+                      {job.title}
+                      {job.company_name.trim().length > 0
+                        ? ` · ${job.company_name.trim()}`
+                        : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {duplicateError ? (
+                <p
+                  role="alert"
+                  className="text-sm font-medium text-[--danger-text]"
+                >
+                  {duplicateError}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-[--surface-border] bg-[var(--popover-bg)] p-4">
+              <button
+                type="button"
+                onClick={closeDuplicateDialog}
+                disabled={duplicateBusy}
+                className="cursor-pointer rounded-lg border border-[--surface-border] bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--surface)] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitDuplicate()}
+                disabled={duplicateBusy}
+                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[--action-hover] disabled:opacity-50"
+              >
+                {duplicateBusy ? 'Duplicating…' : 'Duplicate'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {renameRow ? (
+        <div className="fixed inset-0 z-[250] grid place-items-center p-4">
+          <button
+            type="button"
+            onClick={closeRenameDialog}
+            aria-label="Close rename dialog"
+            className="absolute inset-0 bg-black/55"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={renDialogTitleId}
+            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-[--surface-border] bg-[var(--popover-bg)] shadow-2xl [background-clip:padding-box]"
+          >
+            <div className="border-b border-[--surface-divider] p-5">
+              <h2
+                id={renDialogTitleId}
+                className="text-lg font-semibold tracking-tight text-[--foreground]"
+              >
+                Rename document
+              </h2>
+            </div>
+            <div className="space-y-4 p-5">
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-[--foreground]">
+                Name
+                <input
+                  type="text"
+                  value={renameTitle}
+                  onChange={(e) => setRenameTitle(e.target.value)}
+                  className="library-filter-input rounded-xl"
+                  autoComplete="off"
+                  disabled={renameBusy}
+                />
+              </label>
+              {renameError ? (
+                <p
+                  role="alert"
+                  className="text-sm font-medium text-[--danger-text]"
+                >
+                  {renameError}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-[--surface-border] bg-[var(--popover-bg)] p-4">
+              <button
+                type="button"
+                onClick={closeRenameDialog}
+                disabled={renameBusy}
+                className="cursor-pointer rounded-lg border border-[--surface-border] bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--surface)] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitRename()}
+                disabled={renameBusy}
+                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[--action-hover] disabled:opacity-50"
+              >
+                {renameBusy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
     </div>
   );

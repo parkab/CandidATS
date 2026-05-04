@@ -20,6 +20,8 @@ type DocumentRowProps = {
   status: 'Ready' | 'Needs review' | 'Draft' | 'Archived';
   docTypeLabel: string;
   tags: string[];
+  onDuplicate?: () => void;
+  onRename?: () => void;
 };
 
 const STATUS_STYLES: Record<DocumentRowProps['status'], string> = {
@@ -110,6 +112,8 @@ export default function DocumentRow({
   status,
   docTypeLabel,
   tags,
+  onDuplicate,
+  onRename,
 }: DocumentRowProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -267,6 +271,32 @@ export default function DocumentRow({
           <IconDocument />
           <span className="min-w-0">Open document</span>
         </Link>
+        {onDuplicate ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setIsMenuOpen(false);
+              onDuplicate();
+            }}
+            className={`${itemClass} w-full rounded-xl border-0 bg-transparent text-left font-[inherit]`}
+          >
+            <span className="min-w-0">Duplicate…</span>
+          </button>
+        ) : null}
+        {onRename ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setIsMenuOpen(false);
+              onRename();
+            }}
+            className={`${itemClass} w-full rounded-xl border-0 bg-transparent text-left font-[inherit]`}
+          >
+            <span className="min-w-0">Rename…</span>
+          </button>
+        ) : null}
         <div
           className="mx-1.5 h-px [background-color:var(--popover-border)]"
           role="separator"
