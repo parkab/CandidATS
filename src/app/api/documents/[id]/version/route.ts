@@ -31,7 +31,7 @@ export async function GET(
 
     const document = await prisma.document.findFirst({
       where: { id: documentId, user_id: session.userId },
-      select: { id: true, title: true },
+      select: { id: true, title: true, job_id: true },
     });
 
     if (!document) {
@@ -46,7 +46,7 @@ export async function GET(
       orderBy: { versionNumber: 'desc' },
     });
 
-    return NextResponse.json({ version: version ?? null, title: document.title });
+    return NextResponse.json({ version: version ?? null, title: document.title, jobId: document.job_id });
   } catch (error) {
     console.error('[version GET] unexpected error:', error);
     return NextResponse.json(

@@ -7,6 +7,9 @@ import {
   encodeStoredFileContent,
   isSupportedDocumentStatus,
   isSupportedDocumentType,
+  isSupportedUploadMimeType,
+  MAX_UPLOAD_BYTES,
+  mimeFromFileName,
   type StoredFileDocumentContent,
   tryParseStoredFileContent,
 } from '@/lib/documents/metadata';
@@ -287,6 +290,32 @@ export async function PATCH(
         );
       }
 
+      const fileMimeType =
+        file.type && file.type.trim().length > 0
+          ? file.type
+          : mimeFromFileName(file.name);
+
+      if (!isSupportedUploadMimeType(fileMimeType)) {
+        return NextResponse.json(
+          { error: 'Unsupported file type. Supported formats: PDF, DOCX, TXT' },
+          { status: 400 },
+        );
+      }
+
+      if (file.size === 0) {
+        return NextResponse.json(
+          { error: 'File cannot be empty' },
+          { status: 400 },
+        );
+      }
+
+      if (file.size > MAX_UPLOAD_BYTES) {
+        return NextResponse.json(
+          { error: 'File too large. Maximum size is 10 MB' },
+          { status: 400 },
+        );
+      }
+
       if (type && !isSupportedDocumentType(type)) {
         return NextResponse.json(
           { error: 'Type must be one of resume, cover_letter, or other' },
@@ -329,10 +358,7 @@ export async function PATCH(
       const uploadResult = await supabaseAdmin.storage
         .from(DOCUMENTS_BUCKET)
         .upload(storagePath, file, {
-          contentType:
-            file.type && file.type.trim().length > 0
-              ? file.type
-              : 'application/octet-stream',
+          contentType: fileMimeType,
           upsert: false,
         });
 
@@ -361,10 +387,7 @@ export async function PATCH(
             bucket: DOCUMENTS_BUCKET,
             path: storagePath,
             fileName,
-            mimeType:
-              file.type && file.type.trim().length > 0
-                ? file.type
-                : 'application/octet-stream',
+            mimeType: fileMimeType,
             size: file.size,
             note: note ?? undefined,
           }),

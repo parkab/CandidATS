@@ -50,6 +50,7 @@ export type JobDocumentItemDraft = {
   mimeType: string;
   objectUrl?: string;
   storagePath?: string;
+  isAiGenerated?: boolean;
 };
 
 export type JobDocumentsDraft = {

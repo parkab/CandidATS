@@ -220,4 +220,50 @@ describe('JobMultiStepForm', () => {
 
     expect(revokeSpy).toHaveBeenCalledWith('blob:resume-preview');
   });
+
+  it('opens on the specified initialStep instead of overview', () => {
+    render(
+      <JobMultiStepForm
+        initialOverview={VALID_OVERVIEW}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        initialStep="documents"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Documents' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { level: 3, name: 'Overview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('resets to overview when initialOverview.id changes to a different job', () => {
+    const { rerender } = render(
+      <JobMultiStepForm
+        initialOverview={{ ...VALID_OVERVIEW, id: 'job-1' }}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        initialStep="documents"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Documents' }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <JobMultiStepForm
+        initialOverview={{ ...VALID_OVERVIEW, id: 'job-2' }}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        initialStep="documents"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Overview' }),
+    ).toBeInTheDocument();
+  });
 });

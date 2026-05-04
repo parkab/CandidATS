@@ -30,6 +30,11 @@ export async function uploadPdf(params: {
   return path;
 }
 
+export async function deletePdf(path: string): Promise<void> {
+  if (!supabaseAdmin) return;
+  await supabaseAdmin.storage.from(DOCUMENTS_BUCKET).remove([path]);
+}
+
 export async function createPdfSignedUrl(
   path: string,
 ): Promise<string | null> {

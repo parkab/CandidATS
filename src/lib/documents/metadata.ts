@@ -1,6 +1,27 @@
 export type DocumentType = 'resume' | 'cover_letter' | 'other';
 export type DocumentStatus = 'draft' | 'ready' | 'archived';
 
+export const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+]);
+
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+export function isSupportedUploadMimeType(mimeType: string): boolean {
+  return ALLOWED_UPLOAD_MIME_TYPES.has(mimeType);
+}
+
+export function mimeFromFileName(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'docx')
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (ext === 'txt') return 'text/plain';
+  return 'application/octet-stream';
+}
+
 const DOCUMENT_TYPE_SET = new Set<DocumentType>([
   'resume',
   'cover_letter',
