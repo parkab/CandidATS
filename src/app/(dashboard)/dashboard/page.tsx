@@ -81,6 +81,7 @@ export type DashboardPageProps = {
     deadlineState?: string | string[];
     openJob?: string | string[];
     tab?: string | string[];
+    showArchived?: string | string[];
   }>;
 };
 
@@ -96,6 +97,11 @@ function getJobOrderBy(sortOption: SortOption) {
     default:
       return { last_activity_date: 'desc' } as const;
   }
+}
+
+function parseBooleanParam(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return candidate === 'true';
 }
 
 function parseSortOption(value: string | string[] | undefined): SortOption {
@@ -204,6 +210,146 @@ function getJobWhere(
   return where;
 }
 
+const PIPELINE_STAGE_ORDER = [
+  'Interested',
+  'Applied',
+  'Interview',
+  'Offer',
+  'Rejected',
+] as const;
+
+type PipelineStage = (typeof PIPELINE_STAGE_ORDER)[number];
+
+type TimelineEventForAnalytics = {
+  event_type: string | null;
+  occurred_at: Date | null;
+  notes: string | null;
+};
+
+function formatPercent(numerator: number, denominator: number) {
+  if (denominator === 0) {
+    return '0%';
+  }
+
+  return `${Math.round((numerator / denominator) * 100)}%`;
+}
+
+function getStageRank(stage: string) {
+  const normalizedStage = toApplicationStatus(stage);
+  const index = PIPELINE_STAGE_ORDER.indexOf(normalizedStage as PipelineStage);
+
+  return index === -1 ? 0 : index;
+}
+
+function countJobsAtOrPastStage(jobs: DashboardJob[], stage: PipelineStage) {
+  const targetRank = PIPELINE_STAGE_ORDER.indexOf(stage);
+
+  return jobs.filter((job) => getStageRank(job.pipeline_stage) >= targetRank)
+    .length;
+}
+
+function calculateAverageDaysBetweenEvents(
+  jobsWithEvents: Array<{
+    TimelineEvent?: TimelineEventForAnalytics[] | null;
+  }>,
+) {
+  const durationsInDays: number[] = [];
+
+  for (const job of jobsWithEvents) {
+    const events = [...(job.TimelineEvent ?? [])]
+      .filter(
+        (
+          event,
+        ): event is TimelineEventForAnalytics & {
+          occurred_at: Date;
+        } => event.occurred_at !== null,
+      )
+      .sort(
+        (a, b) => a.occurred_at.getTime() - b.occurred_at.getTime(),
+      );
+
+    for (let i = 0; i < events.length - 1; i += 1) {
+      const currentEvent = events[i];
+      const nextEvent = events[i + 1];
+
+      const days =
+        (nextEvent.occurred_at.getTime() - currentEvent.occurred_at.getTime()) /
+        1000 /
+        60 /
+        60 /
+        24;
+
+      if (days >= 0) {
+        durationsInDays.push(days);
+      }
+    }
+  }
+
+  if (durationsInDays.length === 0) {
+    return null;
+  }
+
+  const average =
+    durationsInDays.reduce((sum, days) => sum + days, 0) /
+    durationsInDays.length;
+
+  return Math.round(average);
+}
+
+function calculateThirtyDayEventVelocity(
+  jobsWithEvents: Array<{
+    TimelineEvent?: TimelineEventForAnalytics[] | null;
+  }>,
+  now: Date,
+) {
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  return jobsWithEvents.reduce((count, job) => {
+    const recentEvents = (job.TimelineEvent ?? []).filter((event) => {
+      return event.occurred_at !== null && event.occurred_at >= thirtyDaysAgo;
+    });
+
+    return count + recentEvents.length;
+  }, 0);
+}
+
+function calculateEventVelocityForDays(
+  jobsWithEvents: Array<{
+    TimelineEvent?: TimelineEventForAnalytics[] | null;
+  }>,
+  now: Date,
+  days: number,
+) {
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - days);
+
+  return jobsWithEvents.reduce((count, job) => {
+    const recentEvents = (job.TimelineEvent ?? []).filter((event) => {
+      return event.occurred_at !== null && event.occurred_at >= cutoff;
+    });
+
+    return count + recentEvents.length;
+  }, 0);
+}
+
+function calculateActiveJobsForDays(
+  jobsWithEvents: Array<{
+    TimelineEvent?: TimelineEventForAnalytics[] | null;
+  }>,
+  now: Date,
+  days: number,
+) {
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - days);
+
+  return jobsWithEvents.filter((job) =>
+    (job.TimelineEvent ?? []).some(
+      (event) => event.occurred_at !== null && event.occurred_at >= cutoff,
+    ),
+  ).length;
+}
+
 export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const session = await getSession();
   const params = await searchParams;
@@ -214,6 +360,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const deadlineState = parseDeadlineState(params.deadlineState);
   const openJobId = parseTextQuery(params.openJob);
   const initialTab = parseTextQuery(params.tab);
+  const showArchived = parseBooleanParam(params.showArchived);
 
   if (!session) {
     return (
@@ -421,8 +568,16 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
 
   const now = new Date();
 
+  const metricJobs = showArchived
+  ? jobs
+  : jobs.filter((job) => !job.archived);
+
+const metricJobsWithRelations = showArchived
+  ? jobsWithRelations
+  : jobsWithRelations.filter((job) => !job.archived);
+
   // Get upcoming interviews for metrics
-  const upcomingInterviewsList = jobsWithRelations.flatMap((job) =>
+  const upcomingInterviewsList = metricJobsWithRelations.flatMap((job) =>
     (job.Interview ?? []).filter(
       (interview: { scheduled_at: Date }) => interview.scheduled_at >= now,
     ),
@@ -431,20 +586,20 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const normalizedStages = jobs.map((job) =>
     toApplicationStatus(job.pipeline_stage),
   );
-  const totalApplications = jobs.length;
-  const openApplications = jobs.filter((job) => !job.archived).length;
-  const offersReceived = jobs.filter(
-    (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
-  ).length;
-  const pastDueDeadlines = jobs.filter(
-    (job) => job.deadline !== null && job.deadline < now,
-  ).length;
+  const totalApplications = metricJobs.length;
+const openApplications = metricJobs.filter((job) => !job.archived).length;
+const offersReceived = metricJobs.filter(
+  (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
+).length;
+const pastDueDeadlines = metricJobs.filter(
+  (job) => job.deadline !== null && job.deadline < now,
+).length;
   const upcomingInterviews = upcomingInterviewsList.length;
   const averageDaysSinceLastActivity =
     totalApplications === 0
       ? 0
       : Math.round(
-          jobs.reduce(
+          metricJobs.reduce(
             (sum, job) =>
               sum +
               (now.getTime() - job.last_activity_date.getTime()) /
@@ -455,6 +610,44 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
             0,
           ) / totalApplications,
         );
+
+const appliedApplications = countJobsAtOrPastStage(metricJobs, 'Applied');
+const interviewApplications = countJobsAtOrPastStage(metricJobs, 'Interview');
+const offerApplications = countJobsAtOrPastStage(metricJobs, 'Offer');
+
+const appliedToInterviewConversion = formatPercent(
+  interviewApplications,
+  appliedApplications,
+);
+
+const interviewToOfferConversion = formatPercent(
+  offerApplications,
+  interviewApplications,
+);
+
+const averageDaysBetweenTimelineEvents =
+  calculateAverageDaysBetweenEvents(metricJobsWithRelations);
+
+const sevenDayVelocity = calculateEventVelocityForDays(
+  metricJobsWithRelations,
+  now,
+  7,
+);
+
+const thirtyDayVelocity = calculateEventVelocityForDays(
+  metricJobsWithRelations,
+  now,
+  30,
+);
+
+const activeJobsThirtyDays = calculateActiveJobsForDays(
+  metricJobsWithRelations,
+  now,
+  30,
+);
+
+
+
 
   const dashboardMetrics = [
     {
@@ -487,6 +680,42 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       value: `${averageDaysSinceLastActivity} days`,
       description: 'Average age of job activity across your pipeline.',
     },
+    {
+  label: 'Applied → Interview',
+  value: appliedToInterviewConversion,
+  description: 'Share of applied jobs that have reached the interview stage.',
+},
+{
+  label: 'Interview → Offer',
+  value: interviewToOfferConversion,
+  description: 'Share of interview-stage jobs that have reached offer status.',
+},
+{
+  label: 'Avg. days between events',
+  value:
+    averageDaysBetweenTimelineEvents === null
+      ? 'N/A'
+      : `${averageDaysBetweenTimelineEvents} days`,
+  description: 'Average time between stored timeline events for each job.',
+},
+{
+  label: '7-day velocity',
+  value: sevenDayVelocity,
+  description:
+    'Timeline events recorded across your pipeline in the last 7 days.',
+},
+{
+  label: '30-day velocity',
+  value: thirtyDayVelocity,
+  description:
+    'Timeline events recorded across your pipeline in the last 30 days.',
+},
+{
+  label: 'Active jobs (30d)',
+  value: activeJobsThirtyDays,
+  description:
+    'Jobs with at least one recorded event in the last 30 days.',
+},
   ];
 
   const jobsForModal = jobs.map((job: DashboardJob) => {

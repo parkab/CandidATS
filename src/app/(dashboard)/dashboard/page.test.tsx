@@ -79,11 +79,38 @@ jest.mock('@/components/dashboard/dashboard-metrics', () => ({
     <div>
       Mock Dashboard Metrics:
       {metrics.map((m) => (
-        <div key={m.label}>{m.label}</div>
+        <div key={m.label} data-testid={`metric-${m.label}`}>
+          <span>{m.label}</span>
+          <span>{m.value}</span>
+        </div>
       ))}
     </div>
   ),
 }));
+
+function createMockJob(overrides = {}) {
+  return {
+    id: 'job-1',
+    company_name: 'Test Company',
+    location: 'Newark, NJ',
+    title: 'Security Intern',
+    archived: false,
+    last_activity_date: new Date('2026-05-01T00:00:00.000Z'),
+    pipeline_stage: 'Applied',
+    deadline: null,
+    priority_flag: false,
+    job_description: null,
+    compensation_notes: null,
+    application_date: null,
+    recruiter_contact_notes: null,
+    interview_prep_notes: null,
+    custom_notes: null,
+    TimelineEvent: [],
+    Interview: [],
+    FollowUpTask: [],
+    ...overrides,
+  };
+}
 
 describe('Dashboard page', () => {
   beforeEach(() => {
@@ -174,6 +201,79 @@ describe('Dashboard page', () => {
       }),
     );
   });
+
+
+  it('excludes archived jobs from dashboard metrics by default', async () => {
+  (getSession as jest.Mock).mockResolvedValue({
+    userId: 'user-123',
+    email: 'test@example.com',
+  });
+
+  (prisma.job.findMany as jest.Mock).mockResolvedValue([
+    createMockJob({
+      id: 'job-open',
+      company_name: 'Open Co',
+      archived: false,
+      pipeline_stage: 'Applied',
+    }),
+    createMockJob({
+      id: 'job-archived',
+      company_name: 'Archived Co',
+      archived: true,
+      pipeline_stage: 'Offer',
+    }),
+  ]);
+
+  render(
+    await Dashboard({
+      searchParams: Promise.resolve({}),
+    } as unknown as DashboardPageProps),
+  );
+
+  expect(screen.getByTestId('metric-Total applications')).toHaveTextContent(
+    'Total applications1',
+  );
+
+  expect(screen.getByTestId('metric-Open opportunities')).toHaveTextContent(
+    'Open opportunities1',
+  );
+});
+
+it('includes archived jobs in dashboard metrics when showArchived is true', async () => {
+  (getSession as jest.Mock).mockResolvedValue({
+    userId: 'user-123',
+    email: 'test@example.com',
+  });
+
+  (prisma.job.findMany as jest.Mock).mockResolvedValue([
+    createMockJob({
+      id: 'job-open',
+      company_name: 'Open Co',
+      archived: false,
+      pipeline_stage: 'Applied',
+    }),
+    createMockJob({
+      id: 'job-archived',
+      company_name: 'Archived Co',
+      archived: true,
+      pipeline_stage: 'Offer',
+    }),
+  ]);
+
+  render(
+    await Dashboard({
+      searchParams: Promise.resolve({ showArchived: 'true' }),
+    } as unknown as DashboardPageProps),
+  );
+
+  expect(screen.getByTestId('metric-Total applications')).toHaveTextContent(
+    'Total applications2',
+  );
+
+  expect(screen.getByTestId('metric-Open opportunities')).toHaveTextContent(
+    'Open opportunities1',
+  );
+});
 
   it('orders jobs by company name when sort query parameter is company', async () => {
     (getSession as jest.Mock).mockResolvedValue({

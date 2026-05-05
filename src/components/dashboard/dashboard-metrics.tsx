@@ -11,7 +11,7 @@ type DashboardMetricsProps = {
 export default function DashboardMetrics({ metrics }: DashboardMetricsProps) {
   return (
     <section className="mx-auto mt-8 max-w-6xl px-4 sm:px-0">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <article
             key={metric.label}
