@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { ApplicationStatus } from '@/lib/jobs/status';
 import type { JobFormStepId } from '@/lib/jobs/multi-step-form';
 import { JOB_FORM_STEPS } from '@/lib/jobs/multi-step-form';
@@ -86,8 +87,12 @@ export default function JobsModalGrid({
   initialOpenJobId?: string;
   initialTab?: string;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const showArchived = searchParams.get('showArchived') === 'true';
+
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
-  const [showArchived, setShowArchived] = useState(false);
   const [modalState, setModalState] = useState<ModalState>(null);
   const autoOpenHandledRef = useRef(false);
 
@@ -121,6 +126,8 @@ export default function JobsModalGrid({
 
     return jobs.find((job) => job.id === modalState.jobId) ?? null;
   }, [jobs, modalState]);
+
+
 
   const visibleJobs = useMemo(
     () => (showArchived ? jobs : jobs.filter((job) => !job.archived)),
@@ -285,6 +292,7 @@ export default function JobsModalGrid({
           nextArchived ? 'Failed to archive job' : 'Failed to restore job',
         );
       }
+      router.refresh();
     } catch (error) {
       setJobs((prevJobs) =>
         prevJobs.map((job) => (job.id === jobId ? oldJob : job)),
@@ -340,12 +348,25 @@ export default function JobsModalGrid({
     });
   }, [modalState]);
 
+  function toggleArchivedVisibility() {
+  const params = new URLSearchParams(searchParams.toString());
+
+  if (showArchived) {
+    params.delete('showArchived');
+  } else {
+    params.set('showArchived', 'true');
+  }
+
+  const queryString = params.toString();
+  router.replace(`/dashboard${queryString ? `?${queryString}` : ''}`);
+}
+
   return (
     <>
       <div className="mx-auto mt-10 flex max-w-6xl items-center justify-end">
         <button
           type="button"
-          onClick={() => setShowArchived((current) => !current)}
+          onClick={toggleArchivedVisibility}
           className="cursor-pointer rounded-md border border-(--surface-border) bg-[linear-gradient(110deg,var(--background)_0%,var(--background)_48%,#ffa647_66%,#70e2ff_84%,#cd93ff_100%)] bg-size-[220%_100%] bg-position-[0%_0%] px-4 py-2 text-sm font-semibold text-(--foreground) transition-[background-position,color] duration-500 hover:bg-position-[100%_0%] hover:text-[#111111]"
         >
           {showArchived ? 'Hide archived cards' : 'Show archived cards'}
