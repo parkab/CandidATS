@@ -4,9 +4,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,7 +23,7 @@ export async function POST(
 
     // Verify document ownership
     const document = await prisma.document.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!document) {
@@ -51,7 +52,7 @@ export async function POST(
 
     // Link the document to the job
     const updatedDocument = await prisma.document.update({
-      where: { id: params.id },
+      where: { id },
       data: { job_id: jobId },
     });
 

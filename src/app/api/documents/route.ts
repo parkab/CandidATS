@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { Prisma } from '@prisma/client';
 import {
   buildStoragePath,
   DOCUMENTS_BUCKET,
@@ -247,7 +246,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const data: Prisma.DocumentUncheckedCreateInput = {
+      const data: {
+        user_id: string;
+        title: string;
+        content: string;
+        type: string;
+        status: string;
+        tags: string[];
+        job_id?: string;
+      } = {
         user_id: session.userId,
         title: title ?? fileName,
         content: encodeStoredFileContent({
@@ -261,7 +268,7 @@ export async function POST(request: NextRequest) {
         type: typeValue,
         status: statusValue ?? 'ready',
         tags,
-        job_id: jobId ?? null,
+        ...(jobId && { job_id: jobId }),
       };
 
       const document = await prisma.document.create({
@@ -320,14 +327,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const data: Prisma.DocumentUncheckedCreateInput = {
+    const data: {
+      user_id: string;
+      title: string;
+      content: string;
+      type: string;
+      status: string;
+      tags: string[];
+      job_id?: string;
+    } = {
       user_id: session.userId,
       title,
       content,
       type,
       status: status ?? 'draft',
       tags,
-      job_id: jobId ?? null,
+      ...(jobId && { job_id: jobId }),
     };
 
     const document = await prisma.document.create({

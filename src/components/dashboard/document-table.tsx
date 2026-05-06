@@ -366,7 +366,7 @@ export default function DocumentTable() {
     setDuplicateError(null);
     setDuplicateRow(row);
     setDuplicateTitle(`${row.documentTitle} (copy)`);
-    setDuplicateJobId(row.jobId);
+    setDuplicateJobId(row.jobId ?? '');
   }
 
   function closeDuplicateDialog() {
