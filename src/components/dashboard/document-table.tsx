@@ -560,12 +560,6 @@ export default function DocumentTable() {
             Filter and sort everything you have uploaded or drafted for your applications.
           </p>
         </div>
-        <button
-          type="button"
-          className="shrink-0 cursor-pointer rounded-xl border border-[--action-border] bg-[--action-bg] px-4 py-2.5 text-sm font-semibold text-[--foreground] shadow-sm transition hover:bg-[--action-hover] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,#70e2ff_50%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[--background]"
-        >
-          Upload
-        </button>
       </header>
 
       {error ? (
