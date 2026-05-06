@@ -48,7 +48,7 @@ const filterCheckboxClass =
 
 type ListRow = {
   id: string;
-  jobId: string;
+  jobId: string | null;
   jobTitle: string;
   companyName: string;
   documentTitle: string;
@@ -281,9 +281,10 @@ export default function DocumentTable() {
 
         const combined: ListRow[] = [];
         for (const doc of allDocuments) {
-          if (!doc?.id || typeof doc.job_id !== 'string') continue;
-          const jobId = doc.job_id;
-          const fallbackJobMeta = jobById.get(jobId) ?? { title: 'Job', company_name: '' };
+          if (!doc?.id) continue;
+          
+          const jobId = typeof doc.job_id === 'string' ? doc.job_id : null;
+          const fallbackJobMeta = jobId ? (jobById.get(jobId) ?? { title: 'Job', company_name: '' }) : { title: 'Library', company_name: '' };
           const joinedJobMeta =
             doc.Job &&
             typeof doc.Job.title === 'string' &&

@@ -904,6 +904,7 @@ export default function JobMultiStepForm({
               isComposerOpen={documentComposerOpen}
               composerMode={documentComposerMode}
               editingDocumentId={editingDocumentId}
+              jobId={draft.overview.id || ''}
               onOpenComposer={openDocumentComposer}
               onEditDocument={openEditDocument}
               onCloseComposer={closeDocumentComposer}
@@ -911,6 +912,7 @@ export default function JobMultiStepForm({
               onDocumentFileSelected={onDocumentFileSelected}
               onSaveDocument={saveDocumentItem}
               onRemoveDocument={removeDocument}
+              onDocumentsChanged={refreshDocuments}
             />
           ) : null}
 
