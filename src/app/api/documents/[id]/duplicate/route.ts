@@ -4,6 +4,7 @@ import { compileLatex } from '@/lib/latex/compile';
 import type { Prisma } from '@/generated/prisma/client';
 import {
   buildStoragePath,
+  DOCUMENTS_BUCKET,
   encodeStoredFileContent,
   isSupportedDocumentType,
   tryParseStoredFileContent,
@@ -37,6 +38,19 @@ async function verifyJobOwnership(jobId: string, userId: string) {
     where: { id: jobId, user_id: userId },
     select: { id: true },
   });
+}
+
+function isOwnedDocumentStorageObject(params: {
+  bucket: string;
+  path: string;
+  userId: string;
+}): boolean {
+  if (params.bucket !== DOCUMENTS_BUCKET) {
+    return false;
+  }
+
+  const normalizedPath = params.path.trim().replace(/^\/+/, '');
+  return normalizedPath.startsWith(`${params.userId}/`);
 }
 
 export async function POST(
@@ -173,6 +187,18 @@ export async function POST(
       if (!isSupportedDocumentType(docType)) {
         return NextResponse.json(
           { error: 'Document has unsupported type for file duplicate' },
+          { status: 422 },
+        );
+      }
+      if (
+        !isOwnedDocumentStorageObject({
+          bucket: storedFile.bucket,
+          path: storedFile.path,
+          userId: session.userId,
+        })
+      ) {
+        return NextResponse.json(
+          { error: 'Document storage metadata is invalid' },
           { status: 422 },
         );
       }
