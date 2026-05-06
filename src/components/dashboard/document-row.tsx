@@ -125,6 +125,7 @@ export default function DocumentRow({
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
+  const pendingInitialFocusRef = useRef<'first' | 'last'>('first');
 
   const documentHref = `/documents/${encodeURIComponent(documentId)}/edit`;
   const jobHref = `/dashboard?openJob=${encodeURIComponent(jobId)}`;
@@ -170,8 +171,28 @@ export default function DocumentRow({
     if (next) setMenuStyle(next);
   }, [computeMenuLayout]);
 
-  function openMenuFromButton() {
+  const focusMenuItem = useCallback((target: 'first' | 'last' | number) => {
+    const menuItems = menuPanelRef.current?.querySelectorAll<HTMLElement>(
+      '[role="menuitem"]:not([aria-disabled="true"])',
+    );
+    if (!menuItems || menuItems.length === 0) return;
+
+    if (target === 'first') {
+      menuItems[0]?.focus();
+      return;
+    }
+    if (target === 'last') {
+      menuItems[menuItems.length - 1]?.focus();
+      return;
+    }
+
+    const index = ((target % menuItems.length) + menuItems.length) % menuItems.length;
+    menuItems[index]?.focus();
+  }, []);
+
+  function openMenuFromButton(initialFocus: 'first' | 'last' = 'first') {
     const btn = buttonRef.current;
+    pendingInitialFocusRef.current = initialFocus;
     if (!btn) {
       setIsMenuOpen(true);
       return;
@@ -224,6 +245,14 @@ export default function DocumentRow({
   }, [isMenuOpen, updateMenuPosition]);
 
   useEffect(() => {
+    if (!isMenuOpen) return;
+    const id = requestAnimationFrame(() => {
+      focusMenuItem(pendingInitialFocusRef.current);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [focusMenuItem, isMenuOpen]);
+
+  useEffect(() => {
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node;
       if (buttonRef.current?.contains(target)) return;
@@ -255,6 +284,53 @@ export default function DocumentRow({
         ref={menuPanelRef}
         role="menu"
         aria-orientation="vertical"
+        onKeyDown={(event) => {
+          const menuItems = menuPanelRef.current?.querySelectorAll<HTMLElement>(
+            '[role="menuitem"]:not([aria-disabled="true"])',
+          );
+          if (!menuItems || menuItems.length === 0) return;
+
+          const currentIndex = Array.from(menuItems).findIndex(
+            (item) => item === document.activeElement,
+          );
+
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            setIsMenuOpen(false);
+            buttonRef.current?.focus();
+            return;
+          }
+
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            const nextIndex = currentIndex < 0 ? 0 : currentIndex + 1;
+            focusMenuItem(nextIndex);
+            return;
+          }
+
+          if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            const nextIndex = currentIndex < 0 ? menuItems.length - 1 : currentIndex - 1;
+            focusMenuItem(nextIndex);
+            return;
+          }
+
+          if (event.key === 'Home') {
+            event.preventDefault();
+            focusMenuItem('first');
+            return;
+          }
+
+          if (event.key === 'End') {
+            event.preventDefault();
+            focusMenuItem('last');
+            return;
+          }
+
+          if (event.key === 'Tab') {
+            setIsMenuOpen(false);
+          }
+        }}
         className="fixed z-[200] overflow-hidden rounded-2xl border border-solid p-1 opacity-100 [background-color:var(--popover-bg)] [border-color:var(--popover-border)] [box-shadow:var(--popover-shadow)]"
         style={{
           top: menuStyle.top,
@@ -362,6 +438,26 @@ export default function DocumentRow({
               <button
                 ref={buttonRef}
                 type="button"
+                onKeyDown={(event) => {
+                  if (isMenuOpen) return;
+
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    openMenuFromButton('first');
+                    return;
+                  }
+
+                  if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    openMenuFromButton('last');
+                    return;
+                  }
+
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openMenuFromButton('first');
+                  }
+                }}
                 onClick={() => {
                   if (isMenuOpen) {
                     setIsMenuOpen(false);
