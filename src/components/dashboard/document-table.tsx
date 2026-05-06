@@ -18,6 +18,11 @@ type ApiDocument = {
   status: string;
   tags?: string[];
   updated_at: string;
+  Job?: {
+    id: string;
+    title: string;
+    company_name: string;
+  } | null;
 };
 
 type DocType = 'resume' | 'cover_letter' | 'other';
@@ -257,54 +262,54 @@ export default function DocumentTable() {
           return ta.localeCompare(tb, undefined, { sensitivity: 'base' });
         });
 
+        const allDocsRes = await fetch('/api/documents/all?includeJob=true', {
+          signal,
+        });
+        if (!allDocsRes.ok) {
+          const body = await allDocsRes.json().catch(() => null);
+          const message =
+            typeof body?.error === 'string' ? body.error : 'Unable to load documents.';
+          throw new Error(message);
+        }
+        const allDocsPayload = (await allDocsRes.json()) as {
+          documents?: ApiDocument[];
+        };
+        const allDocuments = Array.isArray(allDocsPayload.documents)
+          ? allDocsPayload.documents
+          : [];
+
         const combined: ListRow[] = [];
+        for (const doc of allDocuments) {
+          if (!doc?.id || typeof doc.job_id !== 'string') continue;
+          const jobId = doc.job_id;
+          const fallbackJobMeta = jobById.get(jobId) ?? { title: 'Job', company_name: '' };
+          const joinedJobMeta =
+            doc.Job &&
+            typeof doc.Job.title === 'string' &&
+            typeof doc.Job.company_name === 'string'
+              ? { title: doc.Job.title, company_name: doc.Job.company_name }
+              : null;
+          const jobMeta = joinedJobMeta ?? fallbackJobMeta;
+          const updatedAt = typeof doc.updated_at === 'string' ? doc.updated_at : '';
+          const rawStatus = typeof doc.status === 'string' ? doc.status : 'draft';
 
-        await Promise.all(
-          jobIds.map(async (jobId) => {
-            const docRes = await fetch(
-              `/api/documents?jobId=${encodeURIComponent(jobId)}`,
-              { signal },
-            );
-
-            if (!docRes.ok) {
-              const body = await docRes.json().catch(() => null);
-              const message =
-                typeof body?.error === 'string'
-                  ? body.error
-                  : 'Unable to load documents for a job.';
-              throw new Error(message);
-            }
-
-            const data = (await docRes.json()) as { documents?: ApiDocument[] };
-            const documents = Array.isArray(data.documents) ? data.documents : [];
-            const jobMeta =
-              jobById.get(jobId) ?? { title: 'Job', company_name: '' };
-
-            for (const doc of documents) {
-              if (!doc?.id) continue;
-              const updatedAt =
-                typeof doc.updated_at === 'string' ? doc.updated_at : '';
-              const rawStatus = typeof doc.status === 'string' ? doc.status : 'draft';
-
-              combined.push({
-                id: doc.id,
-                jobId,
-                jobTitle: jobMeta.title,
-                companyName: jobMeta.company_name,
-                documentTitle:
-                  typeof doc.title === 'string' && doc.title.trim().length > 0
-                    ? doc.title
-                    : 'Untitled document',
-                lastUpdated: formatUpdatedAt(updatedAt),
-                updatedAt,
-                status: mapApiStatus(rawStatus),
-                statusRaw: mapApiStatusRaw(rawStatus),
-                docType: parseDocType(doc.type),
-                tags: normalizeTags(doc.tags),
-              });
-            }
-          }),
-        );
+          combined.push({
+            id: doc.id,
+            jobId,
+            jobTitle: jobMeta.title,
+            companyName: jobMeta.company_name,
+            documentTitle:
+              typeof doc.title === 'string' && doc.title.trim().length > 0
+                ? doc.title
+                : 'Untitled document',
+            lastUpdated: formatUpdatedAt(updatedAt),
+            updatedAt,
+            status: mapApiStatus(rawStatus),
+            statusRaw: mapApiStatusRaw(rawStatus),
+            docType: parseDocType(doc.type),
+            tags: normalizeTags(doc.tags),
+          });
+        }
 
         combined.sort(
           (a, b) =>
