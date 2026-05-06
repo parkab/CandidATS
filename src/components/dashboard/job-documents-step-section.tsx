@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import type {
   JobDocumentItemDraft,
   JobMultiStepDraft,
 } from '@/lib/jobs/multi-step-form';
 import type { SectionComposerMode } from './job-multi-step-form-section-types';
 import DocumentItemComposer from './job-document-item-composer';
+import LinkDocumentsModal from './link-documents-modal';
 
 type DocumentsStepSectionProps = {
   files: JobMultiStepDraft['documents']['files'];
@@ -16,6 +18,7 @@ type DocumentsStepSectionProps = {
   isComposerOpen: boolean;
   composerMode: SectionComposerMode;
   editingDocumentId: string | null;
+  jobId?: string;
   onOpenComposer: () => void;
   onEditDocument: (id: string) => void;
   onCloseComposer: () => void;
@@ -26,6 +29,7 @@ type DocumentsStepSectionProps = {
   onDocumentFileSelected: (file: File | null) => void;
   onSaveDocument: () => void;
   onRemoveDocument: (id: string) => void;
+  onDocumentsChanged?: () => void;
 };
 
 export default function DocumentsStepSection({
@@ -36,6 +40,7 @@ export default function DocumentsStepSection({
   isComposerOpen,
   composerMode,
   editingDocumentId,
+  jobId,
   onOpenComposer,
   onEditDocument,
   onCloseComposer,
@@ -43,7 +48,9 @@ export default function DocumentsStepSection({
   onDocumentFileSelected,
   onSaveDocument,
   onRemoveDocument,
+  onDocumentsChanged,
 }: DocumentsStepSectionProps) {
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const titleId = 'document-title';
   const dateId = 'document-date';
   const notesId = 'document-notes';
@@ -54,7 +61,7 @@ export default function DocumentsStepSection({
 
   return (
     <section className="grid gap-4">
-      <div className="flex justify-center">
+      <div className="flex flex-wrap justify-center gap-3">
         <button
           type="button"
           onClick={onOpenComposer}
@@ -62,7 +69,28 @@ export default function DocumentsStepSection({
         >
           + Add Document
         </button>
+        {jobId && (
+          <button
+            type="button"
+            onClick={() => setIsLinkModalOpen(true)}
+            className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover)"
+          >
+            Link from Library
+          </button>
+        )}
       </div>
+
+      {jobId && (
+        <LinkDocumentsModal
+          jobId={jobId}
+          isOpen={isLinkModalOpen}
+          onClose={() => setIsLinkModalOpen(false)}
+          onDocumentLinked={() => {
+            setIsLinkModalOpen(false);
+            onDocumentsChanged?.();
+          }}
+        />
+      )}
 
       {isComposerOpen && composerMode === 'add' ? (
         <DocumentItemComposer

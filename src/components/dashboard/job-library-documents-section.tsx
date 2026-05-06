@@ -19,6 +19,13 @@ type Document = {
   } | null;
 };
 
+type DocumentVersion = {
+  id: string;
+  versionNumber: number;
+  createdAt: string;
+  size?: number;
+};
+
 type JobLibraryDocumentsSectionProps = {
   jobId: string;
   onDocumentLinked?: () => void;
@@ -184,6 +191,38 @@ function LibraryDocumentCard({
   onLink: () => void;
 }) {
   const [isLinking, setIsLinking] = useState(false);
+  const [totalVersions, setTotalVersions] = useState(0);
+  const [versionsLoading, setVersionsLoading] = useState(true);
+
+  // Fetch document versions
+  useEffect(() => {
+    async function fetchVersions() {
+      try {
+        setVersionsLoading(true);
+        const response = await fetch(
+          `/api/documents/${encodeURIComponent(document.id)}/version`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch versions');
+        }
+
+        const data = await response.json() as { version: DocumentVersion | null };
+        if (data.version) {
+          setTotalVersions(data.version.versionNumber);
+        } else {
+          setTotalVersions(1);
+        }
+      } catch (err) {
+        console.error('Error fetching versions:', err);
+        setTotalVersions(1);
+      } finally {
+        setVersionsLoading(false);
+      }
+    }
+
+    fetchVersions();
+  }, [document.id]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -246,6 +285,11 @@ function LibraryDocumentCard({
             Created: {formatDate(document.created_at)}
             {document.updated_at !== document.created_at && (
               <> • Updated: {formatDate(document.updated_at)}</>
+            )}
+            {versionsLoading ? (
+              <> • ...</>
+            ) : (
+              <> • {totalVersions} {totalVersions === 1 ? 'version' : 'versions'}</>
             )}
           </p>
         </div>

@@ -22,6 +22,13 @@ type Document = {
   } | null;
 };
 
+type DocumentVersion = {
+  id: string;
+  versionNumber: number;
+  createdAt: string;
+  size?: number;
+};
+
 type JobSavedDocumentsSectionProps = {
   jobId: string;
 };
@@ -203,6 +210,10 @@ function DocumentCard({
   const [isOpening, setIsOpening] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
 
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(true);
+  const [totalVersions, setTotalVersions] = useState(0);
+
   const [editTitle, setEditTitle] = useState(document.title);
   const [editType, setEditType] = useState(document.type);
   const [editStatus, setEditStatus] = useState(document.status);
@@ -211,6 +222,38 @@ function DocumentCard({
   const [editNote, setEditNote] = useState(document.storage?.note ?? '');
 
   const isGenerated = document.storage === null;
+
+  // Fetch document versions
+  useEffect(() => {
+    async function fetchVersions() {
+      try {
+        setVersionsLoading(true);
+        const response = await fetch(
+          `/api/documents/${encodeURIComponent(document.id)}/version`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch versions');
+        }
+
+        const data = await response.json() as { version: DocumentVersion | null };
+        if (data.version) {
+          setTotalVersions(data.version.versionNumber);
+          setVersions([data.version]);
+        } else {
+          setTotalVersions(1);
+          setVersions([]);
+        }
+      } catch (err) {
+        console.error('Error fetching versions:', err);
+        setTotalVersions(1);
+      } finally {
+        setVersionsLoading(false);
+      }
+    }
+
+    fetchVersions();
+  }, [document.id]);
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', {
@@ -303,6 +346,32 @@ function DocumentCard({
               <> · {safeTags.join(', ')}</>
             )}
           </p>
+        </div>
+      </div>
+
+      {/* Version info */}
+      <div className="mt-2 rounded-sm bg-(--surface-dimmed) p-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-(--text-muted)">
+            {versionsLoading ? (
+              <span className="inline-block h-3 w-12 animate-pulse rounded bg-(--surface-border)"></span>
+            ) : (
+              <>
+                <strong>Version {totalVersions}</strong> of {totalVersions}
+                {versions[0] && (
+                  <>
+                    {' '}· Updated {formatDate(versions[0].createdAt)}
+                  </>
+                )}
+              </>
+            )}
+          </p>
+          <Link
+            href={`/documents/${document.id}/view`}
+            className="text-xs font-medium text-(--foreground) hover:text-(--inverse-hover) transition"
+          >
+            View all versions →
+          </Link>
         </div>
       </div>
 

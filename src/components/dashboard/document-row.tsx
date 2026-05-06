@@ -11,7 +11,7 @@ import {
 import { createPortal } from 'react-dom';
 
 type DocumentRowProps = {
-  jobId: string;
+  jobId: string | null;
   documentId: string;
   jobTitle: string;
   companyName: string;
@@ -128,7 +128,7 @@ export default function DocumentRow({
   const pendingInitialFocusRef = useRef<'first' | 'last'>('first');
 
   const documentHref = `/documents/${encodeURIComponent(documentId)}/edit`;
-  const jobHref = `/dashboard?openJob=${encodeURIComponent(jobId)}`;
+  const jobHref = jobId ? `/dashboard?openJob=${encodeURIComponent(jobId)}` : null;
 
   const computeMenuLayout = useCallback((menuEl: HTMLDivElement | null) => {
     const btn = buttonRef.current;
@@ -377,15 +377,17 @@ export default function DocumentRow({
           className="mx-1.5 h-px [background-color:var(--popover-border)]"
           role="separator"
         />
-        <Link
-          href={jobHref}
-          role="menuitem"
-          onClick={() => setIsMenuOpen(false)}
-          className={`${itemClass} rounded-xl`}
-        >
-          <IconBriefcase />
-          <span className="min-w-0">Open job</span>
-        </Link>
+        {jobHref ? (
+          <Link
+            href={jobHref}
+            role="menuitem"
+            onClick={() => setIsMenuOpen(false)}
+            className={`${itemClass} rounded-xl`}
+          >
+            <IconBriefcase />
+            <span className="min-w-0">Open job</span>
+          </Link>
+        ) : null}
       </div>
     ) : null;
 

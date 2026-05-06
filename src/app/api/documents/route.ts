@@ -246,24 +246,33 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const data: {
+        user_id: string;
+        title: string;
+        content: string;
+        type: string;
+        status: string;
+        tags: string[];
+        job_id?: string;
+      } = {
+        user_id: session.userId,
+        title: title ?? fileName,
+        content: encodeStoredFileContent({
+          kind: 'file',
+          bucket: DOCUMENTS_BUCKET,
+          path: storagePath,
+          fileName,
+          mimeType: fileMimeType,
+          size: file.size,
+        }),
+        type: typeValue,
+        status: statusValue ?? 'ready',
+        tags,
+        ...(jobId && { job_id: jobId }),
+      };
+
       const document = await prisma.document.create({
-        data: {
-          user_id: session.userId,
-          job_id: jobId ?? null,
-          title: title ?? fileName,
-          content: encodeStoredFileContent({
-            kind: 'file',
-            bucket: DOCUMENTS_BUCKET,
-            path: storagePath,
-            fileName,
-            mimeType: fileMimeType,
-            size: file.size,
-            //note: note ?? undefined,
-          }),
-          type: typeValue,
-          status: statusValue ?? 'ready',
-          tags,
-        },
+        data,
       });
 
       return NextResponse.json(
@@ -286,7 +295,6 @@ export async function POST(request: NextRequest) {
     const jobId = asNonEmptyString(body.jobId);
     const title = asNonEmptyString(body.title);
     const content = asNonEmptyString(body.content);
-    const note = asNonEmptyString(body.note);
     const type = asNonEmptyString(body.type);
     const status = asNonEmptyString(body.status);
     const tags = parseTags(body.tags);
@@ -318,16 +326,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const data: {
+      user_id: string;
+      title: string;
+      content: string;
+      type: string;
+      status: string;
+      tags: string[];
+      job_id?: string;
+    } = {
+      user_id: session.userId,
+      title,
+      content,
+      type,
+      status: status ?? 'draft',
+      tags,
+      ...(jobId && { job_id: jobId }),
+    };
+
     const document = await prisma.document.create({
-      data: {
-        user_id: session.userId,
-        job_id: jobId ?? null,
-        title,
-        content,
-        type,
-        status: status ?? 'draft',
-        tags,
-      },
+      data,
     });
 
     return NextResponse.json(
@@ -357,27 +375,25 @@ export async function GET(request: NextRequest) {
     const library = searchParams.get('library') === 'true';
 
     const whereClause: {
-  user_id: string;
-  job_id?: string | null;
-} = {
-  user_id: session.userId,
-};
+      user_id: string;
+      job_id?: string;
+    } = {
+      user_id: session.userId,
+    };
 
-if (jobId) {
-  const job = await verifyJobOwnership(jobId, session.userId);
-  if (!job) {
-    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-  }
+    if (jobId) {
+      const job = await verifyJobOwnership(jobId, session.userId);
+      if (!job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
 
-  whereClause.job_id = jobId;
-} else if (library) {
-  whereClause.job_id = null;
-} else {
-  return NextResponse.json(
-    { error: 'Either jobId or library=true query parameter is required' },
-    { status: 400 },
-  );
-}
+      whereClause.job_id = jobId;
+    } else if (!library) {
+      return NextResponse.json(
+        { error: 'Either jobId or library=true query parameter is required' },
+        { status: 400 },
+      );
+    }
 
     const documents = await prisma.document.findMany({
       where: whereClause,

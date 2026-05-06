@@ -490,7 +490,7 @@ export async function PATCH(
     const updatedDocument = await prisma.document.update({
       where: { id: existingDocument.id },
       data: {
-        job_id: body.jobId ?? existingDocument.job_id,
+        job_id: 'jobId' in body ? body.jobId : existingDocument.job_id,
         title: asNonEmptyString(body.title) ?? existingDocument.title,
         content: mergedContent,
         type: body.type ?? existingDocument.type,
