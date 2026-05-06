@@ -127,6 +127,18 @@ function parseTextQuery(value: string | string[] | undefined) {
   return candidate?.trim() ?? '';
 }
 
+function parseOpenJobId(
+  value: string | string[] | undefined,
+  validIds: Set<string>,
+): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const id = typeof raw === 'string' ? raw.trim() : undefined;
+  if (!id || !validIds.has(id)) {
+    return undefined;
+  }
+  return id;
+}
+
 function parseStageFilter(value: string | string[] | undefined): StageFilter {
   const candidate = Array.isArray(value) ? value[0] : value;
 
@@ -358,7 +370,6 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const stageFilter = parseStageFilter(params.stage);
   const locationFilter = parseTextQuery(params.location);
   const deadlineState = parseDeadlineState(params.deadlineState);
-  const openJobId = parseTextQuery(params.openJob);
   const initialTab = parseTextQuery(params.tab);
   const showArchived = parseBooleanParam(params.showArchived);
 
@@ -789,6 +800,9 @@ const activeJobsThirtyDays = calculateActiveJobsForDays(
     };
   });
 
+  const jobIdSet = new Set(jobsForModal.map((j) => j.id));
+  const initialOpenJobId = parseOpenJobId(params.openJob, jobIdSet);
+
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-2xl text-center">
@@ -806,8 +820,8 @@ const activeJobsThirtyDays = calculateActiveJobsForDays(
       </div>
       <JobsModalGrid
         initialJobs={jobsForModal}
-        initialOpenJobId={openJobId || undefined}
-        initialTab={initialTab || undefined}
+        initialOpenJobId={initialOpenJobId}
+        initialTab={initialTab}
       />
     </section>
   );

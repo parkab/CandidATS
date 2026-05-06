@@ -94,6 +94,7 @@ export default function JobsModalGrid({
 
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
   const [modalState, setModalState] = useState<ModalState>(null);
+  const autoOpenHandledRef = useRef(false);
 
   // Keep jobs in sync when the parent re-fetches (e.g. after router.refresh())
   useEffect(() => {
@@ -102,11 +103,17 @@ export default function JobsModalGrid({
 
   // Auto-open a specific job modal when ?openJob=<id>&tab=<step> is in the URL
   useEffect(() => {
-    if (!initialOpenJobId) return;
+    if (autoOpenHandledRef.current || !initialOpenJobId) {
+      return;
+    }
+    if (!initialJobs.some((job) => job.id === initialOpenJobId)) {
+      return;
+    }
+    autoOpenHandledRef.current = true;
     const step = parseTabParam(initialTab);
     setModalState({ type: 'edit', jobId: initialOpenJobId, initialStep: step });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialOpenJobId, initialJobs, initialTab]);
+
   const dialogTitleId = useId();
   const modalRef = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
