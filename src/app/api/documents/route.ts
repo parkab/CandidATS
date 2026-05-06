@@ -295,7 +295,6 @@ export async function POST(request: NextRequest) {
     const jobId = asNonEmptyString(body.jobId);
     const title = asNonEmptyString(body.title);
     const content = asNonEmptyString(body.content);
-    const note = asNonEmptyString(body.note);
     const type = asNonEmptyString(body.type);
     const status = asNonEmptyString(body.status);
     const tags = parseTags(body.tags);
@@ -375,7 +374,12 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
     const library = searchParams.get('library') === 'true';
 
-    let whereClause: any;
+    const whereClause: {
+      user_id: string;
+      job_id?: string;
+    } = {
+      user_id: session.userId,
+    };
 
     if (jobId) {
       const job = await verifyJobOwnership(jobId, session.userId);
@@ -383,16 +387,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
 
-      whereClause = {
-        user_id: session.userId,
-        job_id: jobId,
-      };
-    } else if (library) {
-      // Library documents - return all user documents (will be filtered by client)
-      whereClause = {
-        user_id: session.userId,
-      };
-    } else {
+      whereClause.job_id = jobId;
+    } else if (!library) {
       return NextResponse.json(
         { error: 'Either jobId or library=true query parameter is required' },
         { status: 400 },
