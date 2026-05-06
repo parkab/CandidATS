@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import DocumentRow from './document-row';
 
 type ApiJobSummary = {
@@ -204,6 +204,7 @@ export default function DocumentTable() {
   const [renameError, setRenameError] = useState<string | null>(null);
   const dupDialogTitleId = useId();
   const renDialogTitleId = useId();
+  const loadAbortControllerRef = useRef<AbortController | null>(null);
 
   const loadDocuments = useCallback(
     async (signal: AbortSignal, silent = false) => {
@@ -337,11 +338,28 @@ export default function DocumentTable() {
     [],
   );
 
+  const runLoadDocuments = useCallback(
+    async (silent = false) => {
+      loadAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      loadAbortControllerRef.current = controller;
+      try {
+        await loadDocuments(controller.signal, silent);
+      } finally {
+        if (loadAbortControllerRef.current === controller) {
+          loadAbortControllerRef.current = null;
+        }
+      }
+    },
+    [loadDocuments],
+  );
+
   useEffect(() => {
-    const ac = new AbortController();
-    void loadDocuments(ac.signal, false);
-    return () => ac.abort();
-  }, [loadDocuments]);
+    void runLoadDocuments(false);
+    return () => {
+      loadAbortControllerRef.current?.abort();
+    };
+  }, [runLoadDocuments]);
 
   function openDuplicateDialog(row: ListRow) {
     setDuplicateError(null);
@@ -386,8 +404,7 @@ export default function DocumentTable() {
         throw new Error(message);
       }
       closeDuplicateDialog();
-      const ac = new AbortController();
-      await loadDocuments(ac.signal, true);
+      await runLoadDocuments(true);
     } catch (err: unknown) {
       setDuplicateError(err instanceof Error ? err.message : 'Could not duplicate document.');
     } finally {
@@ -430,8 +447,7 @@ export default function DocumentTable() {
         throw new Error(message);
       }
       closeRenameDialog();
-      const ac = new AbortController();
-      await loadDocuments(ac.signal, true);
+      await runLoadDocuments(true);
     } catch (err: unknown) {
       setRenameError(err instanceof Error ? err.message : 'Could not rename document.');
     } finally {
