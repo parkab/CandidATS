@@ -223,25 +223,34 @@ export async function POST(
         );
       }
 
-      const newDocument = await prisma.document.create({
-        data: {
-          user_id: session.userId,
-          job_id: targetJobId,
-          title: newTitle,
-          content: encodeStoredFileContent({
-            kind: 'file',
-            bucket: storedFile.bucket,
-            path: newPath,
-            fileName: storedFile.fileName,
-            mimeType: storedFile.mimeType,
-            size: storedFile.size,
-            note: storedFile.note,
-          }),
-          type: docType,
-          status: sourceDocument.status,
-          tags: sourceDocument.tags,
-        },
-      });
+      let newDocument: { id: string };
+      try {
+        newDocument = await prisma.document.create({
+          data: {
+            user_id: session.userId,
+            job_id: targetJobId,
+            title: newTitle,
+            content: encodeStoredFileContent({
+              kind: 'file',
+              bucket: storedFile.bucket,
+              path: newPath,
+              fileName: storedFile.fileName,
+              mimeType: storedFile.mimeType,
+              size: storedFile.size,
+              note: storedFile.note,
+            }),
+            type: docType,
+            status: sourceDocument.status,
+            tags: sourceDocument.tags,
+          },
+        });
+      } catch (dbError) {
+        await supabaseAdmin.storage
+          .from(DOCUMENTS_BUCKET)
+          .remove([newPath])
+          .catch(() => undefined);
+        throw dbError;
+      }
 
       return NextResponse.json({ documentId: newDocument.id }, { status: 201 });
     }
