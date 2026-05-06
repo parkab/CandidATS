@@ -170,7 +170,7 @@ model CareerPreferences {
 model Document {
   id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id         String
-  job_id          String            @db.Uuid
+  job_id          String?           @db.Uuid
   title           String
   content         String
   /// Expected values: 'resume', 'cover_letter', and 'other'.
@@ -180,7 +180,7 @@ model Document {
   /// Expected values: 'draft', 'ready', and 'archived'.
   status          String            @default("draft")
   tags            String[]
-  Job             Job               @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  Job             Job?              @relation(fields: [job_id], references: [id], onDelete: Cascade)
   User            User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   DocumentVersion DocumentVersion[]
 }

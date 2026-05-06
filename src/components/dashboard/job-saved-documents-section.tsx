@@ -55,6 +55,25 @@ export default function JobSavedDocumentsSection({
     }
   }
 
+  async function unlinkDocument(documentId: string) {
+    try {
+      const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jobId: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unlink document');
+      }
+
+      // Refresh the documents list
+      await fetchDocuments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to unlink document');
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="grid gap-4">
@@ -121,6 +140,7 @@ export default function JobSavedDocumentsSection({
                 key={doc.id}
                 document={doc}
                 onDocumentUpdated={handleDocumentUpdated}
+                onUnlink={unlinkDocument}
               />
             ))}
           </div>
@@ -138,6 +158,7 @@ export default function JobSavedDocumentsSection({
                 key={doc.id}
                 document={doc}
                 onDocumentUpdated={handleDocumentUpdated}
+                onUnlink={unlinkDocument}
               />
             ))}
           </div>
@@ -155,6 +176,7 @@ export default function JobSavedDocumentsSection({
                 key={doc.id}
                 document={doc}
                 onDocumentUpdated={handleDocumentUpdated}
+                onUnlink={unlinkDocument}
               />
             ))}
           </div>
@@ -167,18 +189,25 @@ export default function JobSavedDocumentsSection({
 function DocumentCard({
   document,
   onDocumentUpdated,
+  onUnlink,
 }: {
   document: Document;
   onDocumentUpdated: (updated: Document) => void;
+  onUnlink?: (id: string) => void;
 }) {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isSavingDetails, setIsSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
 
   const [editTitle, setEditTitle] = useState(document.title);
   const [editType, setEditType] = useState(document.type);
   const [editStatus, setEditStatus] = useState(document.status);
-  const [editTags, setEditTags] = useState(document.tags.join(', '));
+  const safeTags = Array.isArray(document.tags) ? document.tags : [];
+  const [editTags, setEditTags] = useState(safeTags.join(', '));
   const [editNote, setEditNote] = useState(document.storage?.note ?? '');
 
   const isGenerated = document.storage === null;
@@ -203,14 +232,17 @@ function DocumentCard({
   };
 
   function handleOpenEditDetails() {
-    setEditTitle(document.title);
-    setEditType(document.type);
-    setEditStatus(document.status);
-    setEditTags(document.tags.join(', '));
-    setEditNote(document.storage?.note ?? '');
-    setDetailsError(null);
-    setIsEditingDetails(true);
-  }
+  setEditTitle(document.title);
+  setEditType(document.type);
+  setEditStatus(document.status);
+
+  const safeTags = Array.isArray(document.tags) ? document.tags : [];
+  setEditTags(safeTags.join(', '));
+
+  setEditNote(document.storage?.note ?? '');
+  setDetailsError(null);
+  setIsEditingDetails(true);
+}
 
   async function handleSaveDetails() {
     setIsSavingDetails(true);
@@ -267,8 +299,8 @@ function DocumentCard({
             {document.status !== 'draft' && (
               <> · <span className="capitalize">{document.status}</span></>
             )}
-            {document.tags.length > 0 && (
-              <> · {document.tags.join(', ')}</>
+            {safeTags.length > 0 && (
+              <> · {safeTags.join(', ')}</>
             )}
           </p>
         </div>
@@ -306,6 +338,14 @@ function DocumentCard({
         >
           {isEditingDetails ? 'Cancel' : 'Edit Details'}
         </button>
+        {onUnlink && (
+          <button
+            onClick={() => onUnlink(document.id)}
+            className="ml-2 text-xs text-red-600 hover:text-red-800"
+          >
+            Unlink
+          </button>
+        )}
       </div>
 
       {/* Edit Details inline form */}

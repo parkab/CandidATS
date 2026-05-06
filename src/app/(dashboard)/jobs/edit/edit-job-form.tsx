@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
 import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
+import LibraryDocumentsSection from '@/components/dashboard/library-documents-section';
 import type {
   JobFormStepId,
   JobMultiStepDraft,
@@ -277,6 +278,12 @@ export default function EditJobForm({
         <JobSavedDocumentsSection
           key={documentsRefreshToken}
           jobId={initialJob.id}
+        />
+      </div>
+      <div className="mx-auto mt-12 max-w-2xl">
+        <LibraryDocumentsSection
+          jobId={initialJob.id}
+          onDocumentLinked={() => setDocumentsRefreshToken((previous) => previous + 1)}
         />
       </div>
     </>
