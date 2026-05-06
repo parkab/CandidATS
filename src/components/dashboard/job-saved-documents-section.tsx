@@ -25,7 +25,7 @@ type Document = {
 type DocumentVersion = {
   id: string;
   versionNumber: number;
-  created_at: string;
+  createdAt: string;
   size?: number;
 };
 
@@ -354,15 +354,13 @@ function DocumentCard({
         <div className="flex items-center justify-between">
           <p className="text-xs text-(--text-muted)">
             {versionsLoading ? (
-              <>
-                <span className="inline-block h-3 w-12 animate-pulse rounded bg-(--surface-border)"></span>
-              </>
+              <span className="inline-block h-3 w-12 animate-pulse rounded bg-(--surface-border)"></span>
             ) : (
               <>
                 <strong>Version {totalVersions}</strong> of {totalVersions}
-                {versions.length > 0 && versions[0] && (
+                {versions[0] && (
                   <>
-                    {' '}· Updated {formatDate(versions[0].created_at)}
+                    {' '}· Updated {formatDate(versions[0].createdAt)}
                   </>
                 )}
               </>

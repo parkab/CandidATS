@@ -22,7 +22,7 @@ type Document = {
 type DocumentVersion = {
   id: string;
   versionNumber: number;
-  created_at: string;
+  createdAt: string;
   size?: number;
 };
 
@@ -286,8 +286,10 @@ function LibraryDocumentCard({
             {document.updated_at !== document.created_at && (
               <> • Updated: {formatDate(document.updated_at)}</>
             )}
-            {!versionsLoading && (
-              <> • {versionsLoading ? '...' : `${totalVersions} ${totalVersions === 1 ? 'version' : 'versions'}`}</>
+            {versionsLoading ? (
+              <> • ...</>
+            ) : (
+              <> • {totalVersions} {totalVersions === 1 ? 'version' : 'versions'}</>
             )}
           </p>
         </div>

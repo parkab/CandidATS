@@ -608,11 +608,13 @@ export default function JobMultiStepForm({
     try {
       setDocumentsError(null);
       const response = await fetch(`/api/documents/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jobId: null }),
       });
 
       if (!response.ok) {
-        throw new Error('Unable to delete document.');
+        throw new Error('Unable to unlink document.');
       }
 
       setDraft((previous) => {
@@ -636,7 +638,7 @@ export default function JobMultiStepForm({
       const message =
         caughtError instanceof Error && caughtError.message.trim().length > 0
           ? caughtError.message
-          : 'Unable to delete document.';
+          : 'Unable to unlink document.';
       setDocumentsError(message);
     }
   }

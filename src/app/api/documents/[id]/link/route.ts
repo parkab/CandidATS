@@ -14,9 +14,9 @@ export async function POST(
     }
 
     const { jobId } = await request.json();
-    if (!jobId) {
+    if (typeof jobId !== 'string' || jobId.trim().length === 0) {
       return NextResponse.json(
-        { error: 'jobId is required' },
+        { error: 'jobId must be a non-empty string' },
         { status: 400 },
       );
     }
