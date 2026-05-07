@@ -1,7 +1,6 @@
 import GRADIENT_HEADING_CLASS from '@/components/dashboard/gradient';
 import DashboardMetrics from '@/components/dashboard/dashboard-metrics';
 import JobSearchFilterControl from '@/components/dashboard/job-search-filter-control';
-import JobSortControl from '@/components/dashboard/job-sort-control';
 import JobsModalGrid from '@/components/dashboard/jobs-modal-grid';
 import PolaroidLandingCard from '@/components/dashboard/polaroid-landing-card';
 import { getSession } from '@/lib/auth/session';
@@ -63,6 +62,8 @@ type SortOption = 'lastActivity' | 'deadline' | 'company' | 'createdDate';
 
 type DeadlineState = 'any' | 'upcoming' | 'past' | 'noDeadline';
 
+type EventFilter = 'any' | 'upcoming' | 'none';
+
 type StageFilter =
   | 'all'
   | 'Interested'
@@ -77,8 +78,9 @@ export type DashboardPageProps = {
     sort?: string | string[];
     q?: string | string[];
     stage?: string | string[];
-    location?: string | string[];
     deadlineState?: string | string[];
+    priority?: string | string[];
+    events?: string | string[];
     openJob?: string | string[];
     tab?: string | string[];
     showArchived?: string | string[];
@@ -172,12 +174,23 @@ function parseDeadlineState(
   return 'any';
 }
 
+function parseEventFilter(value: string | string[] | undefined): EventFilter {
+  const candidate = Array.isArray(value) ? value[0] : value;
+
+  if (candidate === 'upcoming' || candidate === 'none') {
+    return candidate;
+  }
+
+  return 'any';
+}
+
 function getJobWhere(
   userId: string,
   searchQuery: string,
   stageFilter: StageFilter,
-  locationFilter: string,
   deadlineState: DeadlineState,
+  priorityOnly: boolean,
+  eventFilter: EventFilter,
 ) {
   const where: Record<string, unknown> = {
     user_id: userId,
@@ -187,6 +200,7 @@ function getJobWhere(
     where.OR = [
       { title: { contains: searchQuery, mode: 'insensitive' } },
       { company_name: { contains: searchQuery, mode: 'insensitive' } },
+      { location: { contains: searchQuery, mode: 'insensitive' } },
       { job_description: { contains: searchQuery, mode: 'insensitive' } },
       { compensation_notes: { contains: searchQuery, mode: 'insensitive' } },
       {
@@ -203,10 +217,6 @@ function getJobWhere(
     };
   }
 
-  if (locationFilter) {
-    where.location = { contains: locationFilter, mode: 'insensitive' };
-  }
-
   if (deadlineState !== 'any') {
     const now = new Date();
 
@@ -216,6 +226,43 @@ function getJobWhere(
       where.deadline = { lt: now };
     } else if (deadlineState === 'noDeadline') {
       where.deadline = null;
+    }
+  }
+
+  if (priorityOnly) {
+    where.priority_flag = true;
+  }
+
+  if (eventFilter !== 'any') {
+    const now = new Date();
+    const upcomingEventCondition = {
+      TimelineEvent: {
+        some: {
+          occurred_at: { gte: now },
+          event_type: { not: null },
+        },
+      },
+    };
+
+    if (eventFilter === 'upcoming') {
+      where.AND = Array.isArray(where.AND)
+        ? [...where.AND, upcomingEventCondition]
+        : [upcomingEventCondition];
+    }
+
+    if (eventFilter === 'none') {
+      const noUpcomingEventCondition = {
+        TimelineEvent: {
+          none: {
+            occurred_at: { gte: now },
+            event_type: { not: null },
+          },
+        },
+      };
+
+      where.AND = Array.isArray(where.AND)
+        ? [...where.AND, noUpcomingEventCondition]
+        : [noUpcomingEventCondition];
     }
   }
 
@@ -366,8 +413,9 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const sortOption = parseSortOption(params.sort);
   const searchQuery = parseTextQuery(params.q);
   const stageFilter = parseStageFilter(params.stage);
-  const locationFilter = parseTextQuery(params.location);
   const deadlineState = parseDeadlineState(params.deadlineState);
+  const priorityOnly = parseBooleanParam(params.priority);
+  const eventFilter = parseEventFilter(params.events);
   const initialTab = parseTextQuery(params.tab);
   const showArchived = parseBooleanParam(params.showArchived);
 
@@ -498,8 +546,9 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       session.userId,
       searchQuery,
       stageFilter,
-      locationFilter,
       deadlineState,
+      priorityOnly,
+      eventFilter,
     ),
     orderBy: getJobOrderBy(sortOption),
   });
@@ -768,10 +817,6 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
       <div className="mx-auto mt-8 flex max-w-6xl flex-col gap-6 px-4 sm:px-0 lg:flex-row">
         <div className="min-w-0 flex-1 space-y-4">
           <JobSearchFilterControl />
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div />
-            <JobSortControl />
-          </div>
           <JobsModalGrid
             initialJobs={jobsForModal}
             initialOpenJobId={initialOpenJobId}
