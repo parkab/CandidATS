@@ -127,7 +127,7 @@ export default function DocumentRow({
   const menuPanelRef = useRef<HTMLDivElement>(null);
   const pendingInitialFocusRef = useRef<'first' | 'last'>('first');
 
-  const documentHref = `/documents/${encodeURIComponent(documentId)}/edit`;
+  const documentHref = `/documents/${encodeURIComponent(documentId)}/view`;
   const jobHref = jobId ? `/dashboard?openJob=${encodeURIComponent(jobId)}` : null;
 
   const computeMenuLayout = useCallback((menuEl: HTMLDivElement | null) => {
@@ -345,7 +345,7 @@ export default function DocumentRow({
           className={`${itemClass} rounded-xl`}
         >
           <IconDocument />
-          <span className="min-w-0">Open document</span>
+          <span className="min-w-0">View/Download Document</span>
         </Link>
         {onDuplicate ? (
           <button

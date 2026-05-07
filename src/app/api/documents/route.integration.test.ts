@@ -390,6 +390,34 @@ describe('Documents API integration', () => {
       );
       expect(res.status).toBe(401);
     });
+
+    it('accepts upload without jobId (library context — unlinked document)', async () => {
+      mockedDocCreate.mockResolvedValue({
+        id: 'doc-library',
+        user_id: 'user-1',
+        job_id: null,
+        title: 'cv.pdf',
+        content: '{}',
+        type: 'resume',
+        status: 'ready',
+        tags: [],
+        created_at: new Date('2026-04-01T00:00:00.000Z'),
+        updated_at: new Date('2026-04-01T00:00:00.000Z'),
+      } as DocumentCreateResult);
+
+      const res = await POST(
+        buildMultipartRequest(
+          { type: 'resume' },
+          { name: 'cv.pdf', type: 'application/pdf', content: '%PDF-1.4 fake' },
+        ),
+      );
+
+      expect(res.status).toBe(201);
+      expect(mockedJobFind).not.toHaveBeenCalled();
+      expect(mockedDocCreate).toHaveBeenCalledWith({
+        data: expect.not.objectContaining({ job_id: expect.anything() }),
+      });
+    });
   });
 
   it('deletes document and removes stored file when present', async () => {
