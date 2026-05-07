@@ -276,9 +276,7 @@ function calculateAverageDaysBetweenEvents(
           occurred_at: Date;
         } => event.occurred_at !== null,
       )
-      .sort(
-        (a, b) => a.occurred_at.getTime() - b.occurred_at.getTime(),
-      );
+      .sort((a, b) => a.occurred_at.getTime() - b.occurred_at.getTime());
 
     for (let i = 0; i < events.length - 1; i += 1) {
       const currentEvent = events[i];
@@ -579,13 +577,11 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
 
   const now = new Date();
 
-  const metricJobs = showArchived
-  ? jobs
-  : jobs.filter((job) => !job.archived);
+  const metricJobs = showArchived ? jobs : jobs.filter((job) => !job.archived);
 
-const metricJobsWithRelations = showArchived
-  ? jobsWithRelations
-  : jobsWithRelations.filter((job) => !job.archived);
+  const metricJobsWithRelations = showArchived
+    ? jobsWithRelations
+    : jobsWithRelations.filter((job) => !job.archived);
 
   // Get upcoming interviews for metrics
   const upcomingInterviewsList = metricJobsWithRelations.flatMap((job) =>
@@ -594,18 +590,35 @@ const metricJobsWithRelations = showArchived
     ),
   );
 
-  const normalizedStages = jobs.map((job) =>
+  const upcomingFollowUps = metricJobsWithRelations.flatMap((job) =>
+    (job.FollowUpTask ?? []).filter(
+      (followUp: { due_date: Date | null; completed: boolean | null }) =>
+        followUp.due_date !== null &&
+        followUp.due_date >= now &&
+        followUp.completed !== true,
+    ),
+  );
+
+  const upcomingTimelineEvents = metricJobsWithRelations.flatMap((job) =>
+    (job.TimelineEvent ?? []).filter(
+      (event: { occurred_at: Date | null }) =>
+        event.occurred_at !== null && event.occurred_at >= now,
+    ),
+  );
+
+  const normalizedStages = metricJobs.map((job) =>
     toApplicationStatus(job.pipeline_stage),
   );
   const totalApplications = metricJobs.length;
-const openApplications = metricJobs.filter((job) => !job.archived).length;
-const offersReceived = metricJobs.filter(
-  (job) => toApplicationStatus(job.pipeline_stage) === 'Offer',
-).length;
-const pastDueDeadlines = metricJobs.filter(
-  (job) => job.deadline !== null && job.deadline < now,
-).length;
+  const openApplications = metricJobs.filter((job) => !job.archived).length;
+  const upcomingDeadlines = metricJobs.filter(
+    (job) => job.deadline !== null && job.deadline >= now,
+  ).length;
   const upcomingInterviews = upcomingInterviewsList.length;
+  const upcomingEvents =
+    upcomingInterviews +
+    upcomingFollowUps.length +
+    upcomingTimelineEvents.length;
   const averageDaysSinceLastActivity =
     totalApplications === 0
       ? 0
@@ -622,112 +635,55 @@ const pastDueDeadlines = metricJobs.filter(
           ) / totalApplications,
         );
 
-const appliedApplications = countJobsAtOrPastStage(metricJobs, 'Applied');
-const interviewApplications = countJobsAtOrPastStage(metricJobs, 'Interview');
-const offerApplications = countJobsAtOrPastStage(metricJobs, 'Offer');
+  const appliedApplications = countJobsAtOrPastStage(metricJobs, 'Applied');
+  const interviewApplications = countJobsAtOrPastStage(metricJobs, 'Interview');
+  const offerApplications = countJobsAtOrPastStage(metricJobs, 'Offer');
 
-const appliedToInterviewConversion = formatPercent(
-  interviewApplications,
-  appliedApplications,
-);
+  const appliedToInterviewConversion = formatPercent(
+    interviewApplications,
+    appliedApplications,
+  );
 
-const interviewToOfferConversion = formatPercent(
-  offerApplications,
-  interviewApplications,
-);
+  const interviewToOfferConversion = formatPercent(
+    offerApplications,
+    interviewApplications,
+  );
 
-const averageDaysBetweenTimelineEvents =
-  calculateAverageDaysBetweenEvents(metricJobsWithRelations);
+  const averageDaysBetweenTimelineEvents = calculateAverageDaysBetweenEvents(
+    metricJobsWithRelations,
+  );
 
-const sevenDayVelocity = calculateEventVelocityForDays(
-  metricJobsWithRelations,
-  now,
-  7,
-);
+  const sevenDayVelocity = calculateEventVelocityForDays(
+    metricJobsWithRelations,
+    now,
+    7,
+  );
 
-const thirtyDayVelocity = calculateEventVelocityForDays(
-  metricJobsWithRelations,
-  now,
-  30,
-);
+  const thirtyDayVelocity = calculateEventVelocityForDays(
+    metricJobsWithRelations,
+    now,
+    30,
+  );
 
-const activeJobsThirtyDays = calculateActiveJobsForDays(
-  metricJobsWithRelations,
-  now,
-  30,
-);
+  const activeJobsThirtyDays = calculateActiveJobsForDays(
+    metricJobsWithRelations,
+    now,
+    30,
+  );
 
+  const stageCounts = PIPELINE_STAGE_ORDER.map((stage) => {
+    const count = normalizedStages.filter((status) => status === stage).length;
+    const percent =
+      totalApplications === 0
+        ? 0
+        : Math.round((count / totalApplications) * 100);
 
-
-
-  const dashboardMetrics = [
-    {
-      label: 'Total applications',
-      value: totalApplications,
-      description: 'All jobs currently in your pipeline.',
-    },
-    {
-      label: 'Open opportunities',
-      value: openApplications,
-      description: 'Applications that are not archived.',
-    },
-    {
-      label: 'Offers received',
-      value: offersReceived,
-      description: 'Jobs currently marked as offers.',
-    },
-    {
-      label: 'Past due deadlines',
-      value: pastDueDeadlines,
-      description: 'Jobs with deadlines that have already passed.',
-    },
-    {
-      label: 'Interviews scheduled',
-      value: upcomingInterviews,
-      description: 'Upcoming interview events stored for your jobs.',
-    },
-    {
-      label: 'Avg. days since last activity',
-      value: `${averageDaysSinceLastActivity} days`,
-      description: 'Average age of job activity across your pipeline.',
-    },
-    {
-  label: 'Applied → Interview',
-  value: appliedToInterviewConversion,
-  description: 'Share of applied jobs that have reached the interview stage.',
-},
-{
-  label: 'Interview → Offer',
-  value: interviewToOfferConversion,
-  description: 'Share of interview-stage jobs that have reached offer status.',
-},
-{
-  label: 'Avg. days between events',
-  value:
-    averageDaysBetweenTimelineEvents === null
-      ? 'N/A'
-      : `${averageDaysBetweenTimelineEvents} days`,
-  description: 'Average time between stored timeline events for each job.',
-},
-{
-  label: '7-day velocity',
-  value: sevenDayVelocity,
-  description:
-    'Timeline events recorded across your pipeline in the last 7 days.',
-},
-{
-  label: '30-day velocity',
-  value: thirtyDayVelocity,
-  description:
-    'Timeline events recorded across your pipeline in the last 30 days.',
-},
-{
-  label: 'Active jobs (30d)',
-  value: activeJobsThirtyDays,
-  description:
-    'Jobs with at least one recorded event in the last 30 days.',
-},
-  ];
+    return {
+      stage,
+      count,
+      percent,
+    };
+  });
 
   const jobsForModal = jobs.map((job: DashboardJob) => {
     const timelineEvents = timelineByJobId.get(job.id) ?? [];
@@ -809,20 +765,44 @@ const activeJobsThirtyDays = calculateActiveJobsForDays(
         <h1 className={GRADIENT_HEADING_CLASS}>Dashboard</h1>
       </div>
 
-      <DashboardMetrics metrics={dashboardMetrics} />
-
-      <div className="mx-auto mt-8 max-w-6xl space-y-4 px-4 sm:px-0">
-        <JobSearchFilterControl />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div />
-          <JobSortControl />
+      <div className="mx-auto mt-8 flex max-w-6xl flex-col gap-6 px-4 sm:px-0 lg:flex-row">
+        <div className="min-w-0 flex-1 space-y-4">
+          <JobSearchFilterControl />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div />
+            <JobSortControl />
+          </div>
+          <JobsModalGrid
+            initialJobs={jobsForModal}
+            initialOpenJobId={initialOpenJobId}
+            initialTab={initialTab}
+          />
+        </div>
+        <div className="lg:pt-1">
+          <DashboardMetrics
+            applicationCounts={{
+              total: totalApplications,
+              open: openApplications,
+              active: activeJobsThirtyDays,
+            }}
+            stageCounts={stageCounts}
+            timelineCounts={{
+              upcomingDeadlines,
+              upcomingEvents,
+            }}
+            conversionRates={{
+              appliedToInterview: appliedToInterviewConversion,
+              interviewToOffer: interviewToOfferConversion,
+            }}
+            productivity={{
+              avgDaysSinceLastActivity: averageDaysSinceLastActivity,
+              avgDaysBetweenEvents: averageDaysBetweenTimelineEvents,
+              sevenDayVelocity,
+              thirtyDayVelocity,
+            }}
+          />
         </div>
       </div>
-      <JobsModalGrid
-        initialJobs={jobsForModal}
-        initialOpenJobId={initialOpenJobId}
-        initialTab={initialTab}
-      />
     </section>
   );
 }
