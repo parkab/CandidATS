@@ -87,6 +87,25 @@ describe('GET /api/documents/all', () => {
     });
   });
 
+  it('does not return another user\'s documents (ownership enforced)', async () => {
+    mockedGetSession.mockResolvedValue({
+      userId: 'user-2',
+      email: 'other@example.com',
+    });
+    mockedDocumentFindMany.mockResolvedValue([] as never);
+
+    const response = await GET(
+      new Request('http://localhost/api/documents/all') as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockedDocumentFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { user_id: 'user-2' } }),
+    );
+    const body = (await response.json()) as { documents: unknown[] };
+    expect(body.documents).toHaveLength(0);
+  });
+
   it('returns 500 when prisma query throws', async () => {
     mockedGetSession.mockResolvedValue({
       userId: 'user-1',

@@ -1,7 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import DocumentRow from './document-row';
 
 type ApiJobSummary = {
@@ -28,8 +35,16 @@ type ApiDocument = {
 type DocType = 'resume' | 'cover_letter' | 'other';
 type ApiStatus = 'draft' | 'ready' | 'archived';
 
-const TYPE_FILTER_ORDER: readonly DocType[] = ['resume', 'cover_letter', 'other'];
-const STATUS_FILTER_ORDER: readonly ApiStatus[] = ['draft', 'ready', 'archived'];
+const TYPE_FILTER_ORDER: readonly DocType[] = [
+  'resume',
+  'cover_letter',
+  'other',
+];
+const STATUS_FILTER_ORDER: readonly ApiStatus[] = [
+  'draft',
+  'ready',
+  'archived',
+];
 
 const TYPE_FILTER_OPTIONS: { value: DocType; label: string }[] = [
   { value: 'resume', label: 'Resume' },
@@ -188,9 +203,15 @@ export default function DocumentTable() {
   const [tagQuery, setTagQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [sortPrimary, setSortPrimary] = useState<'date' | 'title'>(DEFAULT_SORT_PRIMARY);
-  const [dateOrder, setDateOrder] = useState<'asc' | 'desc'>(DEFAULT_DATE_ORDER);
-  const [titleOrder, setTitleOrder] = useState<'asc' | 'desc'>(DEFAULT_TITLE_ORDER);
+  const [sortPrimary, setSortPrimary] = useState<'date' | 'title'>(
+    DEFAULT_SORT_PRIMARY,
+  );
+  const [dateOrder, setDateOrder] = useState<'asc' | 'desc'>(
+    DEFAULT_DATE_ORDER,
+  );
+  const [titleOrder, setTitleOrder] = useState<'asc' | 'desc'>(
+    DEFAULT_TITLE_ORDER,
+  );
 
   const [jobSelectOptions, setJobSelectOptions] = useState<ApiJobSummary[]>([]);
   const [duplicateRow, setDuplicateRow] = useState<ListRow | null>(null);
@@ -219,7 +240,9 @@ export default function DocumentTable() {
         if (!jobsRes.ok) {
           const body = await jobsRes.json().catch(() => null);
           const message =
-            typeof body?.error === 'string' ? body.error : 'Unable to load jobs.';
+            typeof body?.error === 'string'
+              ? body.error
+              : 'Unable to load jobs.';
           throw new Error(message);
         }
 
@@ -228,15 +251,21 @@ export default function DocumentTable() {
           jobs?: ApiJobSummary[];
         };
 
-        const jobIds = Array.isArray(jobsPayload.jobIds) ? jobsPayload.jobIds : [];
-        const jobById = new Map<string, { title: string; company_name: string }>();
+        const jobIds = Array.isArray(jobsPayload.jobIds)
+          ? jobsPayload.jobIds
+          : [];
+        const jobById = new Map<
+          string,
+          { title: string; company_name: string }
+        >();
 
         const rawJobs = jobsPayload.jobs ?? [];
 
         for (const job of rawJobs) {
           if (job?.id) {
             jobById.set(job.id, {
-              title: typeof job.title === 'string' ? job.title : 'Untitled role',
+              title:
+                typeof job.title === 'string' ? job.title : 'Untitled role',
               company_name:
                 typeof job.company_name === 'string' ? job.company_name : '',
             });
@@ -269,7 +298,9 @@ export default function DocumentTable() {
         if (!allDocsRes.ok) {
           const body = await allDocsRes.json().catch(() => null);
           const message =
-            typeof body?.error === 'string' ? body.error : 'Unable to load documents.';
+            typeof body?.error === 'string'
+              ? body.error
+              : 'Unable to load documents.';
           throw new Error(message);
         }
         const allDocsPayload = (await allDocsRes.json()) as {
@@ -282,9 +313,11 @@ export default function DocumentTable() {
         const combined: ListRow[] = [];
         for (const doc of allDocuments) {
           if (!doc?.id) continue;
-          
+
           const jobId = typeof doc.job_id === 'string' ? doc.job_id : null;
-          const fallbackJobMeta = jobId ? (jobById.get(jobId) ?? { title: 'Job', company_name: '' }) : { title: 'Library', company_name: '' };
+          const fallbackJobMeta = jobId
+            ? (jobById.get(jobId) ?? { title: 'Job', company_name: '' })
+            : { title: 'Library', company_name: '' };
           const joinedJobMeta =
             doc.Job &&
             typeof doc.Job.title === 'string' &&
@@ -292,8 +325,10 @@ export default function DocumentTable() {
               ? { title: doc.Job.title, company_name: doc.Job.company_name }
               : null;
           const jobMeta = joinedJobMeta ?? fallbackJobMeta;
-          const updatedAt = typeof doc.updated_at === 'string' ? doc.updated_at : '';
-          const rawStatus = typeof doc.status === 'string' ? doc.status : 'draft';
+          const updatedAt =
+            typeof doc.updated_at === 'string' ? doc.updated_at : '';
+          const rawStatus =
+            typeof doc.status === 'string' ? doc.status : 'draft';
 
           combined.push({
             id: doc.id,
@@ -327,7 +362,9 @@ export default function DocumentTable() {
           return;
         }
         if (!signal.aborted) {
-          setError(err instanceof Error ? err.message : 'Something went wrong.');
+          setError(
+            err instanceof Error ? err.message : 'Something went wrong.',
+          );
           setAllRows([]);
         }
       } finally {
@@ -401,13 +438,17 @@ export default function DocumentTable() {
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         const message =
-          typeof body?.error === 'string' ? body.error : 'Could not duplicate document.';
+          typeof body?.error === 'string'
+            ? body.error
+            : 'Could not duplicate document.';
         throw new Error(message);
       }
       closeDuplicateDialog();
       await runLoadDocuments(true);
     } catch (err: unknown) {
-      setDuplicateError(err instanceof Error ? err.message : 'Could not duplicate document.');
+      setDuplicateError(
+        err instanceof Error ? err.message : 'Could not duplicate document.',
+      );
     } finally {
       setDuplicateBusy(false);
     }
@@ -436,21 +477,28 @@ export default function DocumentTable() {
     setRenameBusy(true);
     setRenameError(null);
     try {
-      const res = await fetch(`/api/documents/${encodeURIComponent(renameRow.id)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
-      });
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(renameRow.id)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title }),
+        },
+      );
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         const message =
-          typeof body?.error === 'string' ? body.error : 'Could not rename document.';
+          typeof body?.error === 'string'
+            ? body.error
+            : 'Could not rename document.';
         throw new Error(message);
       }
       closeRenameDialog();
       await runLoadDocuments(true);
     } catch (err: unknown) {
-      setRenameError(err instanceof Error ? err.message : 'Could not rename document.');
+      setRenameError(
+        err instanceof Error ? err.message : 'Could not rename document.',
+      );
     } finally {
       setRenameBusy(false);
     }
@@ -575,11 +623,14 @@ export default function DocumentTable() {
               Library
             </h2>
             {!isLoading && !error ? (
-              <span className="text-sm font-medium text-[--text-muted]">{countLabel}</span>
+              <span className="text-sm font-medium text-[--text-muted]">
+                {countLabel}
+              </span>
             ) : null}
           </div>
           <p className="max-w-lg text-sm leading-relaxed text-[--text-muted]">
-            Filter and sort everything you have uploaded or drafted for your applications.
+            Filter and sort everything you have uploaded or drafted for your
+            applications.
           </p>
         </div>
       </header>
@@ -762,7 +813,9 @@ export default function DocumentTable() {
 
       {!error && !isLoading && allRows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[--surface-border] bg-[color-mix(in_oklab,var(--foreground)_3%,var(--background))] px-6 py-14 text-center">
-          <p className="text-base font-medium text-[--foreground]">No documents yet</p>
+          <p className="text-base font-medium text-[--foreground]">
+            No documents yet
+          </p>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[--text-muted]">
             When you add files from a job application, they will show up here
             automatically.
@@ -776,13 +829,17 @@ export default function DocumentTable() {
         </div>
       ) : null}
 
-      {!error && !isLoading && allRows.length > 0 && displayRows.length === 0 ? (
+      {!error &&
+      !isLoading &&
+      allRows.length > 0 &&
+      displayRows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[--surface-border] bg-[color-mix(in_oklab,var(--foreground)_3%,var(--background))] px-6 py-12 text-center">
           <p className="text-base font-medium text-[--foreground]">
             No documents match
           </p>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[--text-muted]">
-            Try widening your filters or reset to see all {allRows.length} documents.
+            Try widening your filters or reset to see all {allRows.length}{' '}
+            documents.
           </p>
           <button
             type="button"
@@ -968,3 +1025,4 @@ export default function DocumentTable() {
     </div>
   );
 }
+//test comment
