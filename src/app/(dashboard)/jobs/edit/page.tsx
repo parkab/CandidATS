@@ -57,7 +57,7 @@ export default async function EditJobApplication({
           ? new Date(event.occurred_at)
           : event.occurred_at;
       if (!Number.isNaN(dateObj.getTime())) {
-        dateString = dateObj.toISOString().split('T')[0];
+        dateString = dateObj.toISOString();
       }
     }
     return {
@@ -82,7 +82,7 @@ export default async function EditJobApplication({
           ? new Date(interview.scheduled_at)
           : interview.scheduled_at;
       if (!Number.isNaN(dateObj.getTime())) {
-        dateString = dateObj.toISOString().split('T')[0];
+        dateString = dateObj.toISOString();
       }
     }
     return {
@@ -104,7 +104,7 @@ export default async function EditJobApplication({
     if (followUp.due_date) {
       const dateObj = followUp.due_date as Date;
       if (!Number.isNaN(dateObj.getTime())) {
-        dateString = dateObj.toISOString().split('T')[0];
+        dateString = dateObj.toISOString();
       }
     }
     return {

@@ -232,7 +232,7 @@ export default function JobsModalGrid({
         const updatedTimeline = rawTimelineEvents.map((event) => ({
           id: event.id,
           title: event.event_type,
-          date: event.occurred_at.split('T')[0],
+          date: event.occurred_at,
           notes: event.notes ?? '',
         }));
         // Update the job with the new timeline

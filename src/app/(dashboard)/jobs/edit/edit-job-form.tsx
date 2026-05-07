@@ -229,8 +229,18 @@ export default function EditJobForm({
       );
 
       if (timelineResponse.ok) {
-        const freshEvents =
-          (await timelineResponse.json()) as JobSectionItemDraft[];
+        const rawEvents = (await timelineResponse.json()) as Array<{
+          id: string;
+          event_type: string | null;
+          occurred_at: string | null;
+          notes: string | null;
+        }>;
+        const freshEvents = rawEvents.map((event) => ({
+          id: event.id,
+          title: event.event_type ?? '',
+          date: event.occurred_at ?? '',
+          notes: event.notes ?? '',
+        }));
         setTimelineData(freshEvents);
       }
     } catch (error) {

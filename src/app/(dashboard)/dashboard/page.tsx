@@ -829,7 +829,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     const timeline = timelineEvents.map((event) => ({
       id: event.id,
       title: event.event_type,
-      date: event.occurred_at.toISOString().split('T')[0],
+      date: event.occurred_at.toISOString(),
       notes: event.notes ?? '',
     }));
 
@@ -837,7 +837,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     const interviews = interviewsForJob.map((interview) => ({
       id: interview.id,
       title: interview.round_type,
-      date: interview.scheduled_at.toISOString().split('T')[0],
+      date: interview.scheduled_at.toISOString(),
       notes: interview.notes ?? '',
     }));
 
@@ -850,7 +850,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
             ? new Date(followUp.due_date)
             : followUp.due_date;
         if (!Number.isNaN(dateObj.getTime())) {
-          dateString = dateObj.toISOString().split('T')[0];
+          dateString = dateObj.toISOString();
         }
       }
       return {
