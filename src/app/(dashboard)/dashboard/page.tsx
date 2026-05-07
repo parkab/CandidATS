@@ -83,7 +83,6 @@ export type DashboardPageProps = {
     events?: string | string[];
     openJob?: string | string[];
     tab?: string | string[];
-    showArchived?: string | string[];
   }>;
 };
 
@@ -192,6 +191,37 @@ function getJobWhere(
   priorityOnly: boolean,
   eventFilter: EventFilter,
 ) {
+  const where = buildBaseWhere(
+    userId,
+    searchQuery,
+    deadlineState,
+    priorityOnly,
+    eventFilter,
+  );
+
+  if (stageFilter !== 'all') {
+    if (stageFilter === 'Archived') {
+      where.archived = true;
+    } else {
+      where.pipeline_stage = {
+        equals: stageFilter,
+      };
+      where.archived = false;
+    }
+  } else {
+    where.archived = false;
+  }
+
+  return where;
+}
+
+function buildBaseWhere(
+  userId: string,
+  searchQuery: string,
+  deadlineState: DeadlineState,
+  priorityOnly: boolean,
+  eventFilter: EventFilter,
+) {
   const where: Record<string, unknown> = {
     user_id: userId,
   };
@@ -209,12 +239,6 @@ function getJobWhere(
       { interview_prep_notes: { contains: searchQuery, mode: 'insensitive' } },
       { custom_notes: { contains: searchQuery, mode: 'insensitive' } },
     ];
-  }
-
-  if (stageFilter !== 'all') {
-    where.pipeline_stage = {
-      equals: stageFilter,
-    };
   }
 
   if (deadlineState !== 'any') {
@@ -279,6 +303,12 @@ const PIPELINE_STAGE_ORDER = [
 
 type PipelineStage = (typeof PIPELINE_STAGE_ORDER)[number];
 
+type StageCount = {
+  stage: PipelineStage | 'Archived';
+  count: number;
+  percent: number;
+};
+
 type TimelineEventForAnalytics = {
   event_type: string | null;
   occurred_at: Date | null;
@@ -300,7 +330,10 @@ function getStageRank(stage: string) {
   return index === -1 ? 0 : index;
 }
 
-function countJobsAtOrPastStage(jobs: DashboardJob[], stage: PipelineStage) {
+function countJobsAtOrPastStage(
+  jobs: Array<{ pipeline_stage: string }>,
+  stage: PipelineStage,
+) {
   const targetRank = PIPELINE_STAGE_ORDER.indexOf(stage);
 
   return jobs.filter((job) => getStageRank(job.pipeline_stage) >= targetRank)
@@ -390,23 +423,6 @@ function calculateEventVelocityForDays(
   }, 0);
 }
 
-function calculateActiveJobsForDays(
-  jobsWithEvents: Array<{
-    TimelineEvent?: TimelineEventForAnalytics[] | null;
-  }>,
-  now: Date,
-  days: number,
-) {
-  const cutoff = new Date(now);
-  cutoff.setDate(cutoff.getDate() - days);
-
-  return jobsWithEvents.filter((job) =>
-    (job.TimelineEvent ?? []).some(
-      (event) => event.occurred_at !== null && event.occurred_at >= cutoff,
-    ),
-  ).length;
-}
-
 export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const session = await getSession();
   const params = await searchParams;
@@ -417,7 +433,6 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   const priorityOnly = parseBooleanParam(params.priority);
   const eventFilter = parseEventFilter(params.events);
   const initialTab = parseTextQuery(params.tab);
-  const showArchived = parseBooleanParam(params.showArchived);
 
   if (!session) {
     return (
@@ -481,77 +496,129 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     );
   }
 
-  const jobsWithRelations = await prisma.job.findMany({
-    select: {
-      id: true,
-      company_name: true,
-      title: true,
-      location: true,
-      pipeline_stage: true,
-      archived: true,
-      last_activity_date: true,
-      deadline: true,
-      priority_flag: true,
-      job_description: true,
-      compensation_notes: true,
-      application_date: true,
-      recruiter_contact_notes: true,
-      interview_prep_notes: true,
-      custom_notes: true,
-      TimelineEvent: {
-        select: {
-          id: true,
-          event_type: true,
-          occurred_at: true,
-          notes: true,
-        },
-        where: {
-          event_type: { not: null },
-          occurred_at: { not: null },
-        },
-        orderBy: [
-          {
-            occurred_at: 'asc',
+  const [jobsWithRelations, metricsJobsWithRelations] = await Promise.all([
+    prisma.job.findMany({
+      select: {
+        id: true,
+        company_name: true,
+        title: true,
+        location: true,
+        pipeline_stage: true,
+        archived: true,
+        last_activity_date: true,
+        deadline: true,
+        priority_flag: true,
+        job_description: true,
+        compensation_notes: true,
+        application_date: true,
+        recruiter_contact_notes: true,
+        interview_prep_notes: true,
+        custom_notes: true,
+        TimelineEvent: {
+          select: {
+            id: true,
+            event_type: true,
+            occurred_at: true,
+            notes: true,
           },
-          {
-            id: 'asc',
+          where: {
+            event_type: { not: null },
+            occurred_at: { not: null },
           },
-        ],
+          orderBy: [
+            {
+              occurred_at: 'asc',
+            },
+            {
+              id: 'asc',
+            },
+          ],
+        },
+        Interview: {
+          select: {
+            id: true,
+            round_type: true,
+            scheduled_at: true,
+            notes: true,
+          },
+          orderBy: {
+            scheduled_at: 'asc',
+          },
+        },
+        FollowUpTask: {
+          select: {
+            id: true,
+            title: true,
+            due_date: true,
+            completed: true,
+            notes: true,
+          },
+          orderBy: {
+            due_date: 'asc',
+          },
+        },
       },
-      Interview: {
-        select: {
-          id: true,
-          round_type: true,
-          scheduled_at: true,
-          notes: true,
+      where: getJobWhere(
+        session.userId,
+        searchQuery,
+        stageFilter,
+        deadlineState,
+        priorityOnly,
+        eventFilter,
+      ),
+      orderBy: getJobOrderBy(sortOption),
+    }),
+    prisma.job.findMany({
+      select: {
+        pipeline_stage: true,
+        archived: true,
+        last_activity_date: true,
+        deadline: true,
+        TimelineEvent: {
+          select: {
+            id: true,
+            event_type: true,
+            occurred_at: true,
+            notes: true,
+          },
+          where: {
+            event_type: { not: null },
+            occurred_at: { not: null },
+          },
+          orderBy: [
+            {
+              occurred_at: 'asc',
+            },
+            {
+              id: 'asc',
+            },
+          ],
         },
-        orderBy: {
-          scheduled_at: 'asc',
+        Interview: {
+          select: {
+            id: true,
+            scheduled_at: true,
+          },
+          orderBy: {
+            scheduled_at: 'asc',
+          },
+        },
+        FollowUpTask: {
+          select: {
+            id: true,
+            due_date: true,
+            completed: true,
+          },
+          orderBy: {
+            due_date: 'asc',
+          },
         },
       },
-      FollowUpTask: {
-        select: {
-          id: true,
-          title: true,
-          due_date: true,
-          completed: true,
-          notes: true,
-        },
-        orderBy: {
-          due_date: 'asc',
-        },
+      where: {
+        user_id: session.userId,
       },
-    },
-    where: getJobWhere(
-      session.userId,
-      searchQuery,
-      stageFilter,
-      deadlineState,
-      priorityOnly,
-      eventFilter,
-    ),
-    orderBy: getJobOrderBy(sortOption),
-  });
+    }),
+  ]);
 
   // Transform the data to match the expected format
   const jobs: DashboardJob[] = jobsWithRelations.map((job) => ({
@@ -626,20 +693,25 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
 
   const now = new Date();
 
-  const metricJobs = showArchived ? jobs : jobs.filter((job) => !job.archived);
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const metricJobsWithRelations = showArchived
-    ? jobsWithRelations
-    : jobsWithRelations.filter((job) => !job.archived);
+  const totalApplications = metricsJobsWithRelations.length;
+  const openApplications = metricsJobsWithRelations.filter(
+    (job) => !job.archived,
+  ).length;
+  const activeApplications = metricsJobsWithRelations.filter(
+    (job) => job.last_activity_date >= thirtyDaysAgo,
+  ).length;
 
   // Get upcoming interviews for metrics
-  const upcomingInterviewsList = metricJobsWithRelations.flatMap((job) =>
+  const upcomingInterviewsList = metricsJobsWithRelations.flatMap((job) =>
     (job.Interview ?? []).filter(
       (interview: { scheduled_at: Date }) => interview.scheduled_at >= now,
     ),
   );
 
-  const upcomingFollowUps = metricJobsWithRelations.flatMap((job) =>
+  const upcomingFollowUps = metricsJobsWithRelations.flatMap((job) =>
     (job.FollowUpTask ?? []).filter(
       (followUp: { due_date: Date | null; completed: boolean | null }) =>
         followUp.due_date !== null &&
@@ -648,19 +720,18 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     ),
   );
 
-  const upcomingTimelineEvents = metricJobsWithRelations.flatMap((job) =>
+  const upcomingTimelineEvents = metricsJobsWithRelations.flatMap((job) =>
     (job.TimelineEvent ?? []).filter(
       (event: { occurred_at: Date | null }) =>
         event.occurred_at !== null && event.occurred_at >= now,
     ),
   );
 
-  const normalizedStages = metricJobs.map((job) =>
-    toApplicationStatus(job.pipeline_stage),
-  );
-  const totalApplications = metricJobs.length;
-  const openApplications = metricJobs.filter((job) => !job.archived).length;
-  const upcomingDeadlines = metricJobs.filter(
+  const normalizedStages = metricsJobsWithRelations
+    .filter((job) => !job.archived)
+    .map((job) => toApplicationStatus(job.pipeline_stage));
+  const totalMetricApplications = metricsJobsWithRelations.length;
+  const upcomingDeadlines = metricsJobsWithRelations.filter(
     (job) => job.deadline !== null && job.deadline >= now,
   ).length;
   const upcomingInterviews = upcomingInterviewsList.length;
@@ -669,10 +740,10 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
     upcomingFollowUps.length +
     upcomingTimelineEvents.length;
   const averageDaysSinceLastActivity =
-    totalApplications === 0
+    totalMetricApplications === 0
       ? 0
       : Math.round(
-          metricJobs.reduce(
+          metricsJobsWithRelations.reduce(
             (sum, job) =>
               sum +
               (now.getTime() - job.last_activity_date.getTime()) /
@@ -681,12 +752,21 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
                 60 /
                 24,
             0,
-          ) / totalApplications,
+          ) / totalMetricApplications,
         );
 
-  const appliedApplications = countJobsAtOrPastStage(metricJobs, 'Applied');
-  const interviewApplications = countJobsAtOrPastStage(metricJobs, 'Interview');
-  const offerApplications = countJobsAtOrPastStage(metricJobs, 'Offer');
+  const appliedApplications = countJobsAtOrPastStage(
+    metricsJobsWithRelations,
+    'Applied',
+  );
+  const interviewApplications = countJobsAtOrPastStage(
+    metricsJobsWithRelations,
+    'Interview',
+  );
+  const offerApplications = countJobsAtOrPastStage(
+    metricsJobsWithRelations,
+    'Offer',
+  );
 
   const appliedToInterviewConversion = formatPercent(
     interviewApplications,
@@ -699,39 +779,49 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
   );
 
   const averageDaysBetweenTimelineEvents = calculateAverageDaysBetweenEvents(
-    metricJobsWithRelations,
+    metricsJobsWithRelations,
   );
 
   const sevenDayVelocity = calculateEventVelocityForDays(
-    metricJobsWithRelations,
+    metricsJobsWithRelations,
     now,
     7,
   );
 
   const thirtyDayVelocity = calculateEventVelocityForDays(
-    metricJobsWithRelations,
+    metricsJobsWithRelations,
     now,
     30,
   );
 
-  const activeJobsThirtyDays = calculateActiveJobsForDays(
-    metricJobsWithRelations,
-    now,
-    30,
-  );
+  const archivedStageCount = metricsJobsWithRelations.filter(
+    (job) => job.archived,
+  ).length;
+  const totalStageApplications = metricsJobsWithRelations.length;
 
-  const stageCounts = PIPELINE_STAGE_ORDER.map((stage) => {
+  const stageCounts: StageCount[] = PIPELINE_STAGE_ORDER.map((stage) => {
     const count = normalizedStages.filter((status) => status === stage).length;
     const percent =
-      totalApplications === 0
+      totalStageApplications === 0
         ? 0
-        : Math.round((count / totalApplications) * 100);
+        : Math.round((count / totalStageApplications) * 100);
 
     return {
       stage,
       count,
       percent,
     };
+  });
+
+  const archivedPercent =
+    totalStageApplications === 0
+      ? 0
+      : Math.round((archivedStageCount / totalStageApplications) * 100);
+
+  stageCounts.push({
+    stage: 'Archived',
+    count: archivedStageCount,
+    percent: archivedPercent,
   });
 
   const jobsForModal = jobs.map((job: DashboardJob) => {
@@ -828,7 +918,7 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
             applicationCounts={{
               total: totalApplications,
               open: openApplications,
-              active: activeJobsThirtyDays,
+              active: activeApplications,
             }}
             stageCounts={stageCounts}
             timelineCounts={{

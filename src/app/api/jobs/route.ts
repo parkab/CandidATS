@@ -132,6 +132,7 @@ export async function POST(request: Request) {
   const recruiterNotes = asOptionalString(body.recruiterNotes);
   const prepNotes = asOptionalString(body.prepNotes);
   const otherNotes = asOptionalString(body.otherNotes);
+  const archived = typeof body.archived === 'boolean' ? body.archived : null;
 
   if (!title || !company || !location || !stage || !lastActivityDate) {
     return NextResponse.json(
@@ -175,6 +176,7 @@ export async function POST(request: Request) {
         recruiter_contact_notes: recruiterNotes,
         interview_prep_notes: prepNotes,
         custom_notes: otherNotes,
+        archived: archived ?? undefined,
       },
     });
 

@@ -19,6 +19,7 @@ export type JobOverviewDraft = {
   company: string;
   location: string;
   stage: ApplicationStatus;
+  archived: boolean;
   lastActivityDate: string;
   deadline: string;
   priority: boolean;

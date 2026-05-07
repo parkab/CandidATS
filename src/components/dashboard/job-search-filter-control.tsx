@@ -34,7 +34,9 @@ const STATUS_STAGES: ApplicationStatus[] = [
 function getStageOptionColor(value: string) {
   return STATUS_STAGES.includes(value as ApplicationStatus)
     ? getMixedStageColor(value as ApplicationStatus)
-    : 'var(--foreground)';
+    : value === 'Archived'
+      ? `color-mix(in oklab, #ffa647 75%, var(--foreground))`
+      : 'var(--foreground)';
 }
 
 const EVENT_OPTIONS = [
@@ -88,6 +90,8 @@ export default function JobSearchFilterControl() {
     selectedStage as ApplicationStatus,
   )
     ? getMixedStageColor(selectedStage as ApplicationStatus)
+    : selectedStage === 'Archived'
+      ? `color-mix(in oklab, #ffa647 75%, var(--foreground))`
     : 'var(--foreground)';
 
   useEffect(() => {

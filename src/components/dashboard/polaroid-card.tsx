@@ -1,6 +1,10 @@
+import { useState } from 'react';
+
 import { ApplicationStatus, APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import PolaroidShell from '@/components/dashboard/polaroid-shell';
-import PipelineStageDropdown from '@/components/dashboard/pipeline-stage-dropdown';
+import PipelineStageDropdown, {
+  type PipelineStageOption,
+} from '@/components/dashboard/pipeline-stage-dropdown';
 
 type PolaroidCardProps = {
   company: string;
@@ -11,10 +15,11 @@ type PolaroidCardProps = {
   archived?: boolean;
   angle?: number;
   jobId?: string;
-  onStageChange?: (newStage: ApplicationStatus) => Promise<void>;
-  onToggleArchive?: (archived: boolean) => Promise<void>;
+  onStageChange?: (newStage: PipelineStageOption) => Promise<void>;
   highPriority?: boolean;
 };
+
+const ARCHIVED_COLOR = '#ffa647';
 
 export default function PolaroidCard({
   company,
@@ -26,15 +31,19 @@ export default function PolaroidCard({
   angle = 0,
   jobId,
   onStageChange,
-  onToggleArchive,
   highPriority = false,
 }: PolaroidCardProps) {
-  const canUpdateArchiveState = Boolean(jobId && onToggleArchive);
-  const archiveButtonLabel = archived ? 'Restore' : 'Archive';
-  const archiveButtonColor = archived ? '#9fff5b' : '#ffa647';
+  const [isStageMenuOpen, setIsStageMenuOpen] = useState(false);
+  const currentStage: PipelineStageOption = archived ? 'Archived' : status;
+  const badgeColor = archived
+    ? ARCHIVED_COLOR
+    : APPLICATION_STATUS_COLOR[status];
 
   return (
-    <PolaroidShell angle={angle}>
+    <PolaroidShell
+      angle={angle}
+      className={isStageMenuOpen ? 'relative z-30' : 'relative z-0'}
+    >
       <div className="relative flex min-h-48 flex-col justify-center text-center rounded-xs bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] px-4 py-5 text-[#111111] shadow-inner">
         {highPriority ? (
           <span
@@ -64,44 +73,27 @@ export default function PolaroidCard({
         </p>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-        <p className="text-left italic leading-none opacity-80">
+      <div className="mt-4 flex items-center justify-between gap-2 text-sm">
+        <p className="text-left italic leading-none opacity-80 whitespace-nowrap">
           {lastActivityDate}
         </p>
         {jobId && onStageChange ? (
           <div className="flex w-full flex-col items-end gap-2">
-            <div className="w-full max-w-xs">
+            <div className="w-full max-w-[8.5rem]">
               <PipelineStageDropdown
-                currentStage={status}
+                currentStage={currentStage}
                 jobId={jobId}
                 onStageChange={onStageChange}
+                onOpenChange={setIsStageMenuOpen}
               />
             </div>
-            {canUpdateArchiveState ? (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void onToggleArchive?.(!archived)?.catch((error) => {
-                    console.error('Failed to toggle archive state.', error);
-                  });
-                }}
-                className="w-full max-w-xs rounded-md border px-2.5 py-1 text-xs font-bold text-[#111111] transition hover:brightness-95"
-                style={{
-                  backgroundColor: `${archiveButtonColor}B3`,
-                  borderColor: archiveButtonColor,
-                }}
-              >
-                {archiveButtonLabel}
-              </button>
-            ) : null}
           </div>
         ) : (
           <p
             className="rounded-md px-2.5 py-1 text-right leading-none font-bold text-(--background)"
-            style={{ backgroundColor: `${APPLICATION_STATUS_COLOR[status]}8C` }}
+            style={{ backgroundColor: `${badgeColor}8C` }}
           >
-            {status}
+            {currentStage}
           </p>
         )}
       </div>

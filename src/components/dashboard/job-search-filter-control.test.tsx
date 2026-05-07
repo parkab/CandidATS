@@ -4,7 +4,7 @@ import JobSearchFilterControl from './job-search-filter-control';
 
 const replaceMock = jest.fn();
 let searchParams = new URLSearchParams(
-  'q=engineer&stage=Interview&location=Austin&deadlineState=upcoming',
+  'q=engineer&stage=Interview&deadlineState=upcoming&events=upcoming&priority=true&sort=company',
 );
 
 jest.mock('next/navigation', () => ({
@@ -18,7 +18,7 @@ describe('JobSearchFilterControl', () => {
   beforeEach(() => {
     replaceMock.mockClear();
     searchParams = new URLSearchParams(
-      'q=engineer&stage=Interview&location=Austin&deadlineState=upcoming',
+      'q=engineer&stage=Interview&deadlineState=upcoming&events=upcoming&priority=true&sort=company',
     );
   });
 
@@ -26,52 +26,59 @@ describe('JobSearchFilterControl', () => {
     render(<JobSearchFilterControl />);
 
     expect(
-      screen.getByPlaceholderText('Search by title, company, or keywords'),
+      screen.getByPlaceholderText(
+        'Search by title, company, location, or keywords',
+      ),
     ).toHaveValue('engineer');
     expect(screen.getByLabelText(/stage/i)).toHaveValue('Interview');
-    expect(screen.getByPlaceholderText('Enter a location')).toHaveValue(
-      'Austin',
-    );
     expect(screen.getByLabelText(/deadline/i)).toHaveValue('upcoming');
+    expect(screen.getByLabelText(/events/i)).toHaveValue('upcoming');
+    expect(screen.getByLabelText(/priority/i)).toBeChecked();
+    expect(screen.getByLabelText(/sort by/i)).toHaveValue('company');
   });
 
-  it('applies updated filters when clicking apply', async () => {
+  it('updates filters when selections change', async () => {
+    const user = userEvent.setup();
     render(<JobSearchFilterControl />);
 
-    await userEvent.clear(
-      screen.getByPlaceholderText('Search by title, company, or keywords'),
-    );
-    await userEvent.type(
-      screen.getByPlaceholderText('Search by title, company, or keywords'),
-      'frontend',
-    );
-    await userEvent.selectOptions(screen.getByLabelText(/stage/i), 'Offer');
-    await userEvent.clear(screen.getByPlaceholderText('Enter a location'));
-    await userEvent.type(screen.getByPlaceholderText('Enter a location'), 'NY');
-    await userEvent.selectOptions(screen.getByLabelText(/deadline/i), 'past');
+    replaceMock.mockClear();
 
-    await userEvent.click(
-      screen.getByRole('button', { name: /apply filters/i }),
-    );
+    await user.selectOptions(screen.getByLabelText(/stage/i), 'Offer');
+    await user.selectOptions(screen.getByLabelText(/deadline/i), 'past');
+    await user.selectOptions(screen.getByLabelText(/events/i), 'none');
+    await user.click(screen.getByLabelText(/priority/i));
+    await user.selectOptions(screen.getByLabelText(/sort by/i), 'createdDate');
 
-    expect(replaceMock).toHaveBeenCalledWith(
-      '/dashboard?q=frontend&stage=Offer&location=NY&deadlineState=past',
+    expect(replaceMock).toHaveBeenLastCalledWith(
+      '/dashboard?q=engineer&stage=Offer&deadlineState=past&events=none&sort=createdDate',
     );
   });
 
-  it('submits the filter form when pressing Enter in the search input', async () => {
+  it('updates search query after debounce', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     render(<JobSearchFilterControl />);
 
-    await userEvent.clear(
-      screen.getByPlaceholderText('Search by title, company, or keywords'),
+    replaceMock.mockClear();
+
+    await user.clear(
+      screen.getByPlaceholderText(
+        'Search by title, company, location, or keywords',
+      ),
     );
-    await userEvent.type(
-      screen.getByPlaceholderText('Search by title, company, or keywords'),
-      'designer{enter}',
+    await user.type(
+      screen.getByPlaceholderText(
+        'Search by title, company, location, or keywords',
+      ),
+      'designer',
     );
 
+    jest.advanceTimersByTime(160);
+
     expect(replaceMock).toHaveBeenCalledWith(
-      '/dashboard?q=designer&stage=Interview&location=Austin&deadlineState=upcoming',
+      '/dashboard?q=designer&stage=Interview&deadlineState=upcoming&events=upcoming&priority=true&sort=company',
     );
+
+    jest.useRealTimers();
   });
 });

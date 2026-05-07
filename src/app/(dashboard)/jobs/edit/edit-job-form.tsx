@@ -25,6 +25,7 @@ type EditJobFormProps = {
     company: string;
     location: string;
     stage: string;
+    archived?: boolean | null;
     lastActivityDate: Date | string | null;
     deadline: Date | string | null;
     priority: boolean | null;
@@ -82,6 +83,7 @@ function toOverviewDraft(
     company: initialJob.company,
     location: initialJob.location,
     stage: toStageValue(initialJob.stage),
+    archived: Boolean(initialJob.archived),
     lastActivityDate: toDateInputValue(initialJob.lastActivityDate),
     deadline: toDateInputValue(initialJob.deadline),
     priority: Boolean(initialJob.priority),
@@ -187,6 +189,7 @@ export default function EditJobForm({
       company: draft.overview.company,
       location: draft.overview.location,
       stage: draft.overview.stage,
+      archived: draft.overview.archived,
       lastActivityDate: draft.overview.lastActivityDate,
       deadline: toOptionalString(draft.overview.deadline),
       priority: draft.overview.priority,

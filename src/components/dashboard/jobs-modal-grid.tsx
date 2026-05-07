@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { ApplicationStatus } from '@/lib/jobs/status';
 import type { JobFormStepId } from '@/lib/jobs/multi-step-form';
 import { JOB_FORM_STEPS } from '@/lib/jobs/multi-step-form';
@@ -17,6 +17,7 @@ import PolaroidCard from '@/components/dashboard/polaroid-card';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import CreateJobForm from '@/app/(dashboard)/jobs/create/create-job-form';
 import EditJobForm from '@/app/(dashboard)/jobs/edit/edit-job-form';
+import type { PipelineStageOption } from '@/components/dashboard/pipeline-stage-dropdown';
 
 type DashboardJobForModal = {
   id: string;
@@ -88,9 +89,6 @@ export default function JobsModalGrid({
   initialTab?: string;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const showArchived = searchParams.get('showArchived') === 'true';
 
   const [jobs, setJobs] = useState<DashboardJobForModal[]>(initialJobs);
   const [modalState, setModalState] = useState<ModalState>(null);
@@ -129,10 +127,7 @@ export default function JobsModalGrid({
 
 
 
-  const visibleJobs = useMemo(
-    () => (showArchived ? jobs : jobs.filter((job) => !job.archived)),
-    [jobs, showArchived],
-  );
+  const visibleJobs = useMemo(() => jobs, [jobs]);
 
   function closeModal() {
     setModalState(null);
@@ -155,10 +150,18 @@ export default function JobsModalGrid({
     setModalState({ type: 'edit', jobId });
   }
 
-  async function handleStageChange(jobId: string, newStage: ApplicationStatus) {
+  async function handleStageChange(
+    jobId: string,
+    newStage: PipelineStageOption,
+  ) {
     const oldJob = jobs.find((job) => job.id === jobId);
     if (!oldJob) {
       throw new Error('Job not found');
+    }
+
+    if (newStage === 'Archived') {
+      await handleArchiveStateChange(jobId, true);
+      return;
     }
 
     // Optimistic update — locate by id inside the updater to avoid stale index
@@ -167,8 +170,13 @@ export default function JobsModalGrid({
         job.id === jobId
           ? {
               ...job,
+              archived: false,
               status: newStage,
-              formData: { ...job.formData, stage: newStage },
+              formData: {
+                ...job.formData,
+                stage: newStage,
+                archived: false,
+              },
             }
           : job,
       ),
@@ -195,6 +203,7 @@ export default function JobsModalGrid({
           recruiterNotes: oldJob.formData.recruiterNotes,
           prepNotes: oldJob.formData.prepNotes,
           otherNotes: oldJob.formData.otherNotes,
+          archived: false,
         }),
       });
 
@@ -233,6 +242,8 @@ export default function JobsModalGrid({
           ),
         );
       }
+
+      router.refresh();
     } catch (error) {
       // Revert optimistic update — locate by id inside the updater to avoid stale index
       setJobs((prevJobs) =>
@@ -348,30 +359,8 @@ export default function JobsModalGrid({
     });
   }, [modalState]);
 
-  function toggleArchivedVisibility() {
-  const params = new URLSearchParams(searchParams.toString());
-
-  if (showArchived) {
-    params.delete('showArchived');
-  } else {
-    params.set('showArchived', 'true');
-  }
-
-  const queryString = params.toString();
-  router.replace(`/dashboard${queryString ? `?${queryString}` : ''}`);
-}
-
   return (
     <>
-      <div className="mx-auto mt-10 flex max-w-6xl items-center justify-end">
-        <button
-          type="button"
-          onClick={toggleArchivedVisibility}
-          className="cursor-pointer rounded-md border border-(--surface-border) bg-[linear-gradient(110deg,var(--background)_0%,var(--background)_48%,#ffa647_66%,#70e2ff_84%,#cd93ff_100%)] bg-size-[220%_100%] bg-position-[0%_0%] px-4 py-2 text-sm font-semibold text-(--foreground) transition-[background-position,color] duration-500 hover:bg-position-[100%_0%] hover:text-[#111111]"
-        >
-          {showArchived ? 'Hide archived cards' : 'Show archived cards'}
-        </button>
-      </div>
       <div className="mx-auto mt-12 grid max-w-6xl gap-8 grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">
         <button
           type="button"
@@ -406,9 +395,6 @@ export default function JobsModalGrid({
               angle={job.angle}
               jobId={job.id}
               onStageChange={(newStage) => handleStageChange(job.id, newStage)}
-              onToggleArchive={(nextArchived) =>
-                handleArchiveStateChange(job.id, nextArchived)
-              }
             />
           </div>
         ))}

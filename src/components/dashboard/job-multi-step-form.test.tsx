@@ -8,6 +8,7 @@ const VALID_OVERVIEW: JobOverviewDraft = {
   company: 'Acme',
   location: 'Remote',
   stage: 'Applied',
+  archived: false,
   lastActivityDate: '2026-04-10',
   deadline: '',
   priority: false,

@@ -60,30 +60,57 @@ jest.mock('@/components/dashboard/job-search-filter-control', () => ({
   default: () => <div>Mock Job Search Filter Control</div>,
 }));
 
-jest.mock('@/components/dashboard/job-sort-control', () => ({
-  __esModule: true,
-  default: () => <div>Mock Job Sort Control</div>,
-}));
-
 jest.mock('@/components/dashboard/dashboard-metrics', () => ({
   __esModule: true,
   default: ({
-    metrics,
+    applicationCounts,
+    stageCounts,
+    timelineCounts,
+    conversionRates,
+    productivity,
   }: {
-    metrics: Array<{
-      label: string;
-      value: string | number;
-      description: string;
+    applicationCounts: {
+      total: number;
+      open: number;
+      active: number;
+    };
+    stageCounts: Array<{
+      stage: string;
+      count: number;
+      percent: number;
     }>;
+    timelineCounts: {
+      upcomingDeadlines: number;
+      upcomingEvents: number;
+    };
+    conversionRates: {
+      appliedToInterview: string;
+      interviewToOffer: string;
+    };
+    productivity: {
+      avgDaysSinceLastActivity: number;
+      avgDaysBetweenEvents: number | null;
+      sevenDayVelocity: number;
+      thirtyDayVelocity: number;
+    };
   }) => (
     <div>
-      Mock Dashboard Metrics:
-      {metrics.map((m) => (
-        <div key={m.label} data-testid={`metric-${m.label}`}>
-          <span>{m.label}</span>
-          <span>{m.value}</span>
-        </div>
-      ))}
+      <div data-testid="metrics-total">{applicationCounts.total}</div>
+      <div data-testid="metrics-open">{applicationCounts.open}</div>
+      <div data-testid="metrics-active">{applicationCounts.active}</div>
+      <div data-testid="metrics-stages">{stageCounts.length}</div>
+      <div data-testid="metrics-deadlines">
+        {timelineCounts.upcomingDeadlines}
+      </div>
+      <div data-testid="metrics-events">{timelineCounts.upcomingEvents}</div>
+      <div data-testid="metrics-conversion">
+        {conversionRates.appliedToInterview}|{conversionRates.interviewToOffer}
+      </div>
+      <div data-testid="metrics-productivity">
+        {productivity.avgDaysSinceLastActivity}|
+        {productivity.avgDaysBetweenEvents}|{productivity.sevenDayVelocity}|
+        {productivity.thirtyDayVelocity}
+      </div>
     </div>
   ),
 }));
@@ -166,11 +193,9 @@ describe('Dashboard page', () => {
     );
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Total applications')).toBeInTheDocument();
-    expect(screen.getByText('Open opportunities')).toBeInTheDocument();
-    expect(screen.getByText('Offers received')).toBeInTheDocument();
-    expect(screen.getByText('Past due deadlines')).toBeInTheDocument();
-    expect(screen.getByText('Interviews scheduled')).toBeInTheDocument();
+    expect(screen.getByTestId('metrics-total')).toBeInTheDocument();
+    expect(screen.getByTestId('metrics-open')).toBeInTheDocument();
+    expect(screen.getByTestId('metrics-active')).toBeInTheDocument();
     expect(
       screen.getByText(
         /Mock Jobs Modal Grid: 1 jobs \| first company: Stripe \| first angle: -?\d+/,
@@ -178,7 +203,8 @@ describe('Dashboard page', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Mock Job Card:/)).not.toBeInTheDocument();
     expect(screen.queryByText('Sign up now!')).not.toBeInTheDocument();
-    expect(prisma.job.findMany).toHaveBeenCalledWith(
+    expect(prisma.job.findMany).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         select: expect.objectContaining({
           id: true,
@@ -196,84 +222,84 @@ describe('Dashboard page', () => {
           recruiter_contact_notes: true,
           custom_notes: true,
         }),
-        where: { user_id: 'user-123' },
         orderBy: { last_activity_date: 'desc' },
+      }),
+    );
+    expect(prisma.job.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        select: expect.objectContaining({
+          pipeline_stage: true,
+          archived: true,
+          last_activity_date: true,
+          deadline: true,
+        }),
+        where: { user_id: 'user-123' },
       }),
     );
   });
 
+  it('includes archived jobs in dashboard metrics by default', async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      userId: 'user-123',
+      email: 'test@example.com',
+    });
 
-  it('excludes archived jobs from dashboard metrics by default', async () => {
-  (getSession as jest.Mock).mockResolvedValue({
-    userId: 'user-123',
-    email: 'test@example.com',
+    (prisma.job.findMany as jest.Mock).mockResolvedValue([
+      createMockJob({
+        id: 'job-open',
+        company_name: 'Open Co',
+        archived: false,
+        pipeline_stage: 'Applied',
+      }),
+      createMockJob({
+        id: 'job-archived',
+        company_name: 'Archived Co',
+        archived: true,
+        pipeline_stage: 'Offer',
+      }),
+    ]);
+
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
+
+    expect(screen.getByTestId('metrics-total')).toHaveTextContent('2');
+    expect(screen.getByTestId('metrics-open')).toHaveTextContent('1');
   });
 
-  (prisma.job.findMany as jest.Mock).mockResolvedValue([
-    createMockJob({
-      id: 'job-open',
-      company_name: 'Open Co',
-      archived: false,
-      pipeline_stage: 'Applied',
-    }),
-    createMockJob({
-      id: 'job-archived',
-      company_name: 'Archived Co',
-      archived: true,
-      pipeline_stage: 'Offer',
-    }),
-  ]);
+  it('keeps open count excluding archived jobs', async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      userId: 'user-123',
+      email: 'test@example.com',
+    });
 
-  render(
-    await Dashboard({
-      searchParams: Promise.resolve({}),
-    } as unknown as DashboardPageProps),
-  );
+    (prisma.job.findMany as jest.Mock).mockResolvedValue([
+      createMockJob({
+        id: 'job-open',
+        company_name: 'Open Co',
+        archived: false,
+        pipeline_stage: 'Applied',
+      }),
+      createMockJob({
+        id: 'job-archived',
+        company_name: 'Archived Co',
+        archived: true,
+        pipeline_stage: 'Offer',
+      }),
+    ]);
 
-  expect(screen.getByTestId('metric-Total applications')).toHaveTextContent(
-    'Total applications1',
-  );
+    render(
+      await Dashboard({
+        searchParams: Promise.resolve({}),
+      } as unknown as DashboardPageProps),
+    );
 
-  expect(screen.getByTestId('metric-Open opportunities')).toHaveTextContent(
-    'Open opportunities1',
-  );
-});
-
-it('includes archived jobs in dashboard metrics when showArchived is true', async () => {
-  (getSession as jest.Mock).mockResolvedValue({
-    userId: 'user-123',
-    email: 'test@example.com',
+    expect(screen.getByTestId('metrics-total')).toHaveTextContent('2');
+    expect(screen.getByTestId('metrics-open')).toHaveTextContent('1');
   });
-
-  (prisma.job.findMany as jest.Mock).mockResolvedValue([
-    createMockJob({
-      id: 'job-open',
-      company_name: 'Open Co',
-      archived: false,
-      pipeline_stage: 'Applied',
-    }),
-    createMockJob({
-      id: 'job-archived',
-      company_name: 'Archived Co',
-      archived: true,
-      pipeline_stage: 'Offer',
-    }),
-  ]);
-
-  render(
-    await Dashboard({
-      searchParams: Promise.resolve({ showArchived: 'true' }),
-    } as unknown as DashboardPageProps),
-  );
-
-  expect(screen.getByTestId('metric-Total applications')).toHaveTextContent(
-    'Total applications2',
-  );
-
-  expect(screen.getByTestId('metric-Open opportunities')).toHaveTextContent(
-    'Open opportunities1',
-  );
-});
 
   it('orders jobs by company name when sort query parameter is company', async () => {
     (getSession as jest.Mock).mockResolvedValue({
@@ -307,7 +333,8 @@ it('includes archived jobs in dashboard metrics when showArchived is true', asyn
       } as unknown as DashboardPageProps),
     );
 
-    expect(prisma.job.findMany).toHaveBeenCalledWith(
+    expect(prisma.job.findMany).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         select: expect.objectContaining({
           id: true,
@@ -324,13 +351,12 @@ it('includes archived jobs in dashboard metrics when showArchived is true', asyn
           recruiter_contact_notes: true,
           custom_notes: true,
         }),
-        where: { user_id: 'user-123' },
         orderBy: { company_name: 'asc' },
       }),
     );
   });
 
-  it('filters jobs by query, stage, location, and upcoming deadline', async () => {
+  it('filters jobs by query, stage, and upcoming deadline', async () => {
     (getSession as jest.Mock).mockResolvedValue({
       userId: 'user-123',
       email: 'test@example.com',
@@ -360,7 +386,6 @@ it('includes archived jobs in dashboard metrics when showArchived is true', asyn
         searchParams: Promise.resolve({
           q: 'engineer',
           stage: 'Interview',
-          location: 'Austin',
           deadlineState: 'upcoming',
         }),
       } as unknown as DashboardPageProps),
@@ -389,10 +414,6 @@ it('includes archived jobs in dashboard metrics when showArchived is true', asyn
           user_id: 'user-123',
           pipeline_stage: {
             equals: 'Interview',
-          },
-          location: {
-            contains: 'Austin',
-            mode: 'insensitive',
           },
           deadline: expect.objectContaining({
             not: null,

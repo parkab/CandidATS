@@ -1,8 +1,10 @@
 import type { ApplicationStatus } from '@/lib/jobs/status';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 
+const ARCHIVED_COLOR = '#ffa647';
+
 type StageSummary = {
-  stage: ApplicationStatus;
+  stage: ApplicationStatus | 'Archived';
   count: number;
   percent: number;
 };
@@ -94,7 +96,10 @@ export default function DashboardMetrics({
                   className="h-2 rounded-full"
                   style={{
                     width: `${stage.percent}%`,
-                    backgroundColor: APPLICATION_STATUS_COLOR[stage.stage],
+                    backgroundColor:
+                      stage.stage === 'Archived'
+                        ? ARCHIVED_COLOR
+                        : APPLICATION_STATUS_COLOR[stage.stage],
                   }}
                 />
               </div>
