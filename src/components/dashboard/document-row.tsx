@@ -128,7 +128,7 @@ export default function DocumentRow({
   const pendingInitialFocusRef = useRef<'first' | 'last'>('first');
 
   const documentHref = `/documents/${encodeURIComponent(documentId)}/view`;
-  const jobHref = jobId ? `/dashboard?openJob=${encodeURIComponent(jobId)}` : null;
+  const jobHref = jobId ? `/dashboard?openJob=${encodeURIComponent(jobId)}&tab=documents` : null;
 
   const computeMenuLayout = useCallback((menuEl: HTMLDivElement | null) => {
     const btn = buttonRef.current;
