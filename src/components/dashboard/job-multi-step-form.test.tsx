@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import JobMultiStepForm from './job-multi-step-form';
 import type { JobOverviewDraft } from '@/lib/jobs/multi-step-form';
 
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 const VALID_OVERVIEW: JobOverviewDraft = {
   id: 'job-1',
   title: 'Software Engineer',

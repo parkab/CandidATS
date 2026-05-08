@@ -23,9 +23,6 @@ import type {
   SectionStep,
 } from './job-multi-step-form-section-types';
 import JobOverviewSection from './job-overview-section';
-import ResumeStepSection from './resume-step-section';
-import CoverLetterStepSection from './cover-letter-step-section';
-import CompanyResearchStepSection from './company-research-step-section';
 import {
   buildInitialDraft,
   createDocumentDraftItem,
@@ -907,6 +904,13 @@ export default function JobMultiStepForm({
               composerMode={documentComposerMode}
               editingDocumentId={editingDocumentId}
               jobId={draft.overview.id || ''}
+              jobData={{
+                title: draft.overview.title,
+                company_name: draft.overview.company,
+                location: draft.overview.location,
+                job_description: draft.overview.jobDescription,
+              }}
+              companyResearch={draft.companyResearch}
               onOpenComposer={openDocumentComposer}
               onEditDocument={openEditDocument}
               onCloseComposer={closeDocumentComposer}
@@ -915,19 +919,6 @@ export default function JobMultiStepForm({
               onSaveDocument={saveDocumentItem}
               onRemoveDocument={removeDocument}
               onDocumentsChanged={refreshDocuments}
-            />
-          ) : null}
-
-          {activeStep === 'companyResearch' ? (
-            <CompanyResearchStepSection
-              companyResearch={draft.companyResearch}
-              jobId={draft.overview.id}
-              jobData={{
-                title: draft.overview.title,
-                company_name: draft.overview.company,
-                location: draft.overview.location,
-                job_description: draft.overview.jobDescription,
-              }}
               onCompanyResearchChange={(content) =>
                 setDraft((previous) => ({
                   ...previous,
@@ -946,34 +937,10 @@ export default function JobMultiStepForm({
                   },
                 }))
               }
-              onRefreshDocuments={refreshDocuments}
               onSavedAsDocument={(content) =>
                 addAiGeneratedDocument('other', content)
               }
-            />
-          ) : null}
-
-          {activeStep === 'resume' ? (
-            <ResumeStepSection
-              jobId={draft.overview.id}
-              jobData={{
-                title: draft.overview.title,
-                company_name: draft.overview.company,
-                location: draft.overview.location,
-                job_description: draft.overview.jobDescription,
-              }}
-            />
-          ) : null}
-
-          {activeStep === 'coverLetter' ? (
-            <CoverLetterStepSection
-              jobId={draft.overview.id}
-              jobData={{
-                title: draft.overview.title,
-                company_name: draft.overview.company,
-                location: draft.overview.location,
-                job_description: draft.overview.jobDescription,
-              }}
+              onRefreshDocuments={refreshDocuments}
             />
           ) : null}
         </section>

@@ -7,6 +7,7 @@ type FileResponse = {
   title: string;
   signedUrl: string | null;
   mimeType: string;
+  content?: string | null;
 };
 
 function fileExtension(mimeType: string): string {
@@ -24,7 +25,11 @@ function safeFileName(title: string): string {
   return stripped.replace(/[^\w\s.-]/g, '-').trim() || 'document';
 }
 
-export default function DocumentViewPage({ documentId }: { documentId: string }) {
+export default function DocumentViewPage({
+  documentId,
+}: {
+  documentId: string;
+}) {
   const router = useRouter();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('application/pdf');
@@ -45,6 +50,11 @@ export default function DocumentViewPage({ documentId }: { documentId: string })
         setMimeType(mime);
         setSignedUrl(data.signedUrl);
 
+        if (mime === 'text/plain' && data.content) {
+          setTextContent(data.content);
+          return;
+        }
+
         if (mime === 'text/plain' && data.signedUrl) {
           try {
             const textRes = await fetch(data.signedUrl);
@@ -59,7 +69,22 @@ export default function DocumentViewPage({ documentId }: { documentId: string })
   }, [documentId]);
 
   function handleDownload() {
-    if (!signedUrl) return;
+    if (!signedUrl && !(mimeType === 'text/plain' && textContent)) return;
+    if (mimeType === 'text/plain' && textContent) {
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeFileName(title)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return;
+    }
+    if (!signedUrl) {
+      return;
+    }
     const a = document.createElement('a');
     a.href = signedUrl;
     a.download = `${safeFileName(title)}${fileExtension(mimeType)}`;
@@ -95,7 +120,7 @@ export default function DocumentViewPage({ documentId }: { documentId: string })
   }
 
   function renderContent() {
-    if (!signedUrl) {
+    if (!signedUrl && mimeType !== 'text/plain') {
       return (
         <div className="flex h-full items-center justify-center text-sm text-(--text-muted)">
           No file available for this document. Save the document from the editor
@@ -105,6 +130,14 @@ export default function DocumentViewPage({ documentId }: { documentId: string })
     }
 
     if (mimeType === 'application/pdf') {
+      if (!signedUrl) {
+        return (
+          <div className="flex h-full items-center justify-center text-sm text-(--text-muted)">
+            No file available for this document. Save the document from the
+            editor first.
+          </div>
+        );
+      }
       return (
         <iframe
           src={signedUrl}
@@ -117,9 +150,11 @@ export default function DocumentViewPage({ documentId }: { documentId: string })
     if (mimeType === 'text/plain') {
       return (
         <div className="flex-1 overflow-auto p-6">
-          <pre className="whitespace-pre-wrap font-mono text-sm text-(--foreground)">
-            {textContent ?? 'Unable to load text content.'}
-          </pre>
+          <div className="mx-auto w-full max-w-3xl rounded-xl border border-(--surface-border) bg-(--surface) p-6 shadow-lg">
+            <div className="whitespace-pre-wrap text-sm text-(--foreground)">
+              {textContent ?? 'Unable to load text content.'}
+            </div>
+          </div>
         </div>
       );
     }
@@ -165,10 +200,14 @@ export default function DocumentViewPage({ documentId }: { documentId: string })
         <button
           type="button"
           onClick={handleDownload}
-          disabled={!signedUrl}
+          disabled={!signedUrl && !(mimeType === 'text/plain' && textContent)}
           className="rounded-md border border-(--surface-border) px-3 py-1.5 text-sm font-semibold text-(--foreground) transition-all hover:-translate-y-0.5 hover:border-(--foreground) hover:bg-(--action-hover) hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Download
+          Download (
+          {mimeType === 'text/plain'
+            ? 'TXT'
+            : mimeType.split('/')[1].toUpperCase()}
+          )
         </button>
       </div>
 
