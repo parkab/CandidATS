@@ -59,6 +59,15 @@ export async function GET(
       });
     }
 
+    if (document.content && document.content.trim().length > 0) {
+      return NextResponse.json({
+        title: document.title,
+        signedUrl: null,
+        mimeType: 'text/plain',
+        content: document.content,
+      });
+    }
+
     return NextResponse.json({
       title: document.title,
       signedUrl: null,

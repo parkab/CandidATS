@@ -10,6 +10,17 @@ type InterviewItemComposerProps = {
   saveLabel: string;
 };
 
+function toDateInputValue(value: string) {
+  if (!value) {
+    return '';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+  return parsed.toISOString().split('T')[0];
+}
+
 export default function InterviewItemComposer({
   itemDraft,
   onRoundTypeChange,
@@ -55,7 +66,7 @@ export default function InterviewItemComposer({
           <input
             id={dateId}
             type="date"
-            value={itemDraft.date}
+            value={toDateInputValue(itemDraft.date)}
             onChange={(event) => onDateChange(event.target.value)}
             className="profile-input"
           />

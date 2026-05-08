@@ -6,7 +6,11 @@
     --foreground: #faf9f6;
     --text-muted: color-mix(in oklab, var(--foreground) 52%, transparent);
     --foreground-muted: var(--text-muted);
-    --surface-hover: color-mix(in oklab, var(--foreground) 9%, var(--background));
+    --surface-hover: color-mix(
+      in oklab,
+      var(--foreground) 9%,
+      var(--background)
+    );
     --surface: color-mix(in oklab, var(--foreground) 4%, var(--background));
     --surface-border: color-mix(in oklab, var(--foreground) 14%, transparent);
     --surface-divider: color-mix(in oklab, var(--foreground) 12%, transparent);
@@ -35,7 +39,11 @@
     --foreground: #121212;
     --text-muted: color-mix(in oklab, var(--foreground) 52%, transparent);
     --foreground-muted: var(--text-muted);
-    --surface-hover: color-mix(in oklab, var(--foreground) 6%, var(--background));
+    --surface-hover: color-mix(
+      in oklab,
+      var(--foreground) 6%,
+      var(--background)
+    );
     --popover-bg: #ffffff;
     --popover-border: #e0e0de;
     --popover-hover: #ecece8;

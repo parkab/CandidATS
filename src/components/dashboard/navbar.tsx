@@ -55,7 +55,7 @@ export default function Navbar({ user }: NavbarProps) {
   };
 
   return (
-    <nav className="flex h-20 items-center justify-between border-b border-(--surface-border) bg-(--background) pl-6 pr-6">
+    <nav className="relative z-50 flex h-20 items-center justify-between border-b border-(--surface-border) bg-(--background) pl-6 pr-6">
       <Link
         href="/dashboard"
         className="flex h-full items-center gap-3 text-[2rem] font-bold leading-none text-(--foreground) no-underline visited:text-(--foreground) hover:no-underline"

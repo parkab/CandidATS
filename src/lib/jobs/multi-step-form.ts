@@ -5,10 +5,7 @@ export const JOB_FORM_STEPS = [
   { id: 'timeline', label: 'Timeline' },
   { id: 'interviews', label: 'Interviews' },
   { id: 'followUps', label: 'Follow-ups' },
-  { id: 'companyResearch', label: 'Company Research' },
   { id: 'documents', label: 'Documents' },
-  { id: 'resume', label: 'Resume' },
-  { id: 'coverLetter', label: 'Cover Letter' },
 ] as const;
 
 export type JobFormStepId = (typeof JOB_FORM_STEPS)[number]['id'];
@@ -19,6 +16,7 @@ export type JobOverviewDraft = {
   company: string;
   location: string;
   stage: ApplicationStatus;
+  archived: boolean;
   lastActivityDate: string;
   deadline: string;
   priority: boolean;

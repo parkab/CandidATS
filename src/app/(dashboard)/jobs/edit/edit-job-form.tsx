@@ -25,6 +25,7 @@ type EditJobFormProps = {
     company: string;
     location: string;
     stage: string;
+    archived?: boolean | null;
     lastActivityDate: Date | string | null;
     deadline: Date | string | null;
     priority: boolean | null;
@@ -82,6 +83,7 @@ function toOverviewDraft(
     company: initialJob.company,
     location: initialJob.location,
     stage: toStageValue(initialJob.stage),
+    archived: Boolean(initialJob.archived),
     lastActivityDate: toDateInputValue(initialJob.lastActivityDate),
     deadline: toDateInputValue(initialJob.deadline),
     priority: Boolean(initialJob.priority),
@@ -187,6 +189,7 @@ export default function EditJobForm({
       company: draft.overview.company,
       location: draft.overview.location,
       stage: draft.overview.stage,
+      archived: draft.overview.archived,
       lastActivityDate: draft.overview.lastActivityDate,
       deadline: toOptionalString(draft.overview.deadline),
       priority: draft.overview.priority,
@@ -226,8 +229,18 @@ export default function EditJobForm({
       );
 
       if (timelineResponse.ok) {
-        const freshEvents =
-          (await timelineResponse.json()) as JobSectionItemDraft[];
+        const rawEvents = (await timelineResponse.json()) as Array<{
+          id: string;
+          event_type: string | null;
+          occurred_at: string | null;
+          notes: string | null;
+        }>;
+        const freshEvents = rawEvents.map((event) => ({
+          id: event.id,
+          title: event.event_type ?? '',
+          date: event.occurred_at ?? '',
+          notes: event.notes ?? '',
+        }));
         setTimelineData(freshEvents);
       }
     } catch (error) {

@@ -6,19 +6,28 @@ import {
   type ApplicationStatus,
 } from '@/lib/jobs/status';
 
+export type PipelineStageOption = ApplicationStatus | 'Archived';
+
 type PipelineStageDropdownProps = {
-  currentStage: ApplicationStatus;
+  currentStage: PipelineStageOption;
   jobId: string;
-  onStageChange: (newStage: ApplicationStatus) => Promise<void>;
+  onStageChange: (newStage: PipelineStageOption) => Promise<void>;
   disabled?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 };
 
-const STAGES = Object.keys(APPLICATION_STATUS_COLOR) as ApplicationStatus[];
+const ARCHIVED_COLOR = '#ffa647';
+
+const STAGES: PipelineStageOption[] = [
+  ...(Object.keys(APPLICATION_STATUS_COLOR) as ApplicationStatus[]),
+  'Archived',
+];
 
 export default function PipelineStageDropdown({
   currentStage,
   onStageChange,
   disabled = false,
+  onOpenChange,
 }: PipelineStageDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,16 +50,18 @@ export default function PipelineStageDropdown({
 
   function openMenu() {
     setIsOpen(true);
+    onOpenChange?.(true);
   }
 
   function closeMenu(returnFocus = true) {
     setIsOpen(false);
+    onOpenChange?.(false);
     if (returnFocus) {
       requestAnimationFrame(() => triggerRef.current?.focus());
     }
   }
 
-  async function handleStageSelect(newStage: ApplicationStatus) {
+  async function handleStageSelect(newStage: PipelineStageOption) {
     if (newStage === currentStage || isLoading) {
       return;
     }
@@ -70,7 +81,10 @@ export default function PipelineStageDropdown({
     }
   }
 
-  const currentColor = APPLICATION_STATUS_COLOR[currentStage];
+  const currentColor =
+    currentStage === 'Archived'
+      ? ARCHIVED_COLOR
+      : APPLICATION_STATUS_COLOR[currentStage];
 
   return (
     <div
@@ -101,7 +115,7 @@ export default function PipelineStageDropdown({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-controls={menuId}
-        className="w-full rounded-md px-2.5 py-1 text-sm leading-none font-bold text-(--background) transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-2"
+        className="w-full rounded-md px-2.5 py-1 text-xs leading-none font-bold text-(--background) transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-2"
         style={{
           backgroundColor: `${currentColor}8C`,
           borderColor: currentColor,
@@ -132,7 +146,7 @@ export default function PipelineStageDropdown({
           id={menuId}
           role="listbox"
           aria-label="Select pipeline stage"
-          className="absolute right-0 left-0 top-full mt-1 z-50 border border-gray-200 rounded-md bg-white shadow-lg overflow-hidden"
+          className="absolute right-0 left-0 top-full mt-1 z-[60] rounded-md border border-(--surface-border) bg-(--foreground) shadow-lg overflow-hidden"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
@@ -143,7 +157,10 @@ export default function PipelineStageDropdown({
           }}
         >
           {STAGES.map((stage) => {
-            const stageColor = APPLICATION_STATUS_COLOR[stage];
+            const stageColor =
+              stage === 'Archived'
+                ? ARCHIVED_COLOR
+                : APPLICATION_STATUS_COLOR[stage];
             const isSelected = stage === currentStage;
 
             return (
@@ -158,7 +175,9 @@ export default function PipelineStageDropdown({
                 onPointerDown={(e) => e.stopPropagation()}
                 disabled={isLoading}
                 className={`w-full px-3 py-2 text-left text-sm font-medium transition-colors duration-150 flex items-center gap-2 ${
-                  isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'
+                  isSelected
+                    ? 'bg-[color-mix(in_oklab,var(--background)_18%,var(--foreground))]'
+                    : 'hover:bg-[color-mix(in_oklab,var(--background)_12%,var(--foreground))]'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div
@@ -166,20 +185,6 @@ export default function PipelineStageDropdown({
                   style={{ backgroundColor: stageColor }}
                 />
                 <span className={isSelected ? 'font-bold' : ''}>{stage}</span>
-                {isSelected && (
-                  <svg
-                    className="w-4 h-4 ml-auto"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
               </button>
             );
           })}
