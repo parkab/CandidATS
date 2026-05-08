@@ -1,38 +1,202 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { prisma } from '@/lib/prisma';
 import { generateWithGemini } from '@/lib/ai/gemini';
+import type { CoverLetterData } from '@/lib/latex/types';
+import { prisma } from '@/lib/prisma';
+
+type JobInput = {
+  title: string;
+  company_name: string;
+  location: string;
+  job_description?: string | null;
+};
+
+function isJobInput(v: unknown): v is JobInput {
+  if (!v || typeof v !== 'object') return false;
+  const r = v as Record<string, unknown>;
+  return (
+    typeof r.title === 'string' &&
+    typeof r.company_name === 'string' &&
+    typeof r.location === 'string'
+  );
+}
+
+function isCoverLetterData(v: unknown): v is CoverLetterData {
+  if (!v || typeof v !== 'object') return false;
+  const r = v as Record<string, unknown>;
+  return (
+    typeof r.header === 'object' &&
+    r.header !== null &&
+    typeof r.date === 'string' &&
+    typeof r.company === 'string' &&
+    Array.isArray(r.paragraphs) &&
+    typeof r.senderName === 'string'
+  );
+}
+
+function parseJsonResponse(text: string): unknown {
+  const stripped = text
+    .replace(/^```(?:json)?\s*/m, '')
+    .replace(/\s*```\s*$/m, '')
+    .trim();
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    const match = /\{[\s\S]*\}/.exec(stripped);
+    if (match) return JSON.parse(match[0]);
+    throw new Error('No valid JSON in AI response');
+  }
+}
+
+function fmtDate(d: Date): string {
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function fmtRange(start: Date, end: Date | null): string {
+  return `${fmtDate(start)} -- ${end ? fmtDate(end) : 'Present'}`;
+}
+
+type CoverLetterUser = {
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  Profile: {
+    phone: string | null;
+    location: string | null;
+    linkedIn: string | null;
+    bio: string | null;
+  } | null;
+  Experience: Array<{
+    title: string;
+    organization: string;
+    startDate: Date;
+    endDate: Date | null;
+    description: string | null;
+    accomplishments: string | null;
+  }>;
+  Skill: Array<{ name: string }>;
+};
+
+function todayFormatted(): string {
+  return new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function buildCoverLetterPrompt(user: CoverLetterUser, job: JobInput): string {
+  const lines: string[] = [];
+
+  lines.push('CANDIDATE PROFILE');
+  lines.push(
+    `Name: ${[user.firstName, user.lastName].filter(Boolean).join(' ') || 'Not provided'}`,
+  );
+  lines.push(`Email: ${user.email}`);
+  if (user.Profile?.phone) lines.push(`Phone: ${user.Profile.phone}`);
+  if (user.Profile?.location) lines.push(`Location: ${user.Profile.location}`);
+  if (user.Profile?.linkedIn) lines.push(`LinkedIn: ${user.Profile.linkedIn}`);
+  if (user.Profile?.bio) lines.push(`Summary: ${user.Profile.bio}`);
+
+  if (user.Experience.length > 0) {
+    lines.push('');
+    lines.push('EXPERIENCE');
+    for (const exp of user.Experience) {
+      lines.push(
+        `${exp.title} at ${exp.organization} | ${fmtRange(exp.startDate, exp.endDate)}`,
+      );
+      if (exp.description) lines.push(exp.description);
+      if (exp.accomplishments) lines.push(exp.accomplishments);
+    }
+  }
+
+  if (user.Skill.length > 0) {
+    lines.push('');
+    lines.push(`SKILLS: ${user.Skill.map((s) => s.name).join(', ')}`);
+  }
+
+  lines.push('');
+  lines.push('TARGET JOB');
+  lines.push(`Title: ${job.title}`);
+  lines.push(`Company: ${job.company_name}`);
+  lines.push(`Location: ${job.location}`);
+  if (job.job_description) lines.push(`Description: ${job.job_description}`);
+
+  const schema = JSON.stringify(
+    {
+      header: {
+        name: 'string',
+        phone: 'string',
+        email: 'string',
+        linkedin: 'string (optional)',
+        github: 'string (optional)',
+      },
+      date: `string formatted as "${todayFormatted()}"`,
+      recipientName: 'string — use "Hiring Manager" if unknown',
+      recipientTitle: 'string (optional)',
+      company: 'string',
+      role: 'string',
+      paragraphs: [
+        'Opening: express strong interest and state top qualification',
+        'Body: connect 2–3 specific experiences to the job requirements',
+        'Closing: summarize fit, express enthusiasm, request an interview',
+      ],
+      senderName: 'string — full name of the candidate',
+    },
+    null,
+    2,
+  );
+
+  return `You are a professional cover letter writer. Using the candidate profile and target job below, generate a tailored cover letter as a single JSON object.
+
+Return ONLY valid JSON with no code fences, no explanation, and no extra text. Match this exact schema:
+${schema}
+
+Rules:
+- Write exactly 3 paragraphs totalling 300–400 words
+- Reference specific aspects of the job description
+- Highlight quantifiable achievements from the candidate's experience
+- Keep paragraphs as plain text — no bullet points or line breaks within a paragraph
+- Omit optional fields (recipientTitle, linkedin, github) if not available
+- Use today's date: ${todayFormatted()}
+
+${lines.join('\n')}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Cover letter draft API called');
     const session = await getSession();
     if (!session) {
-      console.log('No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    console.log('Request body:', body);
-    const { jobId, jobData } = body;
+    const body = (await request.json().catch(() => null)) as {
+      jobId?: unknown;
+      jobData?: unknown;
+    } | null;
 
-    let job: any;
-    if (jobId) {
-      // Fetch job from database
-      job = await prisma.job.findFirst({
-        where: {
-          id: jobId,
-          user_id: session.userId,
-        },
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    let job: JobInput;
+
+    if (typeof body.jobId === 'string' && body.jobId.length > 0) {
+      const dbJob = await prisma.job.findFirst({
+        where: { id: body.jobId, user_id: session.userId },
       });
-
-      if (!job) {
+      if (!dbJob) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
-    } else if (jobData) {
-      // Use provided job data
-      job = jobData;
+      job = dbJob;
+    } else if (body.jobData !== undefined) {
+      if (!isJobInput(body.jobData)) {
+        return NextResponse.json(
+          { error: 'jobData must include title, company_name, and location' },
+          { status: 400 },
+        );
+      }
+      job = body.jobData;
     } else {
       return NextResponse.json(
         { error: 'Either jobId or jobData is required' },
@@ -40,149 +204,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user profile data
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
       include: {
         Profile: true,
-        Experience: {
-          orderBy: { sortOrder: 'asc' },
-        },
-        Education: {
-          orderBy: { startDate: 'desc' },
-        },
-        Skill: {
-          orderBy: { sortOrder: 'asc' },
-        },
-        CareerPreferences: true,
+        Experience: { orderBy: { sortOrder: 'asc' } },
+        Skill: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
     if (!user) {
-      console.log('User not found');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log('User data:', {
-      hasProfile: !!user.Profile,
-      experienceCount: user.Experience.length,
-      educationCount: user.Education.length,
-      skillsCount: user.Skill.length,
-      hasCareerPreferences: !!user.CareerPreferences,
-    });
-
-    // Build the prompt
-    console.log('Building prompt with job:', job);
     const prompt = buildCoverLetterPrompt(user, job);
-    console.log('Prompt length:', prompt.length);
+    const rawResponse = await generateWithGemini(prompt);
 
-    // Generate cover letter with Gemini
-    const generatedCoverLetter = await generateWithGemini(prompt);
-    console.log(
-      'Generated cover letter:',
-      generatedCoverLetter.substring(0, 100) + '...',
-    );
+    let parsed: unknown;
+    try {
+      parsed = parseJsonResponse(rawResponse);
+    } catch {
+      return NextResponse.json(
+        { error: 'AI returned an invalid response — please retry' },
+        { status: 502 },
+      );
+    }
 
-    return NextResponse.json({ coverLetter: generatedCoverLetter });
+    if (!isCoverLetterData(parsed)) {
+      return NextResponse.json(
+        {
+          error:
+            'AI response did not match the expected cover letter structure — please retry',
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({
+      templateName: 'jakes-cover-letter' as const,
+      structuredData: parsed,
+    });
   } catch (error) {
-    console.error('Error generating cover letter:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: 'Failed to generate cover letter', details: errorMessage },
-      { status: 500 },
-    );
+    console.error('[cover-letter-draft] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
-
-function buildCoverLetterPrompt(user: any, job: any): string {
-  const sections = [];
-
-  // Personal Information
-  sections.push(`Personal Information:
-Name: ${user.firstName || ''} ${user.lastName || ''}
-Email: ${user.email}
-Phone: ${user.Profile?.phone || ''}
-Location: ${user.Profile?.location || ''}
-LinkedIn: ${user.Profile?.linkedIn || ''}
-Headline: ${user.Profile?.headline || ''}`);
-
-  // Professional Summary
-  if (user.Profile?.bio) {
-    sections.push(`Professional Summary:
-${user.Profile.bio}`);
-  }
-
-  // Experience
-  if (user.Experience.length > 0) {
-    sections.push(`Work Experience:
-${user.Experience.map(
-  (exp: any) => `
-${exp.title} at ${exp.organization}
-${exp.role ? `Role: ${exp.role}` : ''}
-${new Date(exp.startDate).toLocaleDateString()} - ${exp.endDate ? new Date(exp.endDate).toLocaleDateString() : 'Present'}
-${exp.description || ''}
-${exp.accomplishments || ''}`,
-).join('\n')}`);
-  }
-
-  // Education
-  if (user.Education.length > 0) {
-    sections.push(`Education:
-${user.Education.map(
-  (edu: any) => `
-${edu.degree} in ${edu.fieldOfStudy}
-${edu.institution}
-${new Date(edu.startDate).toLocaleDateString()} - ${edu.endDate ? new Date(edu.endDate).toLocaleDateString() : 'Present'}
-${edu.honors ? `Honors: ${edu.honors}` : ''}
-${edu.gpa ? `GPA: ${edu.gpa}` : ''}`,
-).join('\n')}`);
-  }
-
-  // Skills
-  if (user.Skill.length > 0) {
-    sections.push(`Skills:
-${user.Skill.map((skill: any) => `${skill.name}${skill.category ? ` (${skill.category})` : ''}${skill.proficiencyLabel ? ` - ${skill.proficiencyLabel}` : ''}`).join(', ')}`);
-  }
-
-  // Job Information
-  sections.push(`Target Job:
-Position: ${job.title}
-Company: ${job.company_name}
-Location: ${job.location}
-Description: ${job.job_description || ''}`);
-
-  // Career Preferences
-  if (user.CareerPreferences) {
-    sections.push(`Career Preferences:
-Target Roles: ${user.CareerPreferences.targetRoles || ''}
-Target Locations: ${user.CareerPreferences.targetLocations || ''}
-Work Mode: ${user.CareerPreferences.workMode || ''}
-Salary Preference: ${user.CareerPreferences.salaryPreference || ''}`);
-  }
-
-  const prompt = `Generate a professional cover letter tailored for the following job application. Use the provided profile information and customize the cover letter to highlight relevant experience, skills, and qualifications that match the job requirements.
-
-${sections.join('\n\n')}
-
-Please create a compelling cover letter that:
-1. Is personalized and addresses the hiring manager by name if possible (use "Hiring Manager" if not specified)
-2. References specific aspects of the job description and company
-3. Highlights relevant achievements and quantifiable results from the candidate's experience
-4. Explains why the candidate is interested in the role and company
-5. Demonstrates knowledge of the company and industry
-6. Uses professional language and formatting
-7. Is concise (3-4 paragraphs, ideally 300-500 words)
-
-Format the cover letter with proper business letter structure including:
-- Header with contact information
-- Date
-- Employer's contact information
-- Salutation
-- Body paragraphs
-- Closing
-
-Return ONLY the cover letter.`;
-
-  return prompt;
 }

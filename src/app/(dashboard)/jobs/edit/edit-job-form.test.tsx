@@ -24,6 +24,7 @@ const initialJob = {
   compensation: null,
   applicationDate: null,
   recruiterNotes: null,
+  prepNotes: null,
   otherNotes: null,
 };
 
@@ -56,6 +57,11 @@ describe('EditJobForm', () => {
         ok: true,
         json: async () => ({ documents: [] }),
       })
+      // LibraryDocumentsSection fetches library documents; return empty list
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ documents: [] }),
+      })
       // Final PATCH response
       .mockResolvedValueOnce({
         ok: true,
@@ -69,6 +75,12 @@ describe('EditJobForm', () => {
     });
     fireEvent.change(screen.getByLabelText(/Recruiter Notes/i), {
       target: { value: '  recruiter pinged me  ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Prep Notes/i), {
+      target: {
+        value:
+          '  Company research highlights: product launch\nTechnical prep notes: trees  ',
+      },
     });
     fireEvent.change(screen.getByLabelText(/Other Notes/i), {
       target: { value: '  custom details  ' },
@@ -103,6 +115,8 @@ describe('EditJobForm', () => {
       compensation: 'base + bonus',
       applicationDate: null,
       recruiterNotes: 'recruiter pinged me',
+      prepNotes:
+        'Company research highlights: product launch\nTechnical prep notes: trees',
       otherNotes: 'custom details',
       timeline: [],
       interviews: [],

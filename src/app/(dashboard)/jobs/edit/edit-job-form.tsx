@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import JobMultiStepForm from '@/components/dashboard/job-multi-step-form';
 import DeleteJobDialog from '@/components/dashboard/delete-job-dialog';
 import JobSavedDocumentsSection from '@/components/dashboard/job-saved-documents-section';
+import LibraryDocumentsSection from '@/components/dashboard/library-documents-section';
 import type {
+  JobFormStepId,
   JobMultiStepDraft,
   JobOverviewDraft,
   JobSectionItemDraft,
@@ -16,12 +18,14 @@ type EditJobFormProps = {
   inModal?: boolean;
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialStep?: JobFormStepId;
   initialJob: {
     id: string;
     title: string;
     company: string;
     location: string;
     stage: string;
+    archived?: boolean | null;
     lastActivityDate: Date | string | null;
     deadline: Date | string | null;
     priority: boolean | null;
@@ -29,6 +33,7 @@ type EditJobFormProps = {
     compensation: string | null;
     applicationDate: Date | string | null;
     recruiterNotes: string | null;
+    prepNotes: string | null;
     otherNotes: string | null;
   };
   initialTimeline?: JobSectionItemDraft[];
@@ -78,6 +83,7 @@ function toOverviewDraft(
     company: initialJob.company,
     location: initialJob.location,
     stage: toStageValue(initialJob.stage),
+    archived: Boolean(initialJob.archived),
     lastActivityDate: toDateInputValue(initialJob.lastActivityDate),
     deadline: toDateInputValue(initialJob.deadline),
     priority: Boolean(initialJob.priority),
@@ -85,6 +91,7 @@ function toOverviewDraft(
     compensation: initialJob.compensation ?? '',
     applicationDate: toDateInputValue(initialJob.applicationDate),
     recruiterNotes: initialJob.recruiterNotes ?? '',
+    prepNotes: initialJob.prepNotes ?? '',
     otherNotes: initialJob.otherNotes ?? '',
   };
 }
@@ -93,6 +100,7 @@ export default function EditJobForm({
   inModal = false,
   onSuccess,
   onCancel,
+  initialStep,
   initialJob,
   initialTimeline = [],
   initialInterviews = [],
@@ -102,9 +110,8 @@ export default function EditJobForm({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [timelineData, setTimelineData] = useState<JobSectionItemDraft[]>(
-    initialTimeline,
-  );
+  const [timelineData, setTimelineData] =
+    useState<JobSectionItemDraft[]>(initialTimeline);
   const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function handleCancel() {
@@ -182,6 +189,7 @@ export default function EditJobForm({
       company: draft.overview.company,
       location: draft.overview.location,
       stage: draft.overview.stage,
+      archived: draft.overview.archived,
       lastActivityDate: draft.overview.lastActivityDate,
       deadline: toOptionalString(draft.overview.deadline),
       priority: draft.overview.priority,
@@ -189,6 +197,7 @@ export default function EditJobForm({
       compensation: toOptionalString(draft.overview.compensation),
       applicationDate: toOptionalString(draft.overview.applicationDate),
       recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
+      prepNotes: toOptionalString(draft.overview.prepNotes),
       otherNotes: toOptionalString(draft.overview.otherNotes),
       timeline: draft.timeline,
       interviews: draft.interviews,
@@ -220,7 +229,18 @@ export default function EditJobForm({
       );
 
       if (timelineResponse.ok) {
-        const freshEvents = (await timelineResponse.json()) as JobSectionItemDraft[];
+        const rawEvents = (await timelineResponse.json()) as Array<{
+          id: string;
+          event_type: string | null;
+          occurred_at: string | null;
+          notes: string | null;
+        }>;
+        const freshEvents = rawEvents.map((event) => ({
+          id: event.id,
+          title: event.event_type ?? '',
+          date: event.occurred_at ?? '',
+          notes: event.notes ?? '',
+        }));
         setTimelineData(freshEvents);
       }
     } catch (error) {
@@ -243,6 +263,7 @@ export default function EditJobForm({
           interviews: initialInterviews,
           followUps: initialFollowUps,
         }}
+        initialStep={initialStep}
         submitLabel="Save changes"
         onCancel={handleCancel}
         onFinalSave={handleFinalSave}
@@ -270,6 +291,12 @@ export default function EditJobForm({
         <JobSavedDocumentsSection
           key={documentsRefreshToken}
           jobId={initialJob.id}
+        />
+      </div>
+      <div className="mx-auto mt-12 max-w-2xl">
+        <LibraryDocumentsSection
+          jobId={initialJob.id}
+          onDocumentLinked={() => setDocumentsRefreshToken((previous) => previous + 1)}
         />
       </div>
     </>

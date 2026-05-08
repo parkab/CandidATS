@@ -2,12 +2,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import JobMultiStepForm from './job-multi-step-form';
 import type { JobOverviewDraft } from '@/lib/jobs/multi-step-form';
 
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 const VALID_OVERVIEW: JobOverviewDraft = {
   id: 'job-1',
   title: 'Software Engineer',
   company: 'Acme',
   location: 'Remote',
   stage: 'Applied',
+  archived: false,
   lastActivityDate: '2026-04-10',
   deadline: '',
   priority: false,
@@ -15,6 +21,7 @@ const VALID_OVERVIEW: JobOverviewDraft = {
   compensation: '',
   applicationDate: '',
   recruiterNotes: '',
+  prepNotes: '',
   otherNotes: '',
 };
 
@@ -199,6 +206,9 @@ describe('JobMultiStepForm', () => {
                 title: 'Resume',
                 date: '2026-04-10',
                 notes: '',
+                documentType: 'resume',
+                status: 'ready',
+                tags: [],
                 name: 'resume.pdf',
                 size: 2048,
                 mimeType: 'application/pdf',
@@ -215,5 +225,51 @@ describe('JobMultiStepForm', () => {
     unmount();
 
     expect(revokeSpy).toHaveBeenCalledWith('blob:resume-preview');
+  });
+
+  it('opens on the specified initialStep instead of overview', () => {
+    render(
+      <JobMultiStepForm
+        initialOverview={VALID_OVERVIEW}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        initialStep="documents"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Documents' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { level: 3, name: 'Overview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('resets to overview when initialOverview.id changes to a different job', () => {
+    const { rerender } = render(
+      <JobMultiStepForm
+        initialOverview={{ ...VALID_OVERVIEW, id: 'job-1' }}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        initialStep="documents"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Documents' }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <JobMultiStepForm
+        initialOverview={{ ...VALID_OVERVIEW, id: 'job-2' }}
+        onCancel={() => undefined}
+        onFinalSave={jest.fn()}
+        initialStep="documents"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Overview' }),
+    ).toBeInTheDocument();
   });
 });

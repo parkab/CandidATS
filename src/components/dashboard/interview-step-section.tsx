@@ -5,6 +5,40 @@ import type {
 } from './job-multi-step-form-section-types';
 import InterviewItemComposer from './interview-item-composer';
 
+function toItemTimestamp(date: string) {
+  const parsed = Date.parse(date);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
+function toDateInputValue(value: string) {
+  if (!value) {
+    return '';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+  return parsed.toISOString().split('T')[0];
+}
+
+function formatDisplayDate(value: string) {
+  return toDateInputValue(value);
+}
+
+function mergeDateWithNow(dateValue: string) {
+  if (!dateValue) {
+    return '';
+  }
+  const [year, month, day] = dateValue.split('-').map((part) => Number(part));
+  if (!year || !month || !day) {
+    return dateValue;
+  }
+  const now = new Date();
+  const merged = new Date(now);
+  merged.setFullYear(year, month - 1, day);
+  return merged.toISOString();
+}
+
 type InterviewStepSectionProps = {
   stepId: SectionStep;
   items: JobSectionItemDraft[];
@@ -38,6 +72,14 @@ export default function InterviewStepSection({
   onSaveItem,
   onRemoveItem,
 }: InterviewStepSectionProps) {
+  const sortedItems = [...items].sort((a, b) => {
+    const diff = toItemTimestamp(b.date) - toItemTimestamp(a.date);
+    if (diff !== 0) {
+      return diff;
+    }
+    return a.title.localeCompare(b.title);
+  });
+
   return (
     <section className="grid gap-4">
       <div className="flex justify-center">
@@ -54,7 +96,9 @@ export default function InterviewStepSection({
         <InterviewItemComposer
           itemDraft={itemDraft}
           onRoundTypeChange={(value) => onDraftChange(stepId, 'title', value)}
-          onDateChange={(value) => onDraftChange(stepId, 'date', value)}
+          onDateChange={(value) =>
+            onDraftChange(stepId, 'date', mergeDateWithNow(value))
+          }
           onNotesChange={(value) => onDraftChange(stepId, 'notes', value)}
           onClose={() => onCloseComposer(stepId)}
           onSave={() => onSaveItem(stepId)}
@@ -62,23 +106,33 @@ export default function InterviewStepSection({
         />
       ) : null}
 
-      {items.length > 0 ? (
+      {sortedItems.length > 0 ? (
         <ul className="grid gap-3" aria-label="Interview items">
-          {items.map((item) => (
+          {sortedItems.map((item) => (
             <li key={item.id} className="item-card rounded-lg p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-(--foreground)">
-                    {item.title || '(Untitled interview)'}
-                  </p>
-                  {item.date ? (
-                    <p className="text-xs text-(--text-muted)">{item.date}</p>
-                  ) : null}
-                  {item.notes ? (
-                    <p className="mt-1 text-sm text-(--text-muted)">
-                      {item.notes}
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <div className="w-28 shrink-0 text-left">
+                    <p
+                      className={`text-base font-semibold ${
+                        formatDisplayDate(item.date)
+                          ? 'text-(--foreground)'
+                          : 'text-(--text-muted)'
+                      }`}
+                    >
+                      {formatDisplayDate(item.date) || 'No date'}
                     </p>
-                  ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="truncate text-sm font-semibold text-(--foreground)">
+                      {item.title || '(Untitled interview)'}
+                    </p>
+                    {item.notes ? (
+                      <p className="mt-1 truncate text-sm text-(--text-muted)">
+                        {item.notes}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -108,7 +162,7 @@ export default function InterviewStepSection({
                       onDraftChange(stepId, 'title', value)
                     }
                     onDateChange={(value) =>
-                      onDraftChange(stepId, 'date', value)
+                      onDraftChange(stepId, 'date', mergeDateWithNow(value))
                     }
                     onNotesChange={(value) =>
                       onDraftChange(stepId, 'notes', value)

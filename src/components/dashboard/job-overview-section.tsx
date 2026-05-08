@@ -15,6 +15,13 @@ type JobOverviewSectionProps = {
   getMixedStageColor: (stage: ApplicationStatus) => string;
 };
 
+const ARCHIVED_COLOR = '#ffa647';
+const ARCHIVED_STAGE = 'Archived';
+
+function getArchivedStageColor() {
+  return `color-mix(in oklab, ${ARCHIVED_COLOR} 75%, var(--foreground))`;
+}
+
 export default function JobOverviewSection({
   overview,
   fieldErrors,
@@ -142,11 +149,21 @@ export default function JobOverviewSection({
             id="stage"
             required
             className="profile-input"
-            value={overview.stage}
-            onChange={(event) =>
-              setOverviewField('stage', event.target.value as ApplicationStatus)
-            }
-            style={{ color: getMixedStageColor(overview.stage) }}
+            value={overview.archived ? ARCHIVED_STAGE : overview.stage}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              if (nextValue === ARCHIVED_STAGE) {
+                setOverviewField('archived', true);
+              } else {
+                setOverviewField('archived', false);
+                setOverviewField('stage', nextValue as ApplicationStatus);
+              }
+            }}
+            style={{
+              color: overview.archived
+                ? getArchivedStageColor()
+                : getMixedStageColor(overview.stage),
+            }}
           >
             {(Object.keys(APPLICATION_STATUS_COLOR) as ApplicationStatus[]).map(
               (stage) => (
@@ -159,6 +176,9 @@ export default function JobOverviewSection({
                 </option>
               ),
             )}
+            <option value={ARCHIVED_STAGE} style={{ color: getArchivedStageColor() }}>
+              {ARCHIVED_STAGE}
+            </option>
           </select>
         </div>
         {fieldErrors.stage ? (
@@ -317,6 +337,27 @@ export default function JobOverviewSection({
             placeholder="Recruiter contact details and notes"
             onChange={(event) =>
               setOverviewField('recruiterNotes', event.target.value)
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-1.5">
+        <label
+          htmlFor="prep-notes"
+          className="text-sm font-semibold text-(--foreground)"
+        >
+          Interview Prep Notes
+        </label>
+        <div className="profile-input-wrap">
+          <textarea
+            id="prep-notes"
+            rows={6}
+            value={overview.prepNotes}
+            className="profile-input profile-textarea"
+            placeholder="Key talking points, questions to ask, company research highlights, or any technical prep notes should go here!"
+            onChange={(event) =>
+              setOverviewField('prepNotes', event.target.value)
             }
           />
         </div>

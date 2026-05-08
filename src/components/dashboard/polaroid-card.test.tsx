@@ -111,10 +111,7 @@ describe('PolaroidCard', () => {
     });
   });
 
-  it('shows Archive action for active cards and calls archive toggle handler', async () => {
-    const onStageChange = jest.fn().mockResolvedValue(undefined);
-    const onToggleArchive = jest.fn().mockResolvedValue(undefined);
-
+  it('shows Archived label when archived is true', () => {
     render(
       <PolaroidCard
         company="Stripe"
@@ -122,44 +119,10 @@ describe('PolaroidCard', () => {
         position="Software Engineer"
         lastActivityDate="03.30.2026"
         status="Applied"
-        archived={false}
-        jobId="job-123"
-        onStageChange={onStageChange}
-        onToggleArchive={onToggleArchive}
+        archived
       />,
     );
 
-    const archiveButton = screen.getByRole('button', { name: 'Archive' });
-    fireEvent.click(archiveButton);
-
-    await waitFor(() => {
-      expect(onToggleArchive).toHaveBeenCalledWith(true);
-    });
-  });
-
-  it('shows Restore action for archived cards and calls restore toggle handler', async () => {
-    const onStageChange = jest.fn().mockResolvedValue(undefined);
-    const onToggleArchive = jest.fn().mockResolvedValue(undefined);
-
-    render(
-      <PolaroidCard
-        company="Stripe"
-        location="San Francisco, CA"
-        position="Software Engineer"
-        lastActivityDate="03.30.2026"
-        status="Applied"
-        archived={true}
-        jobId="job-123"
-        onStageChange={onStageChange}
-        onToggleArchive={onToggleArchive}
-      />,
-    );
-
-    const restoreButton = screen.getByRole('button', { name: 'Restore' });
-    fireEvent.click(restoreButton);
-
-    await waitFor(() => {
-      expect(onToggleArchive).toHaveBeenCalledWith(false);
-    });
+    expect(screen.getByText('Archived')).toBeInTheDocument();
   });
 });

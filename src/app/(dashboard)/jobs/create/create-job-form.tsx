@@ -18,6 +18,7 @@ const EMPTY_OVERVIEW_DRAFT: JobOverviewDraft = {
   company: '',
   location: '',
   stage: 'Interested',
+  archived: false,
   lastActivityDate: '',
   deadline: '',
   priority: false,
@@ -25,6 +26,7 @@ const EMPTY_OVERVIEW_DRAFT: JobOverviewDraft = {
   compensation: '',
   applicationDate: '',
   recruiterNotes: '',
+  prepNotes: '',
   otherNotes: '',
 };
 
@@ -60,6 +62,7 @@ export default function CreateJobForm({
       company: draft.overview.company,
       location: draft.overview.location,
       stage: draft.overview.stage,
+      archived: draft.overview.archived,
       lastActivityDate: draft.overview.lastActivityDate,
       deadline: toOptionalString(draft.overview.deadline),
       priority: draft.overview.priority,
@@ -67,6 +70,7 @@ export default function CreateJobForm({
       compensation: toOptionalString(draft.overview.compensation),
       applicationDate: toOptionalString(draft.overview.applicationDate),
       recruiterNotes: toOptionalString(draft.overview.recruiterNotes),
+      prepNotes: toOptionalString(draft.overview.prepNotes),
       otherNotes: toOptionalString(draft.overview.otherNotes),
       // These frontend-only section arrays are intentionally left for backend integration.
       timeline: draft.timeline,

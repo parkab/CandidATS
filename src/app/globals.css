@@ -5,6 +5,12 @@
     --background: #121212;
     --foreground: #faf9f6;
     --text-muted: color-mix(in oklab, var(--foreground) 52%, transparent);
+    --foreground-muted: var(--text-muted);
+    --surface-hover: color-mix(
+      in oklab,
+      var(--foreground) 9%,
+      var(--background)
+    );
     --surface: color-mix(in oklab, var(--foreground) 4%, var(--background));
     --surface-border: color-mix(in oklab, var(--foreground) 14%, transparent);
     --surface-divider: color-mix(in oklab, var(--foreground) 12%, transparent);
@@ -21,11 +27,27 @@
     --danger-text: color-mix(in oklab, #ef4444 82%, var(--foreground));
     --danger-hover: color-mix(in oklab, #ef4444 22%, var(--background));
     --toggle-track: color-mix(in oklab, var(--foreground) 20%, transparent);
+    /* Solid surfaces for portaled menus / popovers (no transparent color-mix). */
+    --popover-bg: #1c1c1c;
+    --popover-border: #333333;
+    --popover-hover: #2a2a2a;
+    --popover-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   }
 
   [data-theme='light'] {
     --background: #faf9f6;
     --foreground: #121212;
+    --text-muted: color-mix(in oklab, var(--foreground) 52%, transparent);
+    --foreground-muted: var(--text-muted);
+    --surface-hover: color-mix(
+      in oklab,
+      var(--foreground) 6%,
+      var(--background)
+    );
+    --popover-bg: #ffffff;
+    --popover-border: #e0e0de;
+    --popover-hover: #ecece8;
+    --popover-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   }
 
   body {
@@ -239,5 +261,98 @@
       width: 2rem;
       height: 2rem;
     }
+  }
+}
+
+@layer components {
+  /* Document library filters: fix native select / option contrast + rainbow accent */
+  .library-filter-panel {
+    color-scheme: dark;
+  }
+
+  html[data-theme='light'] .library-filter-panel {
+    color-scheme: light;
+  }
+
+  .library-filter-select {
+    display: block;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.5rem 2rem 0.5rem 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    color: var(--foreground);
+    cursor: pointer;
+    border-radius: 0.5rem;
+    border: 2px solid transparent;
+    background-color: var(--popover-bg);
+    background-image:
+      linear-gradient(var(--popover-bg), var(--popover-bg)),
+      linear-gradient(
+        to right,
+        #ff75c3 0%,
+        #ffa647 20%,
+        #ffe83f 40%,
+        #9fff5b 60%,
+        #70e2ff 80%,
+        #cd93ff 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .library-filter-select:hover {
+    filter: brightness(1.06);
+  }
+
+  .library-filter-select:focus-visible {
+    outline: 2px solid #70e2ff;
+    outline-offset: 2px;
+  }
+
+  .library-filter-select option {
+    background-color: var(--popover-bg);
+    color: var(--foreground);
+    font-weight: 500;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .library-filter-input {
+    display: block;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    color: var(--foreground);
+    border-radius: 0.5rem;
+    border: 2px solid transparent;
+    background-color: var(--popover-bg);
+    background-image:
+      linear-gradient(var(--popover-bg), var(--popover-bg)),
+      linear-gradient(
+        to right,
+        #ff75c3 0%,
+        #ffa647 20%,
+        #ffe83f 40%,
+        #9fff5b 60%,
+        #70e2ff 80%,
+        #cd93ff 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .library-filter-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .library-filter-input:hover {
+    filter: brightness(1.06);
+  }
+
+  .library-filter-input:focus-visible {
+    outline: 2px solid #70e2ff;
+    outline-offset: 2px;
   }
 }

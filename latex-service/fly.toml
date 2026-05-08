@@ -1,0 +1,43 @@
+# Fly.io configuration for the CandidATS LaTeX compilation service.
+#
+# Before first deploy, pick a globally unique app name and run:
+#   flyctl apps create <your-app-name>
+# then update the `app` field below to match.
+#
+# Deploy from the latex-service/ directory:
+#   flyctl deploy
+#
+# Set the shared secret before deploying:
+#   flyctl secrets set LATEX_SERVICE_TOKEN=<random-secret>
+
+app = "candid-ats-latex"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "3001"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+
+  # Scale to zero when idle — machine stops after inactivity and starts
+  # on the next incoming request. Keeps cost near $0 for low-traffic usage.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  # 512 MB gives Tectonic enough headroom for large documents.
+  # Adjust up to 1024 MB if you see OOM errors on complex templates.
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

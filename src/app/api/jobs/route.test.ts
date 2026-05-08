@@ -2,12 +2,13 @@
 
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
-import { POST } from './route';
+import { GET, POST } from './route';
 
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     job: {
       create: jest.fn(),
+      findMany: jest.fn(),
     },
   },
 }));
@@ -17,6 +18,7 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 const mockedCreate = jest.mocked(prisma.job.create);
+const mockedFindMany = jest.mocked(prisma.job.findMany);
 const mockedGetSupabaseUserFromRequest = jest.mocked(
   getSupabaseUserFromRequest,
 );
@@ -31,6 +33,88 @@ function buildRequest(body: Record<string, unknown>) {
     body: JSON.stringify(body),
   });
 }
+
+function buildGetRequest() {
+  return new Request('http://localhost/api/jobs', {
+    method: 'GET',
+    headers: {
+      cookie: 'sb-access-token=test-token',
+    },
+  });
+}
+
+describe('GET /api/jobs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns 503 when auth service throws', async () => {
+    mockedGetSupabaseUserFromRequest.mockRejectedValue(new Error('boom'));
+
+    const response = await GET(buildGetRequest());
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: 'Authentication service unavailable',
+    });
+    expect(mockedFindMany).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the session is missing', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: null,
+      error: { message: 'Unauthorized' },
+    } as never);
+
+    const response = await GET(buildGetRequest());
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    expect(mockedFindMany).not.toHaveBeenCalled();
+  });
+
+  it('returns job ids for the authenticated user', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
+      error: null,
+    } as never);
+
+    mockedFindMany.mockResolvedValue([
+      { id: 'job-b', title: 'Role B', company_name: 'Co B' },
+      { id: 'job-a', title: 'Role A', company_name: 'Co A' },
+    ] as never);
+
+    const response = await GET(buildGetRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      jobIds: ['job-b', 'job-a'],
+      jobs: [
+        { id: 'job-b', title: 'Role B', company_name: 'Co B' },
+        { id: 'job-a', title: 'Role A', company_name: 'Co A' },
+      ],
+    });
+    expect(mockedFindMany).toHaveBeenCalledWith({
+      where: { user_id: 'user-123' },
+      select: { id: true, title: true, company_name: true },
+      orderBy: { created_at: 'desc' },
+    });
+  });
+
+  it('returns an empty list when the user has no jobs', async () => {
+    mockedGetSupabaseUserFromRequest.mockResolvedValue({
+      data: { user: { id: 'user-empty' } },
+      error: null,
+    } as never);
+
+    mockedFindMany.mockResolvedValue([]);
+
+    const response = await GET(buildGetRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ jobIds: [], jobs: [] });
+  });
+});
 
 describe('POST /api/jobs', () => {
   beforeEach(() => {
@@ -121,6 +205,7 @@ describe('POST /api/jobs', () => {
         compensation: '$180k',
         applicationDate: '2026-04-02',
         recruiterNotes: 'Recruiter notes',
+        prepNotes: 'Prep notes',
         otherNotes: 'Other notes',
       }),
     );
@@ -137,6 +222,7 @@ describe('POST /api/jobs', () => {
         job_description: 'Build things',
         compensation_notes: '$180k',
         recruiter_contact_notes: 'Recruiter notes',
+        interview_prep_notes: 'Prep notes',
         custom_notes: 'Other notes',
       }),
     });
@@ -201,6 +287,7 @@ describe('POST /api/jobs', () => {
       data: expect.objectContaining({
         job_description: null,
         application_date: null,
+        interview_prep_notes: null,
         custom_notes: null,
       }),
     });
