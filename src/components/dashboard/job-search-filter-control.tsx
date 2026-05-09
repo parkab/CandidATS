@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const STAGE_OPTIONS = [
@@ -43,6 +43,7 @@ export default function JobSearchFilterControl() {
   const [selectedLocation, setSelectedLocation] = useState(location);
   const [selectedDeadlineState, setSelectedDeadlineState] =
     useState(deadlineState);
+  const previousSearchQueryRef = useRef(query);
 
   useEffect(() => {
     setSearchQuery(query);
@@ -50,6 +51,23 @@ export default function JobSearchFilterControl() {
     setSelectedLocation(location);
     setSelectedDeadlineState(deadlineState);
   }, [query, stage, location, deadlineState]);
+
+  // Auto-apply filters when search query is cleared
+  useEffect(() => {
+    if (
+      previousSearchQueryRef.current !== '' &&
+      searchQuery === '' &&
+      query !== ''
+    ) {
+      updateSearchParams({
+        q: null,
+        stage: selectedStage || null,
+        location: selectedLocation || null,
+        deadlineState: selectedDeadlineState || null,
+      });
+    }
+    previousSearchQueryRef.current = searchQuery;
+  }, [searchQuery]);
 
   function updateSearchParams(params: Record<string, string | null>) {
     const nextParams = new URLSearchParams(searchParams.toString());
