@@ -1,13 +1,28 @@
-export async function generateWithGemini(prompt: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
+export async function generateWithGemini(
+  prompt: string,
+  apiKeyName: 'GEMINI_API_KEY' | 'GEMINI_RESEARCH_KEY' = 'GEMINI_API_KEY',
+) {
+  const apiKey =
+    apiKeyName === 'GEMINI_RESEARCH_KEY'
+      ? process.env.GEMINI_RESEARCH_KEY
+      : process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.log('No API key found, returning mock response');
-    return 'Mock resume content for testing purposes. This is a sample resume generated for testing the UI.';
+    console.log(`No ${apiKeyName} found, returning mock response`);
+    const mockResponses: Record<string, string> = {
+      GEMINI_API_KEY:
+        'Mock resume content for testing purposes. This is a sample resume generated for testing the UI.',
+      GEMINI_RESEARCH_KEY:
+        'Mock company research content for testing purposes. This is sample research generated for testing the UI.',
+    };
+    return mockResponses[apiKeyName] || 'Mock content generated for testing.';
   }
 
   try {
-    console.log('Calling Gemini API with prompt length:', prompt.length);
+    console.log(
+      `Calling Gemini API (${apiKeyName}) with prompt length:`,
+      prompt.length,
+    );
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
       {

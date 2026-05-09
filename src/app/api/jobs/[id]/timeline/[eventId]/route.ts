@@ -64,7 +64,10 @@ export async function DELETE(
     if (idMarker) {
       // Auto-generated events cannot be deleted directly
       return NextResponse.json(
-        { error: 'Cannot delete auto-generated timeline events. Delete the source interview or follow-up instead.' },
+        {
+          error:
+            'Cannot delete auto-generated timeline events. Delete the source interview or follow-up instead.',
+        },
         { status: 403 },
       );
     }
@@ -110,7 +113,10 @@ export async function PATCH(
     );
   }
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const body = (await request.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
 
   if (!body || typeof body !== 'object') {
     return NextResponse.json(
@@ -149,7 +155,10 @@ export async function PATCH(
     if (idMarker) {
       // Auto-generated events cannot be edited directly
       return NextResponse.json(
-        { error: 'Cannot edit auto-generated timeline events. Edit the source interview or follow-up instead.' },
+        {
+          error:
+            'Cannot edit auto-generated timeline events. Edit the source interview or follow-up instead.',
+        },
         { status: 403 },
       );
     }
@@ -162,10 +171,16 @@ export async function PATCH(
     const updatedEvent = await prisma.timelineEvent.update({
       where: { id: timelineEventId },
       data: {
-        ...(typeof eventType === 'string' && eventType.trim() && { event_type: eventType.trim() }),
-        ...(typeof notes === 'string' && notes.trim() && { notes: notes.trim() }),
+        ...(typeof eventType === 'string' &&
+          eventType.trim() && { event_type: eventType.trim() }),
+        ...(typeof notes === 'string' &&
+          notes.trim() && { notes: notes.trim() }),
         ...(typeof notes === 'string' && !notes.trim() && { notes: null }),
-        ...((occurredAt instanceof Date || (typeof occurredAt === 'string' && !Number.isNaN(new Date(occurredAt).getTime()))) && { occurred_at: new Date(occurredAt) }),
+        ...((occurredAt instanceof Date ||
+          (typeof occurredAt === 'string' &&
+            !Number.isNaN(new Date(occurredAt).getTime()))) && {
+          occurred_at: new Date(occurredAt),
+        }),
       },
     });
 
@@ -182,4 +197,3 @@ export async function PATCH(
     );
   }
 }
-

@@ -23,8 +23,6 @@ import type {
   SectionStep,
 } from './job-multi-step-form-section-types';
 import JobOverviewSection from './job-overview-section';
-import ResumeStepSection from './resume-step-section';
-import CoverLetterStepSection from './cover-letter-step-section';
 import {
   buildInitialDraft,
   createDocumentDraftItem,
@@ -43,6 +41,7 @@ type JobMultiStepFormProps = {
   isDeleting?: boolean;
   onDocumentsChanged?: () => void;
   initialDraft?: Partial<JobMultiStepDraft>;
+  initialStep?: JobFormStepId;
   stickyFooter?: boolean;
   showFooterCancel?: boolean;
 };
@@ -51,9 +50,28 @@ type PersistedDocument = {
   id: string;
   title: string;
   content: string;
-  type: 'resume' | 'cover_letter';
+  type: 'resume' | 'cover_letter' | 'other';
+  status: 'draft' | 'ready' | 'archived';
+  tags: string[];
   created_at: string;
+  storage: {
+    path: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+    note?: string;
+    signedUrl: string | null;
+    signedUrlError?: string;
+  } | null;
 };
+
+function revokeObjectUrlIfBlob(objectUrl?: string) {
+  if (!objectUrl || !objectUrl.startsWith('blob:')) {
+    return;
+  }
+
+  URL.revokeObjectURL(objectUrl);
+}
 
 export default function JobMultiStepForm({
   initialOverview,
@@ -66,10 +84,14 @@ export default function JobMultiStepForm({
   isDeleting = false,
   onDocumentsChanged,
   initialDraft,
+  initialStep,
   stickyFooter = false,
   showFooterCancel = true,
 }: JobMultiStepFormProps) {
-  const [activeStep, setActiveStep] = useState<JobFormStepId>('overview');
+  const [activeStep, setActiveStep] = useState<JobFormStepId>(
+    initialStep ?? 'overview',
+  );
+  const prevJobIdRef = useRef<string | undefined>(initialOverview.id);
   const [draft, setDraft] = useState<JobMultiStepDraft>(() =>
     buildInitialDraft(initialOverview, initialDraft),
   );
@@ -115,7 +137,7 @@ export default function JobMultiStepForm({
   const [documentsRefreshToken, setDocumentsRefreshToken] = useState(0);
 
   function addAiGeneratedDocument(
-    type: 'resume' | 'cover_letter',
+    type: 'resume' | 'cover_letter' | 'other',
     content: string,
   ) {
     const trimmedContent = content.trim();
@@ -124,11 +146,24 @@ export default function JobMultiStepForm({
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const title = type === 'resume' ? 'Resume' : 'Cover Letter';
+    const title =
+      type === 'resume'
+        ? 'Resume'
+        : type === 'cover_letter'
+          ? 'Cover Letter'
+          : 'Company Research';
     const notes =
-      type === 'resume' ? 'AI-generated resume' : 'AI-generated cover letter';
+      type === 'resume'
+        ? 'AI-generated resume'
+        : type === 'cover_letter'
+          ? 'AI-generated cover letter'
+          : 'AI-generated company research';
     const fileName =
-      type === 'resume' ? `resume-${today}.md` : `cover-letter-${today}.md`;
+      type === 'resume'
+        ? `resume-${today}.md`
+        : type === 'cover_letter'
+          ? `cover-letter-${today}.md`
+          : `company-research-${today}.md`;
     const markdownFile = new File([trimmedContent], fileName, {
       type: 'text/markdown',
     });
@@ -139,6 +174,16 @@ export default function JobMultiStepForm({
       title,
       date: today,
       notes,
+      documentType: type,
+      status: 'ready',
+      tags: [
+        'ai-generated',
+        type === 'resume'
+          ? 'resume'
+          : type === 'cover_letter'
+            ? 'cover-letter'
+            : 'company-research',
+      ],
       name: markdownFile.name,
       size: markdownFile.size,
       mimeType: markdownFile.type,
@@ -468,8 +513,16 @@ export default function JobMultiStepForm({
     }));
   }
 
-  function saveDocumentItem() {
+  async function saveDocumentItem() {
     if (documentDraft.name.trim().length === 0) {
+      return;
+    }
+
+    const jobId = draft.overview.id?.trim();
+    if (!jobId) {
+      setDocumentsError(
+        'Save the job first before adding persistent documents.',
+      );
       return;
     }
 
@@ -478,77 +531,112 @@ export default function JobMultiStepForm({
         ? draft.documents.files.find((file) => file.id === editingDocumentId)
         : null;
 
-    const nextObjectUrl = pendingDocumentFile
-      ? URL.createObjectURL(pendingDocumentFile)
-      : existingDocument?.objectUrl;
+    setDocumentsError(null);
+    setDocumentsLoading(true);
 
-    const sanitizedDocument: JobDocumentItemDraft = {
-      ...documentDraft,
-      id: existingDocument?.id ?? documentDraft.id,
-      title: documentDraft.title.trim(),
-      date: documentDraft.date,
-      notes: documentDraft.notes.trim(),
-      name: documentDraft.name,
-      size: documentDraft.size,
-      mimeType: documentDraft.mimeType,
-      objectUrl: nextObjectUrl,
-    };
+    try {
+      let response: Response;
 
-    if (
-      existingDocument?.objectUrl &&
-      pendingDocumentFile &&
-      existingDocument.objectUrl !== nextObjectUrl
-    ) {
-      URL.revokeObjectURL(existingDocument.objectUrl);
-    }
+      if (pendingDocumentFile) {
+        const formData = new FormData();
+        formData.append('jobId', jobId);
+        formData.append('title', documentDraft.title.trim());
+        formData.append('type', documentDraft.documentType);
+        formData.append('status', documentDraft.status);
+        documentDraft.tags.forEach((tag) => {
+          formData.append('tags', tag);
+        });
+        formData.append('note', documentDraft.notes.trim());
+        formData.append('file', pendingDocumentFile);
 
-    setDraft((previous) => ({
-      ...previous,
-      documents: {
-        files:
-          documentComposerMode === 'edit' && editingDocumentId
-            ? previous.documents.files.map((existingFile) =>
-                existingFile.id === editingDocumentId
-                  ? sanitizedDocument
-                  : existingFile,
-              )
-            : [...previous.documents.files, sanitizedDocument],
-      },
-    }));
-
-    closeDocumentComposer();
-  }
-
-  function viewDocument(id: string) {
-    const existingDocument = draft.documents.files.find(
-      (file) => file.id === id,
-    );
-    if (!existingDocument?.objectUrl) {
-      return;
-    }
-
-    window.open(existingDocument.objectUrl, '_blank', 'noopener,noreferrer');
-  }
-
-  function removeDocument(id: string) {
-    setDraft((previous) => {
-      const removedDocument = previous.documents.files.find(
-        (file) => file.id === id,
-      );
-      if (removedDocument?.objectUrl) {
-        URL.revokeObjectURL(removedDocument.objectUrl);
+        response = await fetch(
+          existingDocument
+            ? `/api/documents/${encodeURIComponent(existingDocument.id)}`
+            : '/api/documents',
+          {
+            method: existingDocument ? 'PATCH' : 'POST',
+            body: formData,
+          },
+        );
+      } else {
+        response = await fetch(
+          existingDocument
+            ? `/api/documents/${encodeURIComponent(existingDocument.id)}`
+            : '/api/documents',
+          {
+            method: existingDocument ? 'PATCH' : 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jobId,
+              title: documentDraft.title.trim() || documentDraft.name,
+              type: documentDraft.documentType,
+              status: documentDraft.status,
+              tags: documentDraft.tags,
+              note: documentDraft.notes.trim(),
+              content:
+                existingDocument && existingDocument.storagePath
+                  ? undefined
+                  : documentDraft.notes,
+            }),
+          },
+        );
       }
 
-      return {
-        ...previous,
-        documents: {
-          files: previous.documents.files.filter((file) => file.id !== id),
-        },
-      };
-    });
+      if (!response.ok) {
+        throw new Error('Unable to save document.');
+      }
 
-    if (editingDocumentId === id) {
       closeDocumentComposer();
+      refreshDocuments();
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : 'Unable to save document.';
+      setDocumentsError(message);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }
+
+  async function removeDocument(id: string) {
+    try {
+      setDocumentsError(null);
+      const response = await fetch(`/api/documents/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jobId: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to unlink document.');
+      }
+
+      setDraft((previous) => {
+        const removedDocument = previous.documents.files.find(
+          (file) => file.id === id,
+        );
+        revokeObjectUrlIfBlob(removedDocument?.objectUrl);
+
+        return {
+          ...previous,
+          documents: {
+            files: previous.documents.files.filter((file) => file.id !== id),
+          },
+        };
+      });
+
+      if (editingDocumentId === id) {
+        closeDocumentComposer();
+      }
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error && caughtError.message.trim().length > 0
+          ? caughtError.message
+          : 'Unable to unlink document.';
+      setDocumentsError(message);
     }
   }
 
@@ -593,22 +681,36 @@ export default function JobMultiStepForm({
             const date = Number.isNaN(createdDate.getTime())
               ? ''
               : createdDate.toISOString().split('T')[0];
-            const contentBlob = new Blob([document.content], {
-              type: 'text/plain',
-            });
+            const hasStoredFile = Boolean(document.storage);
+            const contentBlob = hasStoredFile
+              ? null
+              : new Blob([document.content], {
+                  type: 'text/plain',
+                });
+            const fallbackObjectUrl = contentBlob
+              ? URL.createObjectURL(contentBlob)
+              : undefined;
 
             return {
               id: document.id,
               title: document.title,
               date,
+              documentType: document.type,
+              status: document.status,
+              tags: Array.isArray(document.tags) ? document.tags : [],
               notes:
-                document.type === 'resume'
+                document.storage?.note ??
+                (document.type === 'resume'
                   ? 'Saved resume'
-                  : 'Saved cover letter',
-              name: `${document.title}.txt`,
-              size: contentBlob.size,
-              mimeType: 'text/plain',
-              objectUrl: URL.createObjectURL(contentBlob),
+                  : document.type === 'cover_letter'
+                    ? 'Saved cover letter'
+                    : 'Saved document'),
+              name: document.storage?.fileName ?? `${document.title}.txt`,
+              size: document.storage?.size ?? contentBlob?.size ?? 0,
+              mimeType: document.storage?.mimeType ?? 'text/plain',
+              objectUrl: document.storage?.signedUrl ?? fallbackObjectUrl,
+              storagePath: document.storage?.path,
+              isAiGenerated: !hasStoredFile,
             };
           },
         );
@@ -622,7 +724,7 @@ export default function JobMultiStepForm({
 
           previous.documents.files.forEach((file) => {
             if (file.objectUrl && !nextObjectUrls.has(file.objectUrl)) {
-              URL.revokeObjectURL(file.objectUrl);
+              revokeObjectUrlIfBlob(file.objectUrl);
             }
           });
 
@@ -661,10 +763,15 @@ export default function JobMultiStepForm({
     return JOB_FORM_STEPS.find((step) => step.id === activeStep)?.label;
   }, [activeStep]);
 
-  // Re-initialize draft only when job ID changes (switching between different jobs)
-  // We watch initialOverview.id to detect when user switches to a different job
+  // Re-initialize draft only when job ID changes (switching between different jobs).
+  // Using prevJobIdRef instead of an isInitialMount ref so that React StrictMode's
+  // double-invoke of effects doesn't reset activeStep on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (prevJobIdRef.current === initialOverview.id) {
+      return;
+    }
+    prevJobIdRef.current = initialOverview.id;
     setDraft(buildInitialDraft(initialOverview, initialDraft));
     setActiveStep('overview');
   }, [initialOverview.id]);
@@ -679,7 +786,7 @@ export default function JobMultiStepForm({
     return () => {
       const uniqueObjectUrls = new Set(documentObjectUrlsRef.current);
       uniqueObjectUrls.forEach((objectUrl) => {
-        URL.revokeObjectURL(objectUrl);
+        revokeObjectUrlIfBlob(objectUrl);
       });
     };
   }, []);
@@ -796,66 +903,44 @@ export default function JobMultiStepForm({
               isComposerOpen={documentComposerOpen}
               composerMode={documentComposerMode}
               editingDocumentId={editingDocumentId}
+              jobId={draft.overview.id || ''}
+              jobData={{
+                title: draft.overview.title,
+                company_name: draft.overview.company,
+                location: draft.overview.location,
+                job_description: draft.overview.jobDescription,
+              }}
+              companyResearch={draft.companyResearch}
               onOpenComposer={openDocumentComposer}
               onEditDocument={openEditDocument}
               onCloseComposer={closeDocumentComposer}
               onDocumentDraftChange={setDocumentDraftField}
               onDocumentFileSelected={onDocumentFileSelected}
               onSaveDocument={saveDocumentItem}
-              onViewDocument={viewDocument}
               onRemoveDocument={removeDocument}
-            />
-          ) : null}
-
-          {activeStep === 'resume' ? (
-            <ResumeStepSection
-              resume={draft.resume}
-              jobId={draft.overview.id}
-              jobData={{
-                title: draft.overview.title,
-                company_name: draft.overview.company,
-                location: draft.overview.location,
-                job_description: draft.overview.jobDescription,
-              }}
-              onResumeChange={(content) =>
+              onDocumentsChanged={refreshDocuments}
+              onCompanyResearchChange={(content) =>
                 setDraft((previous) => ({
                   ...previous,
-                  resume: {
-                    ...previous.resume,
+                  companyResearch: {
+                    ...previous.companyResearch,
                     content,
                   },
                 }))
               }
-              onRefreshDocuments={refreshDocuments}
-              onSavedAsDocument={(content) =>
-                addAiGeneratedDocument('resume', content)
-              }
-            />
-          ) : null}
-
-          {activeStep === 'coverLetter' ? (
-            <CoverLetterStepSection
-              coverLetter={draft.coverLetter}
-              jobId={draft.overview.id}
-              jobData={{
-                title: draft.overview.title,
-                company_name: draft.overview.company,
-                location: draft.overview.location,
-                job_description: draft.overview.jobDescription,
-              }}
-              onCoverLetterChange={(content) =>
+              onUserContextChange={(context) =>
                 setDraft((previous) => ({
                   ...previous,
-                  coverLetter: {
-                    ...previous.coverLetter,
-                    content,
+                  companyResearch: {
+                    ...previous.companyResearch,
+                    userContext: context,
                   },
                 }))
               }
-              onRefreshDocuments={refreshDocuments}
               onSavedAsDocument={(content) =>
-                addAiGeneratedDocument('cover_letter', content)
+                addAiGeneratedDocument('other', content)
               }
+              onRefreshDocuments={refreshDocuments}
             />
           ) : null}
         </section>

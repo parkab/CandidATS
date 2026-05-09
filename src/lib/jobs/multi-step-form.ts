@@ -6,8 +6,6 @@ export const JOB_FORM_STEPS = [
   { id: 'interviews', label: 'Interviews' },
   { id: 'followUps', label: 'Follow-ups' },
   { id: 'documents', label: 'Documents' },
-  { id: 'resume', label: 'Resume' },
-  { id: 'coverLetter', label: 'Cover Letter' },
 ] as const;
 
 export type JobFormStepId = (typeof JOB_FORM_STEPS)[number]['id'];
@@ -18,6 +16,7 @@ export type JobOverviewDraft = {
   company: string;
   location: string;
   stage: ApplicationStatus;
+  archived: boolean;
   lastActivityDate: string;
   deadline: string;
   priority: boolean;
@@ -41,10 +40,15 @@ export type JobDocumentItemDraft = {
   title: string;
   date: string;
   notes: string;
+  documentType: 'resume' | 'cover_letter' | 'other';
+  status: 'draft' | 'ready' | 'archived';
+  tags: string[];
   name: string;
   size: number;
   mimeType: string;
   objectUrl?: string;
+  storagePath?: string;
+  isAiGenerated?: boolean;
 };
 
 export type JobDocumentsDraft = {
@@ -61,11 +65,18 @@ export type JobCoverLetterDraft = {
   isGenerating: boolean;
 };
 
+export type JobCompanyResearchDraft = {
+  content: string;
+  isGenerating: boolean;
+  userContext: string;
+};
+
 export type JobMultiStepDraft = {
   overview: JobOverviewDraft;
   timeline: JobSectionItemDraft[];
   interviews: JobSectionItemDraft[];
   followUps: JobSectionItemDraft[];
+  companyResearch: JobCompanyResearchDraft;
   documents: JobDocumentsDraft;
   resume: JobResumeDraft;
   coverLetter: JobCoverLetterDraft;
