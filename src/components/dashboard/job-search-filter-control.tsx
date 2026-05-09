@@ -104,23 +104,6 @@ export default function JobSearchFilterControl() {
     setSelectedSortValue(selectedSort);
   }, [query, stage, deadlineState, priorityOnly, eventsFilter, selectedSort]);
 
-  // Auto-apply filters when search query is cleared
-  useEffect(() => {
-    if (
-      previousSearchQueryRef.current !== '' &&
-      searchQuery === '' &&
-      query !== ''
-    ) {
-      updateSearchParams({
-        q: null,
-        stage: selectedStage || null,
-        location: selectedLocation || null,
-        deadlineState: selectedDeadlineState || null,
-      });
-    }
-    previousSearchQueryRef.current = searchQuery;
-  }, [searchQuery]);
-
   const updateSearchParams = useCallback(
     (params: Record<string, string | null>) => {
       const nextParams = new URLSearchParams(searchParams.toString());
@@ -138,6 +121,28 @@ export default function JobSearchFilterControl() {
     },
     [router, searchParams],
   );
+
+  // Auto-apply filters when search query is cleared
+  useEffect(() => {
+    if (
+      previousSearchQueryRef.current !== '' &&
+      searchQuery === '' &&
+      query !== ''
+    ) {
+      updateSearchParams({
+        q: null,
+        stage: selectedStage || null,
+        deadlineState: selectedDeadlineState || null,
+      });
+    }
+    previousSearchQueryRef.current = searchQuery;
+  }, [
+    searchQuery,
+    updateSearchParams,
+    selectedStage,
+    selectedDeadlineState,
+    query,
+  ]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
