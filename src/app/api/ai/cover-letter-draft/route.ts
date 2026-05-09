@@ -6,15 +6,12 @@ import { generateWithGemini } from '@/lib/ai/gemini';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Cover letter draft API called');
     const session = await getSession();
     if (!session) {
-      console.log('No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log('Request body:', body);
     const { jobId, jobData } = body;
 
     let job: any;
@@ -59,29 +56,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      console.log('User not found');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log('User data:', {
-      hasProfile: !!user.Profile,
-      experienceCount: user.Experience.length,
-      educationCount: user.Education.length,
-      skillsCount: user.Skill.length,
-      hasCareerPreferences: !!user.CareerPreferences,
-    });
-
     // Build the prompt
-    console.log('Building prompt with job:', job);
     const prompt = buildCoverLetterPrompt(user, job);
-    console.log('Prompt length:', prompt.length);
 
     // Generate cover letter with Gemini
     const generatedCoverLetter = await generateWithGemini(prompt);
-    console.log(
-      'Generated cover letter:',
-      generatedCoverLetter.substring(0, 100) + '...',
-    );
 
     return NextResponse.json({ coverLetter: generatedCoverLetter });
   } catch (error) {

@@ -46,12 +46,7 @@ export default function CoverLetterStepSection({
   }
 
   async function generateCoverLetter() {
-    console.log('Generate cover letter clicked');
-    console.log('jobId:', jobId);
-    console.log('jobData:', jobData);
-
     if (!jobId && !jobData) {
-      console.log('No job data available');
       return;
     }
 
@@ -60,8 +55,6 @@ export default function CoverLetterStepSection({
       const requestBody = jobId
         ? { jobId }
         : { jobData: { ...jobData, company_name: jobData?.company_name } };
-
-      console.log('Sending request:', requestBody);
 
       const response = await fetch('/api/ai/cover-letter-draft', {
         method: 'POST',
@@ -77,12 +70,9 @@ export default function CoverLetterStepSection({
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
       if (data.error) {
         throw new Error(data.error);
       }
-      console.log('Cover letter content:', data.coverLetter);
-      console.log('Calling onCoverLetterChange with:', data.coverLetter);
       onCoverLetterChange(data.coverLetter);
     } catch (error) {
       console.error('Error generating cover letter:', error);
