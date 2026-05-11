@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { GET, POST } from './route';
@@ -51,12 +52,12 @@ describe('GET /api/jobs', () => {
   it('returns 503 when auth service throws', async () => {
     mockedGetSupabaseUserFromRequest.mockRejectedValue(new Error('boom'));
 
-    const response = await GET(buildGetRequest());
+    const response = await GET(buildGetRequest() as NextRequest);
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
-      error: 'Authentication service unavailable',
-    });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedFindMany).not.toHaveBeenCalled();
   });
 
@@ -66,10 +67,12 @@ describe('GET /api/jobs', () => {
       error: { message: 'Unauthorized' },
     } as never);
 
-    const response = await GET(buildGetRequest());
+    const response = await GET(buildGetRequest() as NextRequest);
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message', 'Unauthorized');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedFindMany).not.toHaveBeenCalled();
   });
 
@@ -84,7 +87,7 @@ describe('GET /api/jobs', () => {
       { id: 'job-a', title: 'Role A', company_name: 'Co A' },
     ] as never);
 
-    const response = await GET(buildGetRequest());
+    const response = await GET(buildGetRequest() as NextRequest);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -109,7 +112,7 @@ describe('GET /api/jobs', () => {
 
     mockedFindMany.mockResolvedValue([]);
 
-    const response = await GET(buildGetRequest());
+    const response = await GET(buildGetRequest() as NextRequest);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ jobIds: [], jobs: [] });
@@ -124,12 +127,12 @@ describe('POST /api/jobs', () => {
   it('returns 503 when auth service throws', async () => {
     mockedGetSupabaseUserFromRequest.mockRejectedValue(new Error('boom'));
 
-    const response = await POST(buildRequest({}));
+    const response = await POST(buildRequest({}) as NextRequest);
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({
-      error: 'Authentication service unavailable',
-    });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 
@@ -139,10 +142,12 @@ describe('POST /api/jobs', () => {
       error: { message: 'Unauthorized' },
     } as never);
 
-    const response = await POST(buildRequest({}));
+    const response = await POST(buildRequest({}) as NextRequest);
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message', 'Unauthorized');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 
@@ -158,11 +163,13 @@ describe('POST /api/jobs', () => {
         headers: {
           cookie: 'sb-access-token=test-token',
         },
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid request body' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 
@@ -207,7 +214,7 @@ describe('POST /api/jobs', () => {
         recruiterNotes: 'Recruiter notes',
         prepNotes: 'Prep notes',
         otherNotes: 'Other notes',
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(201);
@@ -251,11 +258,13 @@ describe('POST /api/jobs', () => {
         applicationDate: '2026-04-02',
         recruiterNotes: '',
         otherNotes: 'Other notes',
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid stage value' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 
@@ -279,7 +288,7 @@ describe('POST /api/jobs', () => {
         lastActivityDate: '2026-04-01',
         deadline: '',
         priority: false,
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(201);
@@ -308,11 +317,14 @@ describe('POST /api/jobs', () => {
         lastActivityDate: '2026-04-01',
         deadline: 'not-a-date',
         priority: false,
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid deadline date' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 });
+

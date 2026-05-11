@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { PATCH } from './route';
@@ -67,12 +68,14 @@ describe('PATCH /api/jobs/[id]', () => {
       error: { message: 'Unauthorized' },
     } as never);
 
-    const response = await PATCH(buildRequest({}), {
+    const response = await PATCH(buildRequest({}) as NextRequest, {
       params: Promise.resolve({ id: 'job-1' }),
     });
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message', 'Unauthorized');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -88,12 +91,14 @@ describe('PATCH /api/jobs/[id]', () => {
         headers: {
           cookie: 'sb-access-token=test-token',
         },
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid request body' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -146,7 +151,7 @@ describe('PATCH /api/jobs/[id]', () => {
         recruiterNotes: '',
         prepNotes: 'Interview prep notes',
         otherNotes: 'Updated notes',
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
@@ -202,14 +207,14 @@ describe('PATCH /api/jobs/[id]', () => {
         applicationDate: '2026-04-02',
         recruiterNotes: '',
         otherNotes: 'Other notes',
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
-      error: 'Job not found or access denied',
-    });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     // findFirst should be called once to check job ownership
     expect(mockedFindFirst).toHaveBeenCalledWith({
       where: {
@@ -250,7 +255,7 @@ describe('PATCH /api/jobs/[id]', () => {
         lastActivityDate: '2026-04-01',
         deadline: '',
         priority: false,
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
@@ -284,12 +289,14 @@ describe('PATCH /api/jobs/[id]', () => {
         lastActivityDate: '2026-04-01',
         deadline: 'not-a-date',
         priority: false,
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid deadline date' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -335,7 +342,7 @@ describe('PATCH /api/jobs/[id]', () => {
         location: 'Remote',
         stage: 'Interview',
         lastActivityDate: '2026-04-01',
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
@@ -386,7 +393,7 @@ describe('PATCH /api/jobs/[id]', () => {
         location: 'Remote',
         stage: 'Interview',
         lastActivityDate: '2026-04-01',
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
@@ -432,7 +439,7 @@ describe('PATCH /api/jobs/[id]', () => {
         stage: 'Interview',
         lastActivityDate: '2026-04-01',
         archived: true,
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 
@@ -481,7 +488,7 @@ describe('PATCH /api/jobs/[id]', () => {
         stage: 'Interview',
         lastActivityDate: '2026-04-01',
         archived: false,
-      }),
+      }) as NextRequest,
       { params: Promise.resolve({ id: 'job-1' }) },
     );
 

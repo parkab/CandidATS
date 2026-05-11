@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
@@ -6,6 +6,9 @@ import {
   createInterviewScheduledEvent,
   createFollowUpCreatedEvent,
 } from '@/lib/jobs/timeline';
+import { withErrorHandler } from '@/app/api/error-handler';
+import { validationError, authError, databaseError, serviceError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
 type CreateJobBody = Record<string, unknown>;
 
@@ -45,22 +48,19 @@ function asOptionalDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export async function GET(request: Request) {
+async function handleGet(request: NextRequest) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
 
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Authentication service unavailable' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const userId = data.user.id;
@@ -72,6 +72,8 @@ export async function GET(request: Request) {
       orderBy: { created_at: 'desc' },
     });
 
+    logger.info('Jobs retrieved', { userId, count: jobs.length });
+
     return NextResponse.json({
       jobIds: jobs.map((job) => job.id),
       jobs: jobs.map((job) => ({
@@ -81,31 +83,26 @@ export async function GET(request: Request) {
       })),
     });
   } catch (err) {
-    console.error('Failed to list job ids:', err);
-
-    return NextResponse.json(
-      { error: 'Unable to load jobs right now.' },
-      { status: 500 },
-    );
+    throw databaseError('Failed to retrieve jobs', {
+      userId,
+      originalError: err instanceof Error ? err.message : 'Unknown',
+    });
   }
 }
 
-export async function POST(request: Request) {
+async function handlePost(request: NextRequest) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
 
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Authentication service unavailable' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const userId = data.user.id;
@@ -113,10 +110,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as CreateJobBody | null;
 
   if (!body || typeof body !== 'object') {
-    return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 },
-    );
+    throw validationError('Invalid request body');
   }
 
   const title = asRequiredString(body.title);
@@ -135,28 +129,19 @@ export async function POST(request: Request) {
   const archived = typeof body.archived === 'boolean' ? body.archived : null;
 
   if (!title || !company || !location || !stage || !lastActivityDate) {
-    return NextResponse.json(
-      { error: 'Missing one or more required fields' },
-      { status: 400 },
-    );
+    throw validationError('Missing one or more required fields: title, company, location, stage, lastActivityDate');
   }
 
   if (!(stage in APPLICATION_STATUS_COLOR)) {
-    return NextResponse.json({ error: 'Invalid stage value' }, { status: 400 });
+    throw validationError(`Invalid stage value. Must be one of: ${Object.keys(APPLICATION_STATUS_COLOR).join(', ')}`);
   }
 
   if (body.deadline && !deadline) {
-    return NextResponse.json(
-      { error: 'Invalid deadline date' },
-      { status: 400 },
-    );
+    throw validationError('Invalid deadline date format');
   }
 
   if (body.applicationDate && !applicationDate) {
-    return NextResponse.json(
-      { error: 'Invalid application date' },
-      { status: 400 },
-    );
+    throw validationError('Invalid application date format');
   }
 
   try {
@@ -309,15 +294,24 @@ export async function POST(request: Request) {
       }
     }
 
+    logger.info('Job created successfully', {
+      userId,
+      jobId: createdJob.id,
+      title,
+      company,
+    });
+
     return NextResponse.json(createdJob, { status: 201 });
   } catch (error) {
-    console.error('Failed to create job:', error);
-
-    return NextResponse.json(
-      { error: 'Unable to create job right now.' },
-      { status: 500 },
-    );
+    throw databaseError('Failed to create job', {
+      userId,
+      title,
+      originalError: error instanceof Error ? error.message : 'Unknown',
+    });
   }
 }
+
+export const GET = withErrorHandler(handleGet);
+export const POST = withErrorHandler(handlePost);
 
 

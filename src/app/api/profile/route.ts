@@ -1,31 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { parseProfileUpdatePayload } from '@/lib/profile/profile';
+import { withErrorHandler } from '@/app/api/error-handler';
+import { authError, validationError, notFoundError, databaseError, serviceError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
-export async function PATCH(request: Request) {
+async function handlePatch(request: NextRequest) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
 
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const body = await request.json().catch(() => null);
   const { payload, error: payloadError } = parseProfileUpdatePayload(body);
 
   if (!payload || payloadError) {
-    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    throw validationError('Invalid profile update payload', { error: payloadError });
   }
 
   try {
@@ -41,10 +41,7 @@ export async function PATCH(request: Request) {
     });
 
     if (updateResult.count === 0) {
-      return NextResponse.json(
-        { error: 'Unable to update profile.' },
-        { status: 404 },
-      );
+      throw notFoundError('User profile');
     }
 
     const existingProfile = await prisma.profile.findFirst({
@@ -103,11 +100,10 @@ export async function PATCH(request: Request) {
     });
 
     if (!updatedUser) {
-      return NextResponse.json(
-        { error: 'Unable to process request.' },
-        { status: 500 },
-      );
+      throw databaseError('Failed to retrieve updated user profile');
     }
+
+    logger.info('Profile updated successfully', { userId: data.user.id });
 
     return NextResponse.json(
       {
@@ -117,10 +113,11 @@ export async function PATCH(request: Request) {
       { status: 200 },
     );
   } catch (routeError) {
-    console.error('Failed to update profile', routeError);
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 500 },
-    );
+    if (routeError instanceof Error && 'statusCode' in routeError) {
+      throw routeError;
+    }
+    throw databaseError('Failed to update profile', { error: String(routeError) });
   }
 }
+
+export const PATCH = withErrorHandler(handlePatch);
