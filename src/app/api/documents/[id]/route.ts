@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import {
   buildStoragePath,
@@ -15,6 +15,9 @@ import {
 } from '@/lib/documents/metadata';
 import { prisma } from '@/lib/prisma';
 import { supabaseAdmin } from '@/lib/supabase';
+import { withErrorHandler } from '@/app/api/error-handler';
+import { authError, validationError, notFoundError, databaseError, serviceError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
 type UpdateDocumentBody = {
   jobId?: string;
@@ -516,51 +519,46 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _request: Request,
+async function handleDelete(
+  _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const session = await getSession();
+  if (!session) {
+    throw authError('Unauthorized');
+  }
+
+  const { id } = await context.params;
+  const documentId = asNonEmptyString(id);
+
+  if (!documentId) {
+    throw validationError('Document id is required');
+  }
+
+  const existingDocument = await prisma.document.findFirst({
+    where: {
+      id: documentId,
+      user_id: session.userId,
+    },
+  });
+
+  if (!existingDocument) {
+    throw notFoundError('Document');
+  }
+
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = await context.params;
-    const documentId = asNonEmptyString(id);
-
-    if (!documentId) {
-      return NextResponse.json(
-        { error: 'Document id is required' },
-        { status: 400 },
-      );
-    }
-
-    const existingDocument = await prisma.document.findFirst({
-      where: {
-        id: documentId,
-        user_id: session.userId,
-      },
-    });
-
-    if (!existingDocument) {
-      return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 },
-      );
-    }
-
     await prisma.document.delete({ where: { id: existingDocument.id } });
     await deleteStoredFileIfPresent(existingDocument.content);
 
+    logger.info('Document deleted successfully', { userId: session.userId, documentId });
+
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting document:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: 'Failed to delete document', details: errorMessage },
-      { status: 500 },
-    );
+  } catch (routeError) {
+    if (routeError instanceof Error && 'statusCode' in routeError) {
+      throw routeError;
+    }
+    throw databaseError('Failed to delete document', { error: String(routeError) });
   }
 }
+
+export const DELETE = withErrorHandler(handleDelete as Parameters<typeof withErrorHandler>[0]);

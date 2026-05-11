@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getAccessTokenFromRequest, supabaseAdmin } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,20 +30,44 @@ export async function middleware(request: NextRequest) {
         const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
         if (!error && data.user) {
           user = data.user;
+          logger.info('User authenticated via middleware', {
+            userId: data.user.id,
+            path: pathname,
+          });
+        } else {
+          logger.warn('Authentication failed in middleware', {
+            path: pathname,
+            reason: error?.message || 'No user returned',
+          });
         }
       } catch (error) {
-        console.error('Middleware auth error:', error);
+        logger.error('Middleware auth error', error as Error, {
+          path: pathname,
+        });
       }
+    } else {
+      logger.warn('No access token found in request', {
+        path: pathname,
+      });
     }
   }
 
   if (isProtectedRoute && !user) {
+    logger.warn('Protected route accessed without auth', {
+      path: pathname,
+      redirectTo: '/dashboard',
+    });
     const redirectUrl = new URL('/dashboard', request.url);
     redirectUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   if (user && isAuthOnlyRoute) {
+    logger.info('Authenticated user redirected from auth route', {
+      userId: user.id,
+      path: pathname,
+      redirectTo: '/dashboard',
+    });
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
