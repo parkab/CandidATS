@@ -604,16 +604,23 @@ export default function JobMultiStepForm({
   async function removeDocument(id: string) {
     try {
       setDocumentsError(null);
-      const response = await fetch(`/api/documents/${encodeURIComponent(id)}`, {
-        method: 'PATCH',
+      const jobId = draft.overview.id?.trim();
+      
+      if (!jobId) {
+        throw new Error('Job ID is required');
+      }
+
+      const response = await fetch(`/api/documents/${encodeURIComponent(id)}/unlink`, {
+        method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jobId: null }),
+        body: JSON.stringify({ jobId }),
       });
 
       if (!response.ok) {
         throw new Error('Unable to unlink document.');
       }
 
+      // Remove the document from the form's document list
       setDraft((previous) => {
         const removedDocument = previous.documents.files.find(
           (file) => file.id === id,
