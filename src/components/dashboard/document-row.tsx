@@ -22,6 +22,7 @@ type DocumentRowProps = {
   tags: string[];
   onDuplicate?: () => void;
   onRename?: () => void;
+  onDelete?: () => void;
 };
 
 const STATUS_STYLES: Record<DocumentRowProps['status'], string> = {
@@ -114,6 +115,7 @@ export default function DocumentRow({
   tags,
   onDuplicate,
   onRename,
+  onDelete,
 }: DocumentRowProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -379,6 +381,20 @@ export default function DocumentRow({
             className={`${itemClass} w-full rounded-xl border-0 bg-transparent text-left font-[inherit]`}
           >
             <span className="min-w-0">Rename…</span>
+          </button>
+        ) : null}
+        {onDelete ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setIsMenuOpen(false);
+              onDelete();
+            }}
+            className={`${itemClass} w-full rounded-xl border-0 bg-transparent text-left font-[inherit]`}
+            style={{ color: 'var(--danger-text)' }}
+          >
+            <span className="min-w-0">Delete…</span>
           </button>
         ) : null}
         <div

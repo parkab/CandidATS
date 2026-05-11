@@ -63,8 +63,8 @@ export default function JobLibraryDocumentsSection({
 
   async function linkDocument(documentId: string) {
     try {
-      const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}/link`, {
+        method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ jobId }),
       });
@@ -73,11 +73,28 @@ export default function JobLibraryDocumentsSection({
         throw new Error('Failed to link document');
       }
 
-      // Remove from library list
-      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      // Document can be linked to multiple jobs, so don't remove it from the library
+      // Just notify that a document was linked
       onDocumentLinked?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to link document');
+    }
+  }
+
+  async function deleteDocument(documentId: string) {
+    try {
+      const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document');
+      }
+
+      // Remove from library list
+      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete document');
     }
   }
 
@@ -140,6 +157,7 @@ export default function JobLibraryDocumentsSection({
                 key={doc.id}
                 document={doc}
                 onLink={() => linkDocument(doc.id)}
+                onDelete={() => deleteDocument(doc.id)}
               />
             ))}
           </div>
@@ -157,6 +175,7 @@ export default function JobLibraryDocumentsSection({
                 key={doc.id}
                 document={doc}
                 onLink={() => linkDocument(doc.id)}
+                onDelete={() => deleteDocument(doc.id)}
               />
             ))}
           </div>
@@ -174,6 +193,7 @@ export default function JobLibraryDocumentsSection({
                 key={doc.id}
                 document={doc}
                 onLink={() => linkDocument(doc.id)}
+                onDelete={() => deleteDocument(doc.id)}
               />
             ))}
           </div>
@@ -186,11 +206,15 @@ export default function JobLibraryDocumentsSection({
 function LibraryDocumentCard({
   document,
   onLink,
+  onDelete,
 }: {
   document: Document;
   onLink: () => void;
+  onDelete: () => void;
 }) {
   const [isLinking, setIsLinking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [totalVersions, setTotalVersions] = useState(0);
   const [versionsLoading, setVersionsLoading] = useState(true);
 
@@ -267,6 +291,19 @@ function LibraryDocumentCard({
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this document? This will remove it from all jobs.')) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await onDelete();
+      setIsMenuOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="rounded-md border border-(--surface-border) bg-(--surface-dimmed) p-3">
       <div className="flex items-start justify-between">
@@ -293,13 +330,36 @@ function LibraryDocumentCard({
             )}
           </p>
         </div>
-        <button
-          onClick={handleLink}
-          disabled={isLinking}
-          className="ml-2 inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isLinking ? 'Linking...' : 'Link to Job'}
-        </button>
+        <div className="ml-2 flex gap-2">
+          <button
+            onClick={handleLink}
+            disabled={isLinking}
+            className="inline-flex rounded-md border border-(--action-border) px-3 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLinking ? 'Linking...' : 'Link to Job'}
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="inline-flex rounded-md border border-(--action-border) px-2 py-1.5 text-xs font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+              aria-haspopup="true"
+              aria-expanded={isMenuOpen}
+            >
+              ⋮
+            </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 z-50 mt-1 w-32 rounded-md border border-(--surface-border) bg-(--surface) shadow-md">
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="block w-full px-3 py-2 text-left text-xs font-semibold text-(--danger-text) hover:bg-(--surface-divider) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

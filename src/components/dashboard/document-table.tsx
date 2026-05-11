@@ -225,8 +225,12 @@ export default function DocumentTable() {
   const [renameTitle, setRenameTitle] = useState('');
   const [renameBusy, setRenameBusy] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [deleteRow, setDeleteRow] = useState<ListRow | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const dupDialogTitleId = useId();
   const renDialogTitleId = useId();
+  const delDialogTitleId = useId();
   const loadAbortControllerRef = useRef<AbortController | null>(null);
 
   const loadDocuments = useCallback(
@@ -503,6 +507,48 @@ export default function DocumentTable() {
       );
     } finally {
       setRenameBusy(false);
+    }
+  }
+
+  function openDeleteDialog(row: ListRow) {
+    setDeleteError(null);
+    setDeleteRow(row);
+  }
+
+  function closeDeleteDialog() {
+    setDeleteRow(null);
+    setDeleteError(null);
+    setDeleteBusy(false);
+  }
+
+  async function submitDelete() {
+    if (!deleteRow) return;
+
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(deleteRow.id)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          typeof body?.error === 'string'
+            ? body.error
+            : 'Could not delete document.';
+        throw new Error(message);
+      }
+      closeDeleteDialog();
+      await runLoadDocuments(true);
+    } catch (err: unknown) {
+      setDeleteError(
+        err instanceof Error ? err.message : 'Could not delete document.',
+      );
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -897,6 +943,7 @@ export default function DocumentTable() {
               tags={doc.tags}
               onDuplicate={() => openDuplicateDialog(doc)}
               onRename={() => openRenameDialog(doc)}
+              onDelete={() => openDeleteDialog(doc)}
             />
           ))}
         </ul>
@@ -1048,6 +1095,61 @@ export default function DocumentTable() {
               >
                 {renameBusy ? 'Saving…' : 'Save'}
               </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {deleteRow ? (
+        <div className="fixed inset-0 z-[250] grid place-items-center p-4">
+          <button
+            type="button"
+            onClick={closeDeleteDialog}
+            aria-label="Close delete dialog"
+            className="absolute inset-0 bg-black/55"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={delDialogTitleId}
+            className="relative z-10 w-96 overflow-hidden rounded-lg border border-(--surface-divider) bg-(--background) shadow-xl"
+          >
+            <div className="p-6">
+              <h2
+                id={delDialogTitleId}
+                className="text-lg font-semibold text-(--foreground)"
+              >
+                Delete document?
+              </h2>
+              <p className="mt-3 text-sm text-(--text-muted)">
+                Are you sure you want to delete <span className="font-medium">{deleteRow.documentTitle}</span>? This will remove it from all jobs and cannot be undone.
+              </p>
+              {deleteError ? (
+                <p
+                  role="alert"
+                  className="mt-3 text-sm font-medium text-(--danger-text)"
+                >
+                  {deleteError}
+                </p>
+              ) : null}
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeDeleteDialog}
+                  disabled={deleteBusy}
+                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitDelete()}
+                  disabled={deleteBusy}
+                  className="rounded-md bg-(--danger-bg) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-(--background) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {deleteBusy ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
           </section>
         </div>

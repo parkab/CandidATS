@@ -333,46 +333,100 @@ async function handleGet(request: NextRequest) {
   const jobId = searchParams.get('jobId');
   const library = searchParams.get('library') === 'true';
 
-  const whereClause: {
-    user_id: string;
-    job_id?: string;
-  } = {
-    user_id: session.userId,
-  };
-
   if (jobId) {
+    // Verify job exists and belongs to user
     const job = await verifyJobOwnership(jobId, session.userId);
     if (!job) {
       throw notFoundError('Job');
     }
 
-    whereClause.job_id = jobId;
-  } else if (!library) {
-    throw validationError('Either jobId or library=true query parameter is required');
-  }
+    try {
+      // Query documents linked via job_id (generated documents)
+      const documentsViaJobId = await prisma.document.findMany({
+        where: {
+          user_id: session.userId,
+          job_id: jobId,
+        },
+      });
 
-  try {
-    const documents = await prisma.document.findMany({
-      where: whereClause,
-      orderBy: {
-        created_at: 'desc',
-      },
-    });
+      // Query documents linked via DocumentJob junction table (uploaded documents)
+      const documentJobLinks = await prisma.documentJob.findMany({
+        where: { jobId },
+        select: { documentId: true },
+      });
 
-    const documentsWithStorage = await Promise.all(
-      documents.map((document) =>
-        toApiDocumentWithOptions(document, { includeSignedUrl: false }),
-      ),
-    );
+      const documentIdsFromJunction = documentJobLinks.map((link) => link.documentId);
 
-    logger.info('Documents retrieved successfully', { userId: session.userId, count: documents.length });
+      const documentsViaJunction = await prisma.document.findMany({
+        where: {
+          user_id: session.userId,
+          id: { in: documentIdsFromJunction },
+        },
+      });
 
-    return NextResponse.json({ documents: documentsWithStorage });
-  } catch (routeError) {
-    if (routeError instanceof Error && 'statusCode' in routeError) {
-      throw routeError;
+      // Combine and deduplicate
+      const allDocumentIds = new Set<string>();
+      const documentMap = new Map<string, typeof documentsViaJobId[0]>();
+
+      for (const doc of [...documentsViaJobId, ...documentsViaJunction]) {
+        if (!allDocumentIds.has(doc.id)) {
+          allDocumentIds.add(doc.id);
+          documentMap.set(doc.id, doc);
+        }
+      }
+
+      const documents = Array.from(documentMap.values());
+
+      const documentsWithStorage = await Promise.all(
+        documents.map((document) =>
+          toApiDocumentWithOptions(document, { includeSignedUrl: false }),
+        ),
+      );
+
+      logger.info('Documents retrieved successfully for job', { 
+        userId: session.userId, 
+        jobId, 
+        count: documents.length 
+      });
+
+      return NextResponse.json({ documents: documentsWithStorage });
+    } catch (routeError) {
+      if (routeError instanceof Error && 'statusCode' in routeError) {
+        throw routeError;
+      }
+      throw databaseError('Failed to fetch documents for job', { error: String(routeError) });
     }
-    throw databaseError('Failed to fetch documents', { error: String(routeError) });
+  } else if (library) {
+    try {
+      // Get documents not linked to any job via primary job_id field
+      // These can be linked to multiple jobs via the DocumentJob junction table
+      const documents = await prisma.document.findMany({
+        where: {
+          user_id: session.userId,
+          job_id: null, // Only uploaded/unlinked documents (no primary job)
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+      });
+
+      const documentsWithStorage = await Promise.all(
+        documents.map((document) =>
+          toApiDocumentWithOptions(document, { includeSignedUrl: false }),
+        ),
+      );
+
+      logger.info('Library documents retrieved successfully', { userId: session.userId, count: documents.length });
+
+      return NextResponse.json({ documents: documentsWithStorage });
+    } catch (routeError) {
+      if (routeError instanceof Error && 'statusCode' in routeError) {
+        throw routeError;
+      }
+      throw databaseError('Failed to fetch library documents', { error: String(routeError) });
+    }
+  } else {
+    throw validationError('Either jobId or library=true query parameter is required');
   }
 }
 

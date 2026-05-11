@@ -338,6 +338,14 @@ export async function PATCH(
         if (!job) {
           return NextResponse.json({ error: 'Job not found' }, { status: 404 });
         }
+        // Prevent updating jobId for uploaded documents (those without existing job_id)
+        // Uploaded documents should use the /link and /unlink endpoints
+        if (!existingDocument.job_id) {
+          return NextResponse.json(
+            { error: 'Cannot update jobId for uploaded documents. Use the /link endpoint instead.' },
+            { status: 400 },
+          );
+        }
       }
 
       if (!supabaseAdmin) {
@@ -418,6 +426,14 @@ export async function PATCH(
       const job = await verifyJobOwnership(body.jobId, session.userId);
       if (!job) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
+      // Prevent updating jobId for uploaded documents (those without existing job_id)
+      // Uploaded documents should use the /link and /unlink endpoints
+      if (!existingDocument.job_id) {
+        return NextResponse.json(
+          { error: 'Cannot update jobId for uploaded documents. Use the /link endpoint instead.' },
+          { status: 400 },
+        );
       }
     }
 

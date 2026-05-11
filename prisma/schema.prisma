@@ -51,6 +51,7 @@ model Job {
   archived                Boolean                @default(false)
   interview_prep_notes    String?
   Document                Document[]
+  documentLinks           DocumentJob[]
   FollowUpTask            FollowUpTask[]
   Interview               Interview[]
   User                    User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -182,6 +183,7 @@ model Document {
   tags            String[]
   Job             Job?              @relation(fields: [job_id], references: [id], onDelete: Cascade)
   User            User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  linkedJobs      DocumentJob[]
   DocumentVersion DocumentVersion[]
 }
 
@@ -206,6 +208,20 @@ model DocumentVersion {
 
   @@unique([documentId, versionNumber])
   @@index([documentId])
+}
+
+/// Junction table for tracking one-to-many document-to-job links for uploaded documents
+model DocumentJob {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  jobId      String   @map("job_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  Document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  Job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, jobId])
+  @@index([documentId])
+  @@index([jobId])
 }
 
 enum job_activity_type {
