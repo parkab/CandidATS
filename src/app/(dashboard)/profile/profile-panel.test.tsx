@@ -40,7 +40,7 @@ describe('ProfilePanel', () => {
     global.fetch = originalFetch;
   });
 
-  it('renders profile completion details from initial profile data', () => {
+  it('renders profile details from initial profile data', () => {
     render(
       <ProfilePanel
         initialProfile={initialProfile}
@@ -51,19 +51,15 @@ describe('ProfilePanel', () => {
       />,
     );
 
-    expect(screen.getByText('18% complete')).toBeInTheDocument();
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
+    expect(screen.getByText('jane@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Professional Details')).toBeInTheDocument();
     expect(
-      screen.getByText('2 of 11 profile fields complete'),
+      screen.getByRole('button', { name: 'Edit profile' }),
     ).toBeInTheDocument();
-
-    const progress = screen.getByRole('progressbar', {
-      name: 'Profile completion',
-    });
-
-    expect(progress).toHaveAttribute('aria-valuenow', '18');
   });
 
-  it('updates profile completion immediately after successful save', async () => {
+  it('updates profile details immediately after successful save', async () => {
     const mockFetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -104,12 +100,10 @@ describe('ProfilePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
-      expect(screen.getByText('36% complete')).toBeInTheDocument();
+      expect(screen.getByText('(555) 123-4567')).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText('4 of 11 profile fields complete'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Boston, MA')).toBeInTheDocument();
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profile',

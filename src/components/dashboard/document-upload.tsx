@@ -6,15 +6,18 @@ type DocumentUploadProps = {
   onUploadSuccess?: () => void;
 };
 
-export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
+export default function DocumentUpload({
+  onUploadSuccess,
+}: DocumentUploadProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newTag, setNewTag] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     type: 'other' as 'resume' | 'cover_letter' | 'other',
     status: 'ready' as 'draft' | 'ready' | 'archived',
-    tags: '' as string,
+    tags: [] as string[],
   });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -30,6 +33,25 @@ export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps)
     }
   };
 
+  function addTag() {
+    const tag = newTag.trim();
+    if (!tag) return;
+    if (!formData.tags.includes(tag)) {
+      setFormData((prev) => ({
+        ...prev,
+        tags: [...prev.tags, tag],
+      }));
+    }
+    setNewTag('');
+  }
+
+  function handleTagKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addTag();
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
@@ -42,13 +64,16 @@ export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps)
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title.trim() || selectedFile.name);
+      formDataToSend.append(
+        'title',
+        formData.title.trim() || selectedFile.name,
+      );
       formDataToSend.append('type', formData.type);
       formDataToSend.append('status', formData.status);
       formDataToSend.append('file', selectedFile);
 
-      if (formData.tags.trim()) {
-        formDataToSend.append('tags', formData.tags);
+      if (formData.tags.length > 0) {
+        formDataToSend.append('tags', JSON.stringify(formData.tags));
       }
 
       const response = await fetch('/api/documents', {
@@ -58,9 +83,7 @@ export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || 'Failed to upload document',
-        );
+        throw new Error(errorData.error || 'Failed to upload document');
       }
 
       setIsOpen(false);
@@ -68,9 +91,10 @@ export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps)
         title: '',
         type: 'other',
         status: 'ready',
-        tags: '',
+        tags: [],
       });
       setSelectedFile(null);
+      setNewTag('');
       onUploadSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -116,7 +140,9 @@ export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps)
             <input
               ref={fileInputRef}
               type="file"
-              onChange={(e) => handleFileSelect(e.currentTarget.files?.[0] ?? null)}
+              onChange={(e) =>
+                handleFileSelect(e.currentTarget.files?.[0] ?? null)
+              }
               accept=".pdf,.docx,.txt"
               className="hidden"
             />
@@ -136,78 +162,117 @@ export default function DocumentUpload({ onUploadSuccess }: DocumentUploadProps)
         </div>
 
         {/* Title */}
-        <div className="grid gap-1.5">
-          <label className="text-sm font-semibold text-(--foreground)">
-            Title
-          </label>
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, title: e.target.value }))
-            }
-            placeholder="Document title"
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-(--foreground) placeholder:text-(--text-muted) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
-          />
-        </div>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-(--text-muted)">Title</span>
+          <div className="profile-input-wrap">
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, title: e.target.value }))
+              }
+              placeholder="Document title"
+              className="profile-input"
+            />
+          </div>
+        </label>
 
         {/* Type */}
-        <div className="grid gap-1.5">
-          <label className="text-sm font-semibold text-(--foreground)">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-(--text-muted)">
             Document Type
-          </label>
-          <select
-            value={formData.type}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                type: e.target.value as 'resume' | 'cover_letter' | 'other',
-              }))
-            }
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
-          >
-            <option value="resume">Resume</option>
-            <option value="cover_letter">Cover Letter</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
+          </span>
+          <div className="profile-input-wrap">
+            <select
+              value={formData.type}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  type: e.target.value as 'resume' | 'cover_letter' | 'other',
+                }))
+              }
+              className="profile-input"
+            >
+              <option value="resume">Resume</option>
+              <option value="cover_letter">Cover Letter</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </label>
 
         {/* Status */}
-        <div className="grid gap-1.5">
-          <label className="text-sm font-semibold text-(--foreground)">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-(--text-muted)">
             Status
-          </label>
-          <select
-            value={formData.status}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                status: e.target.value as 'draft' | 'ready' | 'archived',
-              }))
-            }
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-(--foreground) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
-          >
-            <option value="draft">Draft</option>
-            <option value="ready">Ready</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
+          </span>
+          <div className="profile-input-wrap">
+            <select
+              value={formData.status}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  status: e.target.value as 'draft' | 'ready' | 'archived',
+                }))
+              }
+              className="profile-input"
+            >
+              <option value="draft">Draft</option>
+              <option value="ready">Ready</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </label>
 
         {/* Tags */}
-        <div className="grid gap-1.5">
-          <label className="text-sm font-semibold text-(--foreground)">
-            Tags (comma-separated)
-          </label>
-          <input
-            type="text"
-            value={formData.tags}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, tags: e.target.value }))
-            }
-            placeholder="e.g., tech, senior, 2024"
-            className="rounded-md border border-(--surface-border) bg-(--background) px-3 py-2 text-(--foreground) placeholder:text-(--text-muted) focus:outline-none focus:ring-2 focus:ring-(--foreground)"
-          />
-        </div>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-(--text-muted)">Tags</span>
+          <div className="grid gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+              <div className="profile-input-wrap flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  className="profile-input"
+                  placeholder="e.g. interview"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addTag}
+                className="flex-none rounded-md border border-(--action-border) px-3 py-2 text-sm font-semibold transition hover:bg-(--action-bg)"
+              >
+                Add
+              </button>
+            </div>
+
+            <div className="max-h-24 overflow-y-auto pr-1">
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex max-w-full items-center gap-2 rounded-full bg-(--surface) px-3 py-1 text-xs"
+                  >
+                    <span className="break-all">{tag}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          tags: prev.tags.filter((t) => t !== tag),
+                        }))
+                      }
+                      className="ml-1 text-(--danger-text)"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </label>
 
         {/* Error */}
         {error && <p className="text-sm text-(--danger-text)">{error}</p>}
