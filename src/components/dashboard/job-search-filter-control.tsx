@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { ApplicationStatus } from '@/lib/jobs/status';
@@ -82,6 +82,7 @@ export default function JobSearchFilterControl() {
   const [selectedStage, setSelectedStage] = useState(stage);
   const [selectedDeadlineState, setSelectedDeadlineState] =
     useState(deadlineState);
+  const previousSearchQueryRef = useRef(query);
   const [isPriorityOnly, setIsPriorityOnly] = useState(priorityOnly);
   const [selectedEvents, setSelectedEvents] = useState(eventsFilter);
   const [selectedSortValue, setSelectedSortValue] = useState(selectedSort);
@@ -92,7 +93,7 @@ export default function JobSearchFilterControl() {
     ? getMixedStageColor(selectedStage as ApplicationStatus)
     : selectedStage === 'Archived'
       ? `color-mix(in oklab, #ffa647 75%, var(--foreground))`
-    : 'var(--foreground)';
+      : 'var(--foreground)';
 
   useEffect(() => {
     setSearchQuery(query);
@@ -120,6 +121,28 @@ export default function JobSearchFilterControl() {
     },
     [router, searchParams],
   );
+
+  // Auto-apply filters when search query is cleared
+  useEffect(() => {
+    if (
+      previousSearchQueryRef.current !== '' &&
+      searchQuery === '' &&
+      query !== ''
+    ) {
+      updateSearchParams({
+        q: null,
+        stage: selectedStage || null,
+        deadlineState: selectedDeadlineState || null,
+      });
+    }
+    previousSearchQueryRef.current = searchQuery;
+  }, [
+    searchQuery,
+    updateSearchParams,
+    selectedStage,
+    selectedDeadlineState,
+    query,
+  ]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
