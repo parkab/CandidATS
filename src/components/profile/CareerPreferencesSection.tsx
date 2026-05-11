@@ -3,6 +3,7 @@
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { WORK_MODE_VALUES } from '@/lib/profile/careerPreferences';
 import type { WorkMode } from '@/lib/profile/careerPreferences';
 
@@ -42,6 +43,7 @@ export default function CareerPreferencesSection({
   initialData,
   onCompletionChange,
 }: CareerPreferencesSectionProps) {
+  const router = useRouter();
   const [data, setData] = useState<CareerPreferencesData | null>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>(toFormState(initialData));
@@ -111,6 +113,7 @@ export default function CareerPreferencesSection({
       setData(saved);
       setToast('Preferences saved.');
       closeModal();
+      router.refresh();
     } catch {
       setErrors({ submit: 'Network issue. Please try again.' });
     } finally {
@@ -148,48 +151,48 @@ export default function CareerPreferencesSection({
           No preferences set yet. Edit to add your career preferences.
         </p>
       ) : (
-        <dl className="grid gap-3">
+        <div className="grid gap-0">
           {data?.targetRoles ? (
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
-                Target roles
-              </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">
+            <div className="-mx-1 grid gap-1 rounded-md border-b border-(--surface-divider) px-1 py-3 transition-colors duration-150 hover:bg-(--action-bg) md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
+              <p className="text-sm font-medium text-(--foreground)">
+                Target Roles
+              </p>
+              <p className="text-sm leading-relaxed text-(--text-muted)">
                 {data.targetRoles}
-              </dd>
+              </p>
             </div>
           ) : null}
           {data?.targetLocations ? (
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
-                Target locations
-              </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">
+            <div className="-mx-1 grid gap-1 rounded-md border-b border-(--surface-divider) px-1 py-3 transition-colors duration-150 hover:bg-(--action-bg) md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
+              <p className="text-sm font-medium text-(--foreground)">
+                Target Locations
+              </p>
+              <p className="text-sm leading-relaxed text-(--text-muted)">
                 {data.targetLocations}
-              </dd>
+              </p>
             </div>
           ) : null}
           {data?.workMode ? (
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
-                Work mode
-              </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">
+            <div className="-mx-1 grid gap-1 rounded-md border-b border-(--surface-divider) px-1 py-3 transition-colors duration-150 hover:bg-(--action-bg) md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
+              <p className="text-sm font-medium text-(--foreground)">
+                Work Mode
+              </p>
+              <p className="text-sm leading-relaxed text-(--text-muted)">
                 {data.workMode}
-              </dd>
+              </p>
             </div>
           ) : null}
           {data?.salaryPreference ? (
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-(--text-muted)">
-                Salary preference
-              </dt>
-              <dd className="mt-0.5 text-sm text-(--foreground)">
+            <div className="-mx-1 grid gap-1 rounded-md border-b border-(--surface-divider) px-1 py-3 transition-colors duration-150 last:border-b-0 hover:bg-(--action-bg) md:grid-cols-[10rem_1fr] md:items-start md:gap-4">
+              <p className="text-sm font-medium text-(--foreground)">
+                Salary Preference
+              </p>
+              <p className="text-sm leading-relaxed text-(--text-muted)">
                 {data.salaryPreference}
-              </dd>
+              </p>
             </div>
           ) : null}
-        </dl>
+        </div>
       )}
 
       {/* Edit modal */}
@@ -225,7 +228,7 @@ export default function CareerPreferencesSection({
                   type="button"
                   onClick={closeModal}
                   autoFocus
-                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                  className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white"
                 >
                   Cancel
                 </button>

@@ -3,6 +3,7 @@
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type ExperienceEntry = {
   id: string;
@@ -137,6 +138,7 @@ export default function ExperienceSection({
   initialExperiences,
   onCompletionChange,
 }: ExperienceSectionProps) {
+  const router = useRouter();
   const [experiences, setExperiences] =
     useState<ExperienceEntry[]>(initialExperiences);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -266,6 +268,7 @@ export default function ExperienceSection({
       }
 
       closeModal();
+      router.refresh();
     } catch {
       setErrors({ submit: 'Network issue. Please try again.' });
     } finally {
@@ -288,6 +291,7 @@ export default function ExperienceSection({
       setExperiences((prev) => prev.filter((e) => e.id !== id));
       setDeleteConfirmId(null);
       setToast('Experience removed.');
+      router.refresh();
     } catch {
       setToast('Network issue. Please try again.');
     } finally {
@@ -371,7 +375,6 @@ export default function ExperienceSection({
                   </p>
                   <p className="text-sm text-(--text-muted)">
                     {entry.organization}
-                    {entry.role ? ` · ${entry.role}` : ''}
                   </p>
                   <p className="text-xs text-(--text-muted)">
                     {toDateInputValue(entry.startDate)}
@@ -383,6 +386,22 @@ export default function ExperienceSection({
                   <span className="mt-1 inline-block w-fit rounded-full border border-(--surface-border) px-2 py-0.5 text-xs font-medium text-(--text-muted)">
                     {entry.type === 'employment' ? 'Employment' : 'Project'}
                   </span>
+                  {entry.accomplishments ? (
+                    <ul className="mt-2 space-y-1">
+                      {entry.accomplishments
+                        .split('\n')
+                        .filter((acc) => acc.trim())
+                        .map((acc, idx) => (
+                          <li
+                            key={idx}
+                            className="text-xs text-(--text-muted) flex gap-2"
+                          >
+                            <span className="shrink-0">•</span>
+                            <span>{acc.trim()}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
@@ -461,7 +480,7 @@ export default function ExperienceSection({
                   type="button"
                   onClick={closeModal}
                   autoFocus
-                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                  className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white"
                 >
                   Cancel
                 </button>
@@ -643,7 +662,7 @@ export default function ExperienceSection({
                 type="button"
                 onClick={() => handleDelete(deleteConfirmId)}
                 disabled={isDeleting}
-                className="rounded-md bg-(--danger-text) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-50"
+                className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white disabled:opacity-50"
               >
                 {isDeleting ? 'Removing...' : 'Remove'}
               </button>

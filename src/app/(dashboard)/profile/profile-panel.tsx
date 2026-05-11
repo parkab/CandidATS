@@ -1,7 +1,7 @@
 'use client';
 
 import type { ChangeEvent, FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import { calculateProfileBaselineCompletion } from '@/lib/profile/profile';
@@ -399,46 +399,16 @@ export default function ProfilePanel({
   }
 
   return (
-    <div className="mx-auto mt-10 grid w-full max-w-4xl gap-6">
+    <Fragment>
       <article className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="text-left">
-            <div className="grid gap-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-(--foreground)">
-                  Profile completion
-                </p>
-                <p className="text-sm font-semibold text-(--foreground)">
-                  {baselineCompletion.percentage}% complete
-                </p>
-              </div>
-              <div
-                role="progressbar"
-                aria-label="Profile completion"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={baselineCompletion.percentage}
-                className="h-2 overflow-hidden rounded-full bg-(--action-bg)"
-              >
-                <div
-                  className="h-full rounded-full bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)] transition-[width] duration-500"
-                  style={{ width: `${baselineCompletion.percentage}%` }}
-                />
-              </div>
-              <p className="text-xs font-medium text-(--text-muted)">
-                {baselineCompletion.completed} of {baselineCompletion.total}{' '}
-                profile fields complete
-              </p>
-            </div>
-
-            <div className="mt-4">
-              <h2 className="text-2xl font-semibold tracking-tight text-(--foreground)">
-                {fullName}
-              </h2>
-              <p className="mt-1 text-sm font-medium text-(--foreground)">
-                {profile.email}
-              </p>
-            </div>
+            <h2 className="text-2xl font-semibold tracking-tight text-(--foreground)">
+              {fullName}
+            </h2>
+            <p className="mt-1 text-sm font-medium text-(--foreground)">
+              {profile.email}
+            </p>
           </div>
 
           <button
@@ -514,7 +484,7 @@ export default function ProfilePanel({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                  className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white"
                 >
                   Cancel
                 </button>
@@ -660,6 +630,6 @@ export default function ProfilePanel({
           </p>
         </div>
       ) : null}
-    </div>
+    </Fragment>
   );
 }
