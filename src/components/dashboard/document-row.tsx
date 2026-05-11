@@ -26,13 +26,13 @@ type DocumentRowProps = {
 
 const STATUS_STYLES: Record<DocumentRowProps['status'], string> = {
   Ready:
-    'border-emerald-400/25 bg-emerald-500/10 text-emerald-200/95 ring-1 ring-inset ring-emerald-400/15',
+    'border-emerald-400/25 bg-emerald-500/10 text-(--foreground) ring-1 ring-inset ring-emerald-400/15',
   'Needs review':
     'border-amber-400/25 bg-amber-500/10 text-amber-100/95 ring-1 ring-inset ring-amber-400/15',
   Draft:
     'border-[--surface-border] bg-[--surface] text-[--text-muted] ring-1 ring-inset ring-[--surface-divider]',
   Archived:
-    'border-zinc-500/25 bg-zinc-500/10 text-zinc-200/90 ring-1 ring-inset ring-zinc-400/10',
+    'border-[color-mix(in_oklab,var(--foreground)_22%,transparent)] bg-[color-mix(in_oklab,var(--foreground)_8%,transparent)] text-[color-mix(in_oklab,var(--foreground)_85%,var(--text-muted)_15%)] ring-1 ring-inset ring-[color-mix(in_oklab,var(--foreground)_15%,transparent)]',
 };
 
 const MENU_MIN_WIDTH_PX = 208;
@@ -128,7 +128,9 @@ export default function DocumentRow({
   const pendingInitialFocusRef = useRef<'first' | 'last'>('first');
 
   const documentHref = `/documents/${encodeURIComponent(documentId)}/view`;
-  const jobHref = jobId ? `/dashboard?openJob=${encodeURIComponent(jobId)}&tab=documents` : null;
+  const jobHref = jobId
+    ? `/dashboard?openJob=${encodeURIComponent(jobId)}&tab=documents`
+    : null;
 
   const computeMenuLayout = useCallback((menuEl: HTMLDivElement | null) => {
     const btn = buttonRef.current;
@@ -161,7 +163,11 @@ export default function DocumentRow({
       top = rect.top - MENU_GAP_PX - menuHeight;
     }
 
-    top = clamp(top, VIEW_MARGIN, window.innerHeight - menuHeight - VIEW_MARGIN);
+    top = clamp(
+      top,
+      VIEW_MARGIN,
+      window.innerHeight - menuHeight - VIEW_MARGIN,
+    );
 
     return { top, left, minWidth };
   }, []);
@@ -186,7 +192,8 @@ export default function DocumentRow({
       return;
     }
 
-    const index = ((target % menuItems.length) + menuItems.length) % menuItems.length;
+    const index =
+      ((target % menuItems.length) + menuItems.length) % menuItems.length;
     menuItems[index]?.focus();
   }, []);
 
@@ -310,7 +317,8 @@ export default function DocumentRow({
 
           if (event.key === 'ArrowUp') {
             event.preventDefault();
-            const nextIndex = currentIndex < 0 ? menuItems.length - 1 : currentIndex - 1;
+            const nextIndex =
+              currentIndex < 0 ? menuItems.length - 1 : currentIndex - 1;
             focusMenuItem(nextIndex);
             return;
           }
@@ -393,8 +401,11 @@ export default function DocumentRow({
 
   return (
     <li>
-      <div className="group/item relative rounded-2xl border border-[--surface-border] bg-[--surface] p-4 shadow-[0_1px_0_color-mix(in_oklab,var(--foreground)_6%,transparent)] transition duration-200 hover:border-[--action-border] hover:bg-[--surface-hover] sm:p-5">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--foreground)_18%,transparent)] to-transparent opacity-0 transition group-hover/item:opacity-100" />
+      <div className="relative overflow-hidden rounded-2xl border border-(--surface-border) bg-(--surface) p-6 shadow-sm">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[linear-gradient(to_right,#ff75c3_0%,#ffa647_20%,#ffe83f_40%,#9fff5b_60%,#70e2ff_80%,#cd93ff_100%)]"
+        />
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="min-w-0 flex-1 space-y-1.5">
@@ -402,24 +413,28 @@ export default function DocumentRow({
               href={documentHref}
               className="block font-semibold leading-snug text-[--foreground] underline-offset-2 transition hover:underline"
             >
-              <span className="line-clamp-2 sm:line-clamp-1">{documentTitle}</span>
+              <span className="line-clamp-2 sm:line-clamp-1">
+                {documentTitle}
+              </span>
             </Link>
-            <p className="text-sm leading-relaxed text-[--text-muted]">{jobLine}</p>
+            <p className="text-sm leading-relaxed text-(--text-muted)">
+              {jobLine}
+            </p>
             <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <span className="inline-flex rounded-md border border-[--surface-border] bg-[color-mix(in_oklab,var(--foreground)_5%,var(--background))] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[--text-muted]">
+              <span className="inline-flex max-w-[10rem] truncate rounded-full border border-[--surface-border] px-2 py-0.5 text-xs font-semibold text-[--foreground]">
                 {docTypeLabel}
               </span>
               {tags.slice(0, MAX_TAG_CHIPS).map((tag, index) => (
                 <span
                   key={`${tag}-${index}`}
-                  className="inline-flex max-w-[10rem] truncate rounded-md border border-[--surface-border] px-2 py-0.5 text-[0.65rem] text-[--text-muted]"
+                  className="inline-block w-fit rounded-full border border-(--surface-border) px-2 py-0.5 text-xs font-medium text-(--text-muted)"
                   title={tag}
                 >
                   {tag}
                 </span>
               ))}
               {tags.length > MAX_TAG_CHIPS ? (
-                <span className="text-[0.65rem] text-[--text-muted]">
+                <span className="text-xs text-(--text-muted)">
                   +{tags.length - MAX_TAG_CHIPS} more
                 </span>
               ) : null}
@@ -427,11 +442,11 @@ export default function DocumentRow({
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-3 sm:gap-4">
-            <span className="text-xs tabular-nums text-[--text-muted] sm:text-[0.7rem]">
+            <span className="text-xs text-(--text-muted) -ml-2 sm:ml-0">
               {lastUpdated}
             </span>
             <span
-              className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase ${STATUS_STYLES[status]}`}
+              className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}
             >
               {status}
             </span>
