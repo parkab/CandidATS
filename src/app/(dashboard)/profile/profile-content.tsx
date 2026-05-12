@@ -4,10 +4,7 @@ import { useMemo, useState } from 'react';
 import GRADIENT_HEADING_CLASS from '@/components/dashboard/gradient';
 import ProfilePanel from './profile-panel';
 import { ProfileCompletionBar } from './profile-completion-bar';
-import {
-  ProfileSectionNav,
-  type ProfileSection,
-} from './profile-section-nav';
+import { ProfileSectionNav, type ProfileSection } from './profile-section-nav';
 import { calculateProfileBaselineCompletion } from '@/lib/profile/profile';
 import ExperienceSection from '@/components/profile/ExperienceSection';
 import type { ExperienceEntry } from '@/components/profile/ExperienceSection';
@@ -117,9 +114,9 @@ export default function ProfileContent({
           <ProfileCompletionBar completionData={baselineCompletion} />
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[250px_1fr]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[250px_1fr]">
           {/* Sidebar Navigation */}
-          <div className="sticky top-20 h-fit">
+          <div className="lg:sticky lg:top-20 lg:h-fit">
             <ProfileSectionNav
               activeSection={activeSection}
               onSelectSection={setActiveSection}
@@ -129,7 +126,10 @@ export default function ProfileContent({
           {/* Main Content Area */}
           <div>
             {activeSection === 'profile' && (
-              <ProfilePanel initialProfile={initialProfile} {...profilePanelProps} />
+              <ProfilePanel
+                initialProfile={initialProfile}
+                {...profilePanelProps}
+              />
             )}
 
             {activeSection === 'experience' && (
