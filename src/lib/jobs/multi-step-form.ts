@@ -49,6 +49,7 @@ export type JobDocumentItemDraft = {
   objectUrl?: string;
   storagePath?: string;
   isAiGenerated?: boolean;
+  versionNumber: number;
 };
 
 export type JobDocumentsDraft = {

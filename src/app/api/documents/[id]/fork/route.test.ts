@@ -14,6 +14,7 @@ const mockVersionCreate = jest.fn();
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     document: { findFirst: jest.fn() },
+    documentVersion: { findFirst: jest.fn() },
     $transaction: jest.fn().mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({ document: { create: mockDocCreate }, documentVersion: { create: mockVersionCreate } }),
     ),
@@ -29,6 +30,7 @@ jest.mock('@/lib/storage/pdf', () => ({ uploadPdf: jest.fn() }));
 
 const mockedGetSession = jest.mocked(getSession);
 const mockedDocFindFirst = jest.mocked(prisma.document.findFirst);
+const mockedVersionFindFirst = jest.mocked(prisma.documentVersion.findFirst);
 const mockedCompile = jest.mocked(compileLatex);
 const mockedUpload = jest.mocked(uploadPdf);
 
@@ -65,6 +67,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockedGetSession.mockResolvedValue(SESSION);
   mockedDocFindFirst.mockResolvedValue(SOURCE_DOC as never);
+  mockedVersionFindFirst.mockResolvedValue(null);
   mockedCompile.mockResolvedValue(Buffer.from('%PDF fake'));
   mockedUpload.mockResolvedValue('user-1/resumes/new.pdf');
   mockDocCreate.mockResolvedValue({ id: 'doc-forked' });

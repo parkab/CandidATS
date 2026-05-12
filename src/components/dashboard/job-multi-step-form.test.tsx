@@ -213,6 +213,7 @@ describe('JobMultiStepForm', () => {
                 size: 2048,
                 mimeType: 'application/pdf',
                 objectUrl: 'blob:resume-preview',
+                versionNumber: 1,
               },
             ],
           },
