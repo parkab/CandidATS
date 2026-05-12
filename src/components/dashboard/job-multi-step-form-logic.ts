@@ -36,6 +36,7 @@ export function createDocumentDraftItem(): JobDocumentItemDraft {
     name: '',
     size: 0,
     mimeType: '',
+    versionNumber: 1,
   };
 }
 
@@ -60,6 +61,7 @@ export function normalizeDocumentDraft(
     mimeType: document.mimeType ?? '',
     objectUrl: document.objectUrl,
     storagePath: document.storagePath,
+    versionNumber: document.versionNumber ?? 1,
   };
 }
 

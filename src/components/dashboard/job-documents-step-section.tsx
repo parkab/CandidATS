@@ -559,6 +559,9 @@ export default function DocumentsStepSection({
                       >
                         {statusLabel}
                       </span>
+                      <span className="inline-flex items-center rounded-full border border-(--surface-border) bg-(--surface-dimmed) px-2 py-0.5 text-xs font-medium text-(--text-muted)">
+                        v{file.versionNumber}
+                      </span>
                     </div>
                     {file.date ? (
                       <p className="text-xs text-(--text-muted)">{file.date}</p>

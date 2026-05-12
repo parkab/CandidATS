@@ -54,6 +54,7 @@ type PersistedDocument = {
   status: 'draft' | 'ready' | 'archived';
   tags: string[];
   created_at: string;
+  versionNumber?: number;
   storage: {
     path: string;
     fileName: string;
@@ -188,6 +189,7 @@ export default function JobMultiStepForm({
       size: markdownFile.size,
       mimeType: markdownFile.type,
       objectUrl,
+      versionNumber: 1,
     };
 
     setDraft((previous) => ({
@@ -718,6 +720,7 @@ export default function JobMultiStepForm({
               objectUrl: document.storage?.signedUrl ?? fallbackObjectUrl,
               storagePath: document.storage?.path,
               isAiGenerated: !hasStoredFile,
+              versionNumber: document.versionNumber ?? 1,
             };
           },
         );

@@ -19,20 +19,32 @@ export async function GET(request: NextRequest) {
       orderBy: {
         created_at: 'desc',
       },
-      include: includeJob
-        ? {
-            Job: {
-              select: {
-                id: true,
-                title: true,
-                company_name: true,
+      include: {
+        DocumentVersion: {
+          orderBy: { versionNumber: 'desc' },
+          take: 1,
+          select: { versionNumber: true },
+        },
+        ...(includeJob
+          ? {
+              Job: {
+                select: {
+                  id: true,
+                  title: true,
+                  company_name: true,
+                },
               },
-            },
-          }
-        : undefined,
+            }
+          : {}),
+      },
     });
 
-    return NextResponse.json({ documents });
+    const documentsWithVersion = documents.map(({ DocumentVersion, ...rest }) => ({
+      ...rest,
+      versionNumber: DocumentVersion[0]?.versionNumber ?? 1,
+    }));
+
+    return NextResponse.json({ documents: documentsWithVersion });
   } catch (error) {
     console.error('Error fetching all documents:', error);
     const errorMessage =

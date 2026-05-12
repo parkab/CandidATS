@@ -336,6 +336,11 @@ function DocumentCard({
             >
               {getTypeLabel(document.type)}
             </span>
+            {!versionsLoading && (
+              <span className="inline-flex shrink-0 rounded-full border border-(--surface-border) bg-(--surface-dimmed) px-2 py-0.5 text-xs font-medium text-(--text-muted)">
+                v{totalVersions}
+              </span>
+            )}
           </div>
           <p className="text-xs text-(--text-muted)">
             {formatDate(document.created_at)}

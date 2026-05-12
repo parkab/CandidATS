@@ -91,6 +91,13 @@ export async function POST(
 
     const docType = documentTypeFromTemplate(templateName);
 
+    const sourceLatestVersion = await prisma.documentVersion.findFirst({
+      where: { documentId: sourceDocumentId },
+      orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
+    });
+    const nextVersionNumber = (sourceLatestVersion?.versionNumber ?? 0) + 1;
+
     let newDocument: { id: string };
     try {
       newDocument = await prisma.$transaction(async (tx) => {
@@ -109,7 +116,7 @@ export async function POST(
         await tx.documentVersion.create({
           data: {
             documentId: doc.id,
-            versionNumber: 1,
+            versionNumber: nextVersionNumber,
             templateName,
             structuredData: body.structuredData as Prisma.InputJsonValue,
             latexSource,
