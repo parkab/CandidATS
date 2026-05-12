@@ -377,16 +377,29 @@ async function handleGet(request: NextRequest) {
 
       const documents = Array.from(documentMap.values());
 
+      const versionRecords = await prisma.documentVersion.findMany({
+        where: { documentId: { in: documents.map((d) => d.id) } },
+        orderBy: { versionNumber: 'desc' },
+        select: { documentId: true, versionNumber: true },
+      });
+      const versionMap = new Map<string, number>();
+      for (const record of versionRecords) {
+        if (!versionMap.has(record.documentId)) {
+          versionMap.set(record.documentId, record.versionNumber);
+        }
+      }
+
       const documentsWithStorage = await Promise.all(
-        documents.map((document) =>
-          toApiDocumentWithOptions(document, { includeSignedUrl: false }),
-        ),
+        documents.map(async (document) => {
+          const base = await toApiDocumentWithOptions(document, { includeSignedUrl: false });
+          return { ...base, versionNumber: versionMap.get(document.id) ?? 1 };
+        }),
       );
 
-      logger.info('Documents retrieved successfully for job', { 
-        userId: session.userId, 
-        jobId, 
-        count: documents.length 
+      logger.info('Documents retrieved successfully for job', {
+        userId: session.userId,
+        jobId,
+        count: documents.length
       });
 
       return NextResponse.json({ documents: documentsWithStorage });
