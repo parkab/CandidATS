@@ -189,7 +189,7 @@ export default function DashboardMetrics({
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-(--text-muted)">
-              Events logged (last 7 days)
+              Event velocity (last 7 days)
             </span>
             <span className="text-right font-semibold text-(--foreground)">
               {productivity.sevenDayVelocity}
@@ -197,7 +197,7 @@ export default function DashboardMetrics({
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-(--text-muted)">
-              Events logged (last 30 days)
+              Event velocity (last 30 days)
             </span>
             <span className="text-right font-semibold text-(--foreground)">
               {productivity.thirtyDayVelocity}
