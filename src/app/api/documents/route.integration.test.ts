@@ -25,6 +25,9 @@ jest.mock('@/lib/prisma', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    documentJob: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -54,6 +57,7 @@ const mockedDocFindMany = jest.mocked(prisma.document.findMany);
 const mockedDocFindFirst = jest.mocked(prisma.document.findFirst);
 const mockedDocUpdate = jest.mocked(prisma.document.update);
 const mockedDocDelete = jest.mocked(prisma.document.delete);
+const mockedDocumentJobFindMany = jest.mocked(prisma.documentJob.findMany);
 
 type SessionResult = Awaited<ReturnType<typeof getSession>>;
 type JobFindFirstResult = Awaited<ReturnType<typeof prisma.job.findFirst>>;
@@ -93,6 +97,7 @@ describe('Documents API integration', () => {
     });
     storageStub.copy.mockResolvedValue({ data: {}, error: null });
     storageStub.remove.mockResolvedValue({ data: null, error: null });
+    mockedDocumentJobFindMany.mockResolvedValue([]);
   });
 
   it('creates a document (JSON) with multiple tags', async () => {

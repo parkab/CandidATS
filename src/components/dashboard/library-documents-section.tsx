@@ -74,6 +74,23 @@ export default function LibraryDocumentsSection({
     }
   }
 
+  async function deleteDocument(documentId: string) {
+    try {
+      const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document');
+      }
+
+      // Remove from library list
+      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete document');
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="grid gap-4">
@@ -129,7 +146,7 @@ export default function LibraryDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {resumes.map((doc) => (
-              <LibraryDocumentCard key={doc.id} document={doc} onLink={linkDocument} />
+              <LibraryDocumentCard key={doc.id} document={doc} onLink={() => linkDocument(doc.id)} onDelete={() => deleteDocument(doc.id)} />
             ))}
           </div>
         </div>
@@ -142,7 +159,7 @@ export default function LibraryDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {coverLetters.map((doc) => (
-              <LibraryDocumentCard key={doc.id} document={doc} onLink={linkDocument} />
+              <LibraryDocumentCard key={doc.id} document={doc} onLink={() => linkDocument(doc.id)} onDelete={() => deleteDocument(doc.id)} />
             ))}
           </div>
         </div>
@@ -155,7 +172,7 @@ export default function LibraryDocumentsSection({
           </h5>
           <div className="grid gap-2">
             {otherDocuments.map((doc) => (
-              <LibraryDocumentCard key={doc.id} document={doc} onLink={linkDocument} />
+              <LibraryDocumentCard key={doc.id} document={doc} onLink={() => linkDocument(doc.id)} onDelete={() => deleteDocument(doc.id)} />
             ))}
           </div>
         </div>
@@ -164,8 +181,10 @@ export default function LibraryDocumentsSection({
   );
 }
 
-function LibraryDocumentCard({ document, onLink }: { document: Document; onLink: (id: string) => void }) {
+function LibraryDocumentCard({ document, onLink, onDelete }: { document: Document; onLink: (id: string) => void; onDelete: (id: string) => void }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -199,6 +218,19 @@ function LibraryDocumentCard({ document, onLink }: { document: Document; onLink:
     }
 
     return 'bg-amber-100 text-amber-800';
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this document? This will remove it from all jobs.')) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await onDelete(document.id);
+      setIsMenuOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -235,6 +267,27 @@ function LibraryDocumentCard({ document, onLink }: { document: Document; onLink:
           >
             {isExpanded ? 'Collapse' : 'Expand'}
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-xs text-(--text-muted) hover:text-(--foreground)"
+              aria-haspopup="true"
+              aria-expanded={isMenuOpen}
+            >
+              ⋮
+            </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 z-50 mt-1 w-24 rounded-md border border-(--surface-border) bg-(--surface) shadow-md">
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="block w-full px-3 py-2 text-left text-xs font-semibold text-(--danger-text) hover:bg-(--surface-divider) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
