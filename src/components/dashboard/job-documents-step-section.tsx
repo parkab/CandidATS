@@ -803,11 +803,36 @@ export default function DocumentsStepSection({
                                   `/api/documents/${file.id}`,
                                 );
                                 if (res.ok) {
-                                  const doc = (await res.json()) as {
-                                    content?: string;
-                                    notes?: string;
+                                  const payload = (await res.json()) as {
+                                    document?: {
+                                      content?: string;
+                                      storage?: {
+                                        signedUrl?: string | null;
+                                        mimeType?: string;
+                                      } | null;
+                                    };
                                   };
-                                  setEditingResearchContent(doc.content || '');
+                                  const storage = payload.document?.storage;
+                                  let nextContent =
+                                    payload.document?.content || '';
+
+                                  if (storage?.signedUrl) {
+                                    try {
+                                      const storageRes = await fetch(
+                                        storage.signedUrl,
+                                      );
+                                      if (storageRes.ok) {
+                                        nextContent = await storageRes.text();
+                                      }
+                                    } catch (storageError) {
+                                      console.warn(
+                                        'Failed to load stored research file:',
+                                        storageError,
+                                      );
+                                    }
+                                  }
+
+                                  setEditingResearchContent(nextContent);
                                   setEditingResearchUserContext('');
                                 } else {
                                   setEditingResearchContent('');
