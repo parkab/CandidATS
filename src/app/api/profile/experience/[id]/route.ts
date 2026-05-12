@@ -1,44 +1,38 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { parseExperienceUpdatePayload } from '@/lib/profile/experience';
+import { withErrorHandler } from '@/app/api/error-handler';
+import { authError, validationError, notFoundError, databaseError, serviceError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
-export async function PATCH(
-  request: Request,
+async function handlePatch(
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const { id } = await context.params;
   if (!id) {
-    return NextResponse.json(
-      { error: 'Experience id is required' },
-      { status: 400 },
-    );
+    throw validationError('Experience id is required');
   }
 
   const body = await request.json().catch(() => null);
   const { payload, error: payloadError } = parseExperienceUpdatePayload(body);
 
   if (!payload || payloadError) {
-    return NextResponse.json(
-      { error: payloadError ?? 'Invalid request.' },
-      { status: 400 },
-    );
+    throw validationError('Invalid experience update payload', { error: payloadError });
   }
 
   try {
@@ -48,10 +42,7 @@ export async function PATCH(
     });
 
     if (updateResult.count === 0) {
-      return NextResponse.json(
-        { error: 'Experience not found or access denied' },
-        { status: 404 },
-      );
+      throw notFoundError('Experience');
     }
 
     const updated = await prisma.experience.findFirst({
@@ -59,48 +50,42 @@ export async function PATCH(
     });
 
     if (!updated) {
-      return NextResponse.json(
-        { error: 'Unable to process request.' },
-        { status: 500 },
-      );
+      throw databaseError('Failed to retrieve updated experience');
     }
+
+    logger.info('Experience updated successfully', { userId: data.user.id, experienceId: id });
 
     return NextResponse.json(updated, { status: 200 });
   } catch (routeError) {
-    console.error('Failed to update experience', routeError);
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 500 },
-    );
+    if (routeError instanceof Error && 'statusCode' in routeError) {
+      throw routeError;
+    }
+    throw databaseError('Failed to update experience', { error: String(routeError) });
   }
 }
 
-export async function DELETE(
-  request: Request,
+export const PATCH = withErrorHandler(handlePatch as Parameters<typeof withErrorHandler>[0]);
+
+async function handleDelete(
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const { id } = await context.params;
   if (!id) {
-    return NextResponse.json(
-      { error: 'Experience id is required' },
-      { status: 400 },
-    );
+    throw validationError('Experience id is required');
   }
 
   try {
@@ -109,18 +94,18 @@ export async function DELETE(
     });
 
     if (deleteResult.count === 0) {
-      return NextResponse.json(
-        { error: 'Experience not found or access denied' },
-        { status: 404 },
-      );
+      throw notFoundError('Experience');
     }
+
+    logger.info('Experience deleted successfully', { userId: data.user.id, experienceId: id });
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (routeError) {
-    console.error('Failed to delete experience', routeError);
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 500 },
-    );
+    if (routeError instanceof Error && 'statusCode' in routeError) {
+      throw routeError;
+    }
+    throw databaseError('Failed to delete experience', { error: String(routeError) });
   }
 }
+
+export const DELETE = withErrorHandler(handleDelete as Parameters<typeof withErrorHandler>[0]);

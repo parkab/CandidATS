@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { PATCH } from './route';
@@ -53,10 +54,12 @@ describe('PATCH /api/profile', () => {
       error: { message: 'Unauthorized' },
     } as never);
 
-    const response = await PATCH(buildRequest({}));
+    const response = await PATCH(buildRequest({}) as NextRequest);
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message', 'Unauthorized');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedUpdateMany).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();
@@ -70,11 +73,13 @@ describe('PATCH /api/profile', () => {
     } as never);
 
     const response = await PATCH(
-      buildRequest({ firstName: '', lastName: 'Doe' }),
+      buildRequest({ firstName: '', lastName: 'Doe' }) as NextRequest,
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid request.' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedUpdateMany).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();
@@ -92,11 +97,13 @@ describe('PATCH /api/profile', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         linkedIn: 'not-a-url',
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Invalid request.' });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedUpdateMany).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();
@@ -139,7 +146,7 @@ describe('PATCH /api/profile', () => {
         linkedIn: 'https://www.linkedin.com/in/jane-doe',
         headline: 'Frontend Engineer',
         bio: 'Building delightful products',
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(200);
@@ -233,7 +240,7 @@ describe('PATCH /api/profile', () => {
         linkedIn: 'https://www.linkedin.com/in/jane-doe',
         headline: 'Frontend Engineer',
         bio: 'Building delightful products',
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(200);
@@ -264,13 +271,13 @@ describe('PATCH /api/profile', () => {
       buildRequest({
         firstName: 'Jane',
         lastName: 'Doe',
-      }),
+      }) as NextRequest,
     );
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
-      error: 'Unable to update profile.',
-    });
+    const body = await response.json();
+    expect(body.error).toHaveProperty('message');
+    expect(body.error).toHaveProperty('timestamp');
     expect(mockedFindUnique).not.toHaveBeenCalled();
     expect(mockedProfileFindFirst).not.toHaveBeenCalled();
     expect(mockedProfileUpdateMany).not.toHaveBeenCalled();

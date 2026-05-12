@@ -1,24 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { parseExperienceCreatePayload } from '@/lib/profile/experience';
+import { withErrorHandler } from '@/app/api/error-handler';
+import { authError, validationError, databaseError, serviceError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
-export async function GET(request: Request) {
+async function handleGet(request: NextRequest) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
 
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   try {
@@ -27,42 +27,39 @@ export async function GET(request: Request) {
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
 
+    logger.info('Experiences retrieved successfully', { userId: data.user.id, count: experiences.length });
+
     return NextResponse.json(experiences, { status: 200 });
   } catch (routeError) {
-    console.error('Failed to fetch experiences', routeError);
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 500 },
-    );
+    if (routeError instanceof Error && 'statusCode' in routeError) {
+      throw routeError;
+    }
+    throw databaseError('Failed to fetch experiences', { error: String(routeError) });
   }
 }
 
-export async function POST(request: Request) {
+export const GET = withErrorHandler(handleGet);
+
+async function handlePost(request: NextRequest) {
   let authResult: Awaited<ReturnType<typeof getSupabaseUserFromRequest>>;
 
   try {
     authResult = await getSupabaseUserFromRequest(request);
   } catch {
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 503 },
-    );
+    throw serviceError('Supabase');
   }
 
   const { data, error } = authResult;
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const body = await request.json().catch(() => null);
   const { payload, error: payloadError } = parseExperienceCreatePayload(body);
 
   if (!payload || payloadError) {
-    return NextResponse.json(
-      { error: payloadError ?? 'Invalid request.' },
-      { status: 400 },
-    );
+    throw validationError('Invalid experience payload', { error: payloadError });
   }
 
   try {
@@ -88,12 +85,15 @@ export async function POST(request: Request) {
       },
     });
 
+    logger.info('Experience created successfully', { userId: data.user.id, experienceId: experience.id });
+
     return NextResponse.json(experience, { status: 201 });
   } catch (routeError) {
-    console.error('Failed to create experience', routeError);
-    return NextResponse.json(
-      { error: 'Unable to process request.' },
-      { status: 500 },
-    );
+    if (routeError instanceof Error && 'statusCode' in routeError) {
+      throw routeError;
+    }
+    throw databaseError('Failed to create experience', { error: String(routeError) });
   }
 }
+
+export const POST = withErrorHandler(handlePost);

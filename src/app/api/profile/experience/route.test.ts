@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { GET, POST } from './route';
@@ -49,7 +50,7 @@ describe('GET /api/profile/experience', () => {
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
-    const response = await GET(buildRequest('GET'));
+    const response = await GET(buildRequest('GET') as NextRequest);
     expect(response.status).toBe(401);
     expect(mockedFindMany).not.toHaveBeenCalled();
   });
@@ -62,7 +63,7 @@ describe('GET /api/profile/experience', () => {
     ];
     mockedFindMany.mockResolvedValue(mockList as never);
 
-    const response = await GET(buildRequest('GET'));
+    const response = await GET(buildRequest('GET') as NextRequest);
     expect(response.status).toBe(200);
     expect(mockedFindMany).toHaveBeenCalledWith({
       where: { userId: 'session-user-id' },
@@ -81,7 +82,7 @@ describe('POST /api/profile/experience', () => {
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
-    const response = await POST(buildRequest('POST', validCreateBody));
+    const response = await POST(buildRequest('POST', validCreateBody) as NextRequest);
     expect(response.status).toBe(401);
     expect(mockedCreate).not.toHaveBeenCalled();
   });
@@ -89,7 +90,7 @@ describe('POST /api/profile/experience', () => {
   it('returns 400 for an invalid payload', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     const response = await POST(
-      buildRequest('POST', { type: 'employment', title: '' }),
+      buildRequest('POST', { type: 'employment', title: '' }) as NextRequest,
     );
     expect(response.status).toBe(400);
     expect(mockedCreate).not.toHaveBeenCalled();
@@ -106,7 +107,7 @@ describe('POST /api/profile/experience', () => {
     };
     mockedCreate.mockResolvedValue(created as never);
 
-    const response = await POST(buildRequest('POST', validCreateBody));
+    const response = await POST(buildRequest('POST', validCreateBody) as NextRequest);
     expect(response.status).toBe(201);
     expect(mockedCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -125,7 +126,7 @@ describe('POST /api/profile/experience', () => {
     } as never);
 
     await POST(
-      buildRequest('POST', { ...validCreateBody, userId: 'attacker-id' }),
+      buildRequest('POST', { ...validCreateBody, userId: 'attacker-id' }) as NextRequest,
     );
     expect(mockedCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ userId: 'session-user-id' }),

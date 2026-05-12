@@ -124,12 +124,18 @@
   }
 
   .profile-input:is(select) {
-    background-color: var(--background);
+    background-color: var(--popover-bg);
+    background-image: linear-gradient(var(--popover-bg), var(--popover-bg));
     color: var(--foreground);
+    padding-right: 2rem;
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+    appearance: none;
   }
 
   .profile-input:is(select) option {
-    background-color: var(--background);
+    background-color: var(--popover-bg);
     color: var(--foreground);
   }
 

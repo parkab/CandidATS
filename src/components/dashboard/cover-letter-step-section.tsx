@@ -34,7 +34,9 @@ export default function CoverLetterStepSection({
         body: JSON.stringify(jobId ? { jobId } : { jobData }),
       });
       if (!aiRes.ok) {
-        const err = (await aiRes.json().catch(() => ({ error: 'Generation failed' }))) as {
+        const err = (await aiRes
+          .json()
+          .catch(() => ({ error: 'Generation failed' }))) as {
           error: string;
         };
         throw new Error(err.error);
@@ -70,7 +72,9 @@ export default function CoverLetterStepSection({
 
       router.push(`/documents/${docData.document.id}/edit`);
     } catch (error) {
-      setGenerateError(error instanceof Error ? error.message : 'Generation failed');
+      setGenerateError(
+        error instanceof Error ? error.message : 'Generation failed',
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -80,14 +84,19 @@ export default function CoverLetterStepSection({
     <div className="grid gap-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h4 className="text-sm font-semibold text-(--foreground)">AI Cover Letter Generator</h4>
+          <h4 className="text-sm font-semibold text-(--foreground)">
+            AI Cover Letter Generator
+          </h4>
           <p className="mt-1 text-xs text-(--text-muted)">
-            Generates a tailored cover letter based on your profile and this job, then opens it in
-            the document editor where you can refine and save it as a PDF.
+            Generates a tailored cover letter based on your profile and this
+            job, then opens it in the document editor where you can refine and
+            save it as a PDF.
           </p>
           {isDisabled && !isGenerating && (
             <p className="mt-1 text-xs text-(--text-muted)">
-              {!jobId && !jobData ? 'Job data required.' : 'Save the job to enable generation.'}
+              {!jobId && !jobData
+                ? 'Job data required.'
+                : 'Save the job to enable generation.'}
             </p>
           )}
         </div>

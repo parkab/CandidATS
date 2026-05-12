@@ -59,7 +59,7 @@ const STATUS_FILTER_OPTIONS: { value: ApiStatus; label: string }[] = [
 ];
 
 const filterCheckboxClass =
-  'h-4 w-4 shrink-0 cursor-pointer rounded border-[--surface-border] bg-[--background] text-[--foreground] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,#70e2ff_50%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[--background]';
+  'h-4 w-4 shrink-0 cursor-pointer rounded border-[--surface-border] bg-[--background] accent-(--foreground) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,#70e2ff_50%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[--background]';
 
 type ListRow = {
   id: string;
@@ -117,11 +117,10 @@ function formatUpdatedAt(value: string): string {
   if (Number.isNaN(d.getTime())) {
     return value;
   }
-  return d.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function startOfDayLocal(ymd: string): Date | null {
@@ -199,8 +198,11 @@ export default function DocumentTable() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedTypes, setSelectedTypes] = useState<DocType[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<ApiStatus[]>([]);
-  const [tagQuery, setTagQuery] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<ApiStatus[]>([
+    'draft',
+    'ready',
+  ]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortPrimary, setSortPrimary] = useState<'date' | 'title'>(
@@ -223,8 +225,12 @@ export default function DocumentTable() {
   const [renameTitle, setRenameTitle] = useState('');
   const [renameBusy, setRenameBusy] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [deleteRow, setDeleteRow] = useState<ListRow | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const dupDialogTitleId = useId();
   const renDialogTitleId = useId();
+  const delDialogTitleId = useId();
   const loadAbortControllerRef = useRef<AbortController | null>(null);
 
   const loadDocuments = useCallback(
@@ -504,10 +510,52 @@ export default function DocumentTable() {
     }
   }
 
+  function openDeleteDialog(row: ListRow) {
+    setDeleteError(null);
+    setDeleteRow(row);
+  }
+
+  function closeDeleteDialog() {
+    setDeleteRow(null);
+    setDeleteError(null);
+    setDeleteBusy(false);
+  }
+
+  async function submitDelete() {
+    if (!deleteRow) return;
+
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(deleteRow.id)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          typeof body?.error === 'string'
+            ? body.error
+            : 'Could not delete document.';
+        throw new Error(message);
+      }
+      closeDeleteDialog();
+      await runLoadDocuments(true);
+    } catch (err: unknown) {
+      setDeleteError(
+        err instanceof Error ? err.message : 'Could not delete document.',
+      );
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   const displayRows = useMemo(() => {
-    const tagNeedles = parseTagNeedles(tagQuery);
     const from = startOfDayLocal(dateFrom);
     const to = endOfDayLocal(dateTo);
+    const searchLower = searchQuery.toLowerCase();
 
     const filtered = allRows.filter((row) => {
       if (selectedTypes.length > 0 && !selectedTypes.includes(row.docType)) {
@@ -519,12 +567,19 @@ export default function DocumentTable() {
       ) {
         return false;
       }
-      if (tagNeedles.length > 0) {
-        const tagsLower = row.tags.map((t) => t.toLowerCase());
-        const allMatch = tagNeedles.every((needle) =>
-          tagsLower.some((t) => t.includes(needle)),
+      if (searchLower.length > 0) {
+        const documentMatches = row.documentTitle
+          .toLowerCase()
+          .includes(searchLower);
+        const jobMatches =
+          row.jobTitle.toLowerCase().includes(searchLower) ||
+          row.companyName.toLowerCase().includes(searchLower);
+        const tagMatches = row.tags.some((t) =>
+          t.toLowerCase().includes(searchLower),
         );
-        if (!allMatch) return false;
+        if (!documentMatches && !jobMatches && !tagMatches) {
+          return false;
+        }
       }
       const docTime = new Date(row.updatedAt).getTime();
       if (Number.isNaN(docTime)) return false;
@@ -571,7 +626,7 @@ export default function DocumentTable() {
     allRows,
     selectedTypes,
     selectedStatuses,
-    tagQuery,
+    searchQuery,
     dateFrom,
     dateTo,
     sortPrimary,
@@ -587,16 +642,18 @@ export default function DocumentTable() {
 
   const hasNonDefaultView =
     selectedTypes.length > 0 ||
-    selectedStatuses.length > 0 ||
-    tagQuery.trim().length > 0 ||
+    selectedStatuses.length !== 2 ||
+    selectedStatuses[0] !== 'draft' ||
+    selectedStatuses[1] !== 'ready' ||
+    searchQuery.trim().length > 0 ||
     dateFrom.trim().length > 0 ||
     dateTo.trim().length > 0 ||
     !isDefaultSort;
 
   function resetFilters() {
     setSelectedTypes([]);
-    setSelectedStatuses([]);
-    setTagQuery('');
+    setSelectedStatuses(['draft', 'ready']);
+    setSearchQuery('');
     setDateFrom('');
     setDateTo('');
     setSortPrimary(DEFAULT_SORT_PRIMARY);
@@ -628,10 +685,6 @@ export default function DocumentTable() {
               </span>
             ) : null}
           </div>
-          <p className="max-w-lg text-sm leading-relaxed text-[--text-muted]">
-            Filter and sort everything you have uploaded or drafted for your
-            applications.
-          </p>
         </div>
       </header>
 
@@ -652,162 +705,185 @@ export default function DocumentTable() {
 
       {showFilterBar ? (
         <div
-          className="library-filter-panel mb-6 space-y-3 rounded-2xl border border-[--surface-border] bg-[--surface] p-4 sm:p-5"
+          className="rounded-3xl border border-(--surface-border) bg-(--surface) p-4 shadow-sm mb-6"
           role="search"
           aria-label="Document filters"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start">
-            <fieldset className="min-w-0 flex-1 space-y-2 border-0 p-0">
-              <legend className="text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-                Type
-              </legend>
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {TYPE_FILTER_OPTIONS.map(({ value, label }) => (
-                  <label
-                    key={value}
-                    className="flex cursor-pointer items-center gap-2 text-sm text-[--foreground]"
-                  >
-                    <input
-                      type="checkbox"
-                      className={filterCheckboxClass}
-                      checked={selectedTypes.includes(value)}
-                      onChange={() => {
-                        setSelectedTypes((prev) => {
-                          if (prev.includes(value)) {
-                            return prev.filter((v) => v !== value);
-                          }
-                          return [...prev, value].sort(
-                            (a, b) =>
-                              TYPE_FILTER_ORDER.indexOf(a) -
-                              TYPE_FILTER_ORDER.indexOf(b),
-                          );
-                        });
-                      }}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              <p className="text-[11px] leading-snug text-[--text-muted]">
-                Leave all unchecked to show every type.
-              </p>
-            </fieldset>
-            <fieldset className="min-w-0 flex-1 space-y-2 border-0 p-0">
-              <legend className="text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-                Status
-              </legend>
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {STATUS_FILTER_OPTIONS.map(({ value, label }) => (
-                  <label
-                    key={value}
-                    className="flex cursor-pointer items-center gap-2 text-sm text-[--foreground]"
-                  >
-                    <input
-                      type="checkbox"
-                      className={filterCheckboxClass}
-                      checked={selectedStatuses.includes(value)}
-                      onChange={() => {
-                        setSelectedStatuses((prev) => {
-                          if (prev.includes(value)) {
-                            return prev.filter((v) => v !== value);
-                          }
-                          return [...prev, value].sort(
-                            (a, b) =>
-                              STATUS_FILTER_ORDER.indexOf(a) -
-                              STATUS_FILTER_ORDER.indexOf(b),
-                          );
-                        });
-                      }}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              <p className="text-[11px] leading-snug text-[--text-muted]">
-                Leave all unchecked to show every status.
-              </p>
-            </fieldset>
-            <label className="flex min-w-[10rem] flex-[2] flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              Tags (all must match)
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-[--text-muted]">
+              Search
+            </span>
+            <div className="profile-input-wrap">
               <input
                 type="search"
-                className={inputControlClass}
-                placeholder="e.g. draft, remote — comma or space"
-                value={tagQuery}
-                onChange={(e) => setTagQuery(e.target.value)}
+                className="profile-input"
+                placeholder="Search by name, job, or tags"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 autoComplete="off"
               />
-            </label>
+            </div>
+          </label>
+
+          <div className="space-y-4 mt-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <fieldset className="space-y-2 border-0 p-0">
+                <legend className="text-sm font-medium text-[--text-muted]">
+                  Type
+                </legend>
+                <div className="flex flex-wrap gap-4">
+                  {TYPE_FILTER_OPTIONS.map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2 text-sm text-[--foreground]"
+                    >
+                      <input
+                        type="checkbox"
+                        className={filterCheckboxClass}
+                        checked={selectedTypes.includes(value)}
+                        onChange={() => {
+                          setSelectedTypes((prev) => {
+                            if (prev.includes(value)) {
+                              return prev.filter((v) => v !== value);
+                            }
+                            return [...prev, value].sort(
+                              (a, b) =>
+                                TYPE_FILTER_ORDER.indexOf(a) -
+                                TYPE_FILTER_ORDER.indexOf(b),
+                            );
+                          });
+                        }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset className="space-y-2 border-0 p-0">
+                <legend className="text-sm font-medium text-[--text-muted]">
+                  Status
+                </legend>
+                <div className="flex flex-wrap gap-4">
+                  {STATUS_FILTER_OPTIONS.map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2 text-sm text-[--foreground]"
+                    >
+                      <input
+                        type="checkbox"
+                        className={filterCheckboxClass}
+                        checked={selectedStatuses.includes(value)}
+                        onChange={() => {
+                          setSelectedStatuses((prev) => {
+                            if (prev.includes(value)) {
+                              return prev.filter((v) => v !== value);
+                            }
+                            return [...prev, value].sort(
+                              (a, b) =>
+                                STATUS_FILTER_ORDER.indexOf(a) -
+                                STATUS_FILTER_ORDER.indexOf(b),
+                            );
+                          });
+                        }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-[--text-muted]">
+                  Updated from
+                </span>
+                <div className="profile-input-wrap">
+                  <input
+                    type="date"
+                    className="profile-input"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-[--text-muted]">
+                  Updated to
+                </span>
+                <div className="profile-input-wrap">
+                  <input
+                    type="date"
+                    className="profile-input"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-[--text-muted]">
+                  Sort by
+                </span>
+                <div className="profile-input-wrap">
+                  <select
+                    className="profile-input"
+                    value={sortPrimary}
+                    onChange={(e) =>
+                      setSortPrimary(e.target.value as 'date' | 'title')
+                    }
+                  >
+                    <option value="date">Updated date</option>
+                    <option value="title">Document title</option>
+                  </select>
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-[--text-muted]">
+                  {sortPrimary === 'date' ? 'Date order' : 'Title order'}
+                </span>
+                <div className="profile-input-wrap">
+                  <select
+                    className="profile-input"
+                    value={sortPrimary === 'date' ? dateOrder : titleOrder}
+                    onChange={(e) => {
+                      const v = e.target.value as 'asc' | 'desc';
+                      if (sortPrimary === 'date') {
+                        setDateOrder(v);
+                      } else {
+                        setTitleOrder(v);
+                      }
+                    }}
+                  >
+                    {sortPrimary === 'date' ? (
+                      <>
+                        <option value="desc">Newest first</option>
+                        <option value="asc">Oldest first</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="asc">A → Z</option>
+                        <option value="desc">Z → A</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </label>
+            </div>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <label className="flex min-w-[9rem] flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              Updated from
-              <input
-                type="date"
-                className={inputControlClass}
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </label>
-            <label className="flex min-w-[9rem] flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              Updated to
-              <input
-                type="date"
-                className={inputControlClass}
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </label>
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              Sort by
-              <select
-                className={selectControlClass}
-                value={sortPrimary}
-                onChange={(e) =>
-                  setSortPrimary(e.target.value as 'date' | 'title')
-                }
-              >
-                <option value="date">Updated date</option>
-                <option value="title">Document title</option>
-              </select>
-            </label>
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium uppercase tracking-wide text-[--text-muted]">
-              {sortPrimary === 'date' ? 'Date order' : 'Title order'}
-              <select
-                className={selectControlClass}
-                value={sortPrimary === 'date' ? dateOrder : titleOrder}
-                onChange={(e) => {
-                  const v = e.target.value as 'asc' | 'desc';
-                  if (sortPrimary === 'date') {
-                    setDateOrder(v);
-                  } else {
-                    setTitleOrder(v);
-                  }
-                }}
-              >
-                {sortPrimary === 'date' ? (
-                  <>
-                    <option value="desc">Newest first</option>
-                    <option value="asc">Oldest first</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="asc">A → Z</option>
-                    <option value="desc">Z → A</option>
-                  </>
-                )}
-              </select>
-            </label>
-            {hasNonDefaultView ? (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-3 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[--action-hover] sm:ml-auto sm:self-end"
-              >
-                Clear filters
-              </button>
-            ) : null}
-          </div>
+
+          {hasNonDefaultView ? (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="mt-6 w-full cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-3 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[--action-hover]"
+            >
+              Clear filters
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -867,6 +943,7 @@ export default function DocumentTable() {
               tags={doc.tags}
               onDuplicate={() => openDuplicateDialog(doc)}
               onRename={() => openRenameDialog(doc)}
+              onDelete={() => openDeleteDialog(doc)}
             />
           ))}
         </ul>
@@ -889,43 +966,44 @@ export default function DocumentTable() {
             <div className="border-b border-[--surface-divider] p-5">
               <h2
                 id={dupDialogTitleId}
-                className="text-lg font-semibold tracking-tight text-[--foreground]"
+                className="text-md font-semibold tracking-tight text-[--foreground]"
               >
                 Duplicate document
               </h2>
-              <p className="mt-1 text-sm text-[--text-muted]">
-                Choose a name and the job this copy belongs to.
-              </p>
             </div>
             <div className="space-y-4 p-5">
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-[--foreground]">
+              <label className="flex flex-col gap-1.5 text-sm text-[--foreground]">
                 Name
-                <input
-                  type="text"
-                  value={duplicateTitle}
-                  onChange={(e) => setDuplicateTitle(e.target.value)}
-                  className="library-filter-input rounded-xl"
-                  autoComplete="off"
-                  disabled={duplicateBusy}
-                />
+                <div className="profile-input-wrap">
+                  <input
+                    type="text"
+                    value={duplicateTitle}
+                    onChange={(e) => setDuplicateTitle(e.target.value)}
+                    className="profile-input"
+                    autoComplete="off"
+                    disabled={duplicateBusy}
+                  />
+                </div>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-[--foreground]">
+              <label className="flex flex-col gap-1.5 text-sm text-[--foreground]">
                 Job
-                <select
-                  className="library-filter-select rounded-xl"
-                  value={duplicateJobId}
-                  onChange={(e) => setDuplicateJobId(e.target.value)}
-                  disabled={duplicateBusy}
-                >
-                  {jobSelectOptions.map((job) => (
-                    <option key={job.id} value={job.id}>
-                      {job.title}
-                      {job.company_name.trim().length > 0
-                        ? ` · ${job.company_name.trim()}`
-                        : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="profile-input-wrap">
+                  <select
+                    className="profile-input"
+                    value={duplicateJobId}
+                    onChange={(e) => setDuplicateJobId(e.target.value)}
+                    disabled={duplicateBusy}
+                  >
+                    {jobSelectOptions.map((job) => (
+                      <option key={job.id} value={job.id}>
+                        {job.title}
+                        {job.company_name.trim().length > 0
+                          ? ` · ${job.company_name.trim()}`
+                          : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </label>
               {duplicateError ? (
                 <p
@@ -941,7 +1019,7 @@ export default function DocumentTable() {
                 type="button"
                 onClick={closeDuplicateDialog}
                 disabled={duplicateBusy}
-                className="cursor-pointer rounded-lg border border-[--surface-border] bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--surface)] disabled:opacity-50"
+                className="cursor-pointer rounded-lg border border-(--danger-text) bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-[var(--danger-hover)] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -949,7 +1027,7 @@ export default function DocumentTable() {
                 type="button"
                 onClick={() => void submitDuplicate()}
                 disabled={duplicateBusy}
-                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[--action-hover] disabled:opacity-50"
+                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--action-hover)] disabled:opacity-50"
               >
                 {duplicateBusy ? 'Duplicating…' : 'Duplicate'}
               </button>
@@ -975,23 +1053,22 @@ export default function DocumentTable() {
             <div className="border-b border-[--surface-divider] p-5">
               <h2
                 id={renDialogTitleId}
-                className="text-lg font-semibold tracking-tight text-[--foreground]"
+                className="text-md font-semibold tracking-tight text-[--foreground]"
               >
                 Rename document
               </h2>
             </div>
             <div className="space-y-4 p-5">
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-[--foreground]">
-                Name
+              <div className="profile-input-wrap">
                 <input
                   type="text"
                   value={renameTitle}
                   onChange={(e) => setRenameTitle(e.target.value)}
-                  className="library-filter-input rounded-xl"
+                  className="profile-input"
                   autoComplete="off"
                   disabled={renameBusy}
                 />
-              </label>
+              </div>
               {renameError ? (
                 <p
                   role="alert"
@@ -1006,7 +1083,7 @@ export default function DocumentTable() {
                 type="button"
                 onClick={closeRenameDialog}
                 disabled={renameBusy}
-                className="cursor-pointer rounded-lg border border-[--surface-border] bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--surface)] disabled:opacity-50"
+                className="cursor-pointer rounded-lg border border-(--danger-text) bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-[var(--danger-hover)] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -1014,10 +1091,65 @@ export default function DocumentTable() {
                 type="button"
                 onClick={() => void submitRename()}
                 disabled={renameBusy}
-                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[--action-hover] disabled:opacity-50"
+                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--action-hover)] disabled:opacity-50"
               >
                 {renameBusy ? 'Saving…' : 'Save'}
               </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {deleteRow ? (
+        <div className="fixed inset-0 z-[250] grid place-items-center p-4">
+          <button
+            type="button"
+            onClick={closeDeleteDialog}
+            aria-label="Close delete dialog"
+            className="absolute inset-0 bg-black/55"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={delDialogTitleId}
+            className="relative z-10 w-96 overflow-hidden rounded-lg border border-(--surface-divider) bg-(--background) shadow-xl"
+          >
+            <div className="p-6">
+              <h2
+                id={delDialogTitleId}
+                className="text-lg font-semibold text-(--foreground)"
+              >
+                Delete document?
+              </h2>
+              <p className="mt-3 text-sm text-(--text-muted)">
+                Are you sure you want to delete <span className="font-medium">{deleteRow.documentTitle}</span>? This will remove it from all jobs and cannot be undone.
+              </p>
+              {deleteError ? (
+                <p
+                  role="alert"
+                  className="mt-3 text-sm font-medium text-(--danger-text)"
+                >
+                  {deleteError}
+                </p>
+              ) : null}
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeDeleteDialog}
+                  disabled={deleteBusy}
+                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitDelete()}
+                  disabled={deleteBusy}
+                  className="rounded-md bg-(--danger-bg) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-(--background) disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {deleteBusy ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
           </section>
         </div>

@@ -225,7 +225,10 @@ export async function POST(request: NextRequest) {
     } | null;
 
     if (!body) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 },
+      );
     }
 
     let job: JobInput;
@@ -297,6 +300,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[resume-draft] error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
   }
 }

@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
 import { PATCH, DELETE } from './route';
@@ -44,7 +45,7 @@ describe('PATCH /api/profile/experience/[id]', () => {
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
     const response = await PATCH(
-      buildRequest('PATCH', { title: 'New' }),
+      buildRequest('PATCH', { title: 'New' }) as NextRequest,
       context,
     );
     expect(response.status).toBe(401);
@@ -53,7 +54,7 @@ describe('PATCH /api/profile/experience/[id]', () => {
 
   it('returns 400 for an invalid payload', async () => {
     mockedAuth.mockResolvedValue(authedUser as never);
-    const response = await PATCH(buildRequest('PATCH', { title: '' }), context);
+    const response = await PATCH(buildRequest('PATCH', { title: '' }) as NextRequest, context);
     expect(response.status).toBe(400);
     expect(mockedUpdateMany).not.toHaveBeenCalled();
   });
@@ -63,7 +64,7 @@ describe('PATCH /api/profile/experience/[id]', () => {
     mockedUpdateMany.mockResolvedValue({ count: 0 } as never);
 
     const response = await PATCH(
-      buildRequest('PATCH', { title: 'New Title' }),
+      buildRequest('PATCH', { title: 'New Title' }) as NextRequest,
       context,
     );
     expect(response.status).toBe(404);
@@ -80,7 +81,7 @@ describe('PATCH /api/profile/experience/[id]', () => {
     } as never);
 
     const response = await PATCH(
-      buildRequest('PATCH', { title: 'New Title' }),
+      buildRequest('PATCH', { title: 'New Title' }) as NextRequest,
       context,
     );
     expect(response.status).toBe(200);
@@ -96,7 +97,7 @@ describe('DELETE /api/profile/experience/[id]', () => {
 
   it('returns 401 when unauthenticated', async () => {
     mockedAuth.mockResolvedValue(unauthedUser as never);
-    const response = await DELETE(buildRequest('DELETE'), context);
+    const response = await DELETE(buildRequest('DELETE') as NextRequest, context);
     expect(response.status).toBe(401);
     expect(mockedDeleteMany).not.toHaveBeenCalled();
   });
@@ -105,7 +106,7 @@ describe('DELETE /api/profile/experience/[id]', () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedDeleteMany.mockResolvedValue({ count: 0 } as never);
 
-    const response = await DELETE(buildRequest('DELETE'), context);
+    const response = await DELETE(buildRequest('DELETE') as NextRequest, context);
     expect(response.status).toBe(404);
   });
 
@@ -113,7 +114,7 @@ describe('DELETE /api/profile/experience/[id]', () => {
     mockedAuth.mockResolvedValue(authedUser as never);
     mockedDeleteMany.mockResolvedValue({ count: 1 } as never);
 
-    const response = await DELETE(buildRequest('DELETE'), context);
+    const response = await DELETE(buildRequest('DELETE') as NextRequest, context);
     expect(response.status).toBe(200);
     expect(mockedDeleteMany).toHaveBeenCalledWith({
       where: { id: 'exp-1', userId: 'session-user-id' },

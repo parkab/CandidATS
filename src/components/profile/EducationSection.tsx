@@ -3,6 +3,7 @@
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type EducationEntry = {
   id: string;
@@ -75,6 +76,7 @@ export default function EducationSection({
   initialEducation,
   onCompletionChange,
 }: EducationSectionProps) {
+  const router = useRouter();
   const [education, setEducation] =
     useState<EducationEntry[]>(initialEducation);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -197,6 +199,7 @@ export default function EducationSection({
       }
 
       closeModal();
+      router.refresh();
     } catch {
       setErrors({ submit: 'Network issue. Please try again.' });
     } finally {
@@ -219,6 +222,7 @@ export default function EducationSection({
       setEducation((prev) => prev.filter((e) => e.id !== id));
       setDeleteConfirmId(null);
       setToast('Education removed.');
+      router.refresh();
     } catch {
       setToast('Network issue. Please try again.');
     } finally {
@@ -268,7 +272,7 @@ export default function EducationSection({
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {entry.honors ? (
                       <span className="inline-block w-fit rounded-full border border-(--surface-border) px-2 py-0.5 text-xs font-medium text-(--text-muted)">
-                        {entry.honors}
+                        Honors: {entry.honors}
                       </span>
                     ) : null}
                     {entry.gpa ? (
@@ -337,7 +341,7 @@ export default function EducationSection({
                   type="button"
                   onClick={closeModal}
                   autoFocus
-                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                  className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white"
                 >
                   Cancel
                 </button>
@@ -611,7 +615,7 @@ export default function EducationSection({
                 type="button"
                 onClick={() => handleDelete(deleteConfirmId)}
                 disabled={isDeleting}
-                className="rounded-md bg-(--danger-text) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-50"
+                className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white disabled:opacity-50"
               >
                 {isDeleting ? 'Removing...' : 'Remove'}
               </button>
