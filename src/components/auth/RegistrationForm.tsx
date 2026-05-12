@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 
@@ -23,7 +22,6 @@ type ErrorState = {
 };
 
 export default function RegistrationForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState<FormState>({
     email: '',
@@ -113,10 +111,8 @@ export default function RegistrationForm() {
         return;
       }
 
-      // Success - redirect to dashboard
-      // Use refresh() to ensure server-side data is re-fetched with the new auth token
-      router.refresh();
-      router.push('/dashboard');
+      // Success - redirect to dashboard with full page reload to ensure session is updated
+      window.location.href = '/dashboard';
     } catch {
       setErrors({
         submit: 'An error occurred. Please try again.',

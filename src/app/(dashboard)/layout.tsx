@@ -3,6 +3,9 @@ import Navbar from '@/components/dashboard/navbar';
 import RedirectHandler from '@/components/dashboard/redirect-handler';
 import { prisma } from '@/lib/prisma';
 
+// Force dynamic rendering to prevent layout caching and ensure fresh session data
+export const dynamic = 'force-dynamic';
+
 type DashboardLayoutProps = {
   children: React.ReactNode;
 };
