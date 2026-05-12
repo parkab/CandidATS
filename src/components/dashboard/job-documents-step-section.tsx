@@ -73,6 +73,12 @@ export default function DocumentsStepSection({
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [isGenerateMenuOpen, setIsGenerateMenuOpen] = useState(false);
   const [showResearchPanel, setShowResearchPanel] = useState(false);
+  const [editingResearchId, setEditingResearchId] = useState<string | null>(
+    null,
+  );
+  const [editingResearchContent, setEditingResearchContent] = useState('');
+  const [editingResearchUserContext, setEditingResearchUserContext] =
+    useState('');
   const [optionsMenuId, setOptionsMenuId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<
     'resume' | 'cover_letter' | 'research' | null
@@ -525,6 +531,157 @@ export default function DocumentsStepSection({
         </div>
       ) : null}
 
+      {/* Edit Research Document Panel */}
+      {editingResearchId ? (
+        <div className="rounded-lg border border-(--surface-border) bg-(--background) p-4">
+          <div className="mb-4 grid gap-2">
+            <h3 className="text-md font-semibold text-(--foreground)">
+              Edit Research Document
+            </h3>
+          </div>
+
+          <div className="mb-4 grid gap-2">
+            <label
+              htmlFor="edit-research-context"
+              className="text-sm font-semibold text-(--foreground)"
+            >
+              Research Focus (Optional)
+            </label>
+            <div className="profile-input-wrap">
+              <textarea
+                id="edit-research-context"
+                value={editingResearchUserContext}
+                onChange={(e) => setEditingResearchUserContext(e.target.value)}
+                placeholder="e.g.: What is their work-life balance like? How do they treat remote employees?"
+                className="profile-input min-h-16 px-3 py-2 text-sm text-(--foreground) placeholder:text-(--text-muted) focus:border-(--foreground) focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="mb-4 grid gap-2">
+            <label
+              htmlFor="edit-research-content"
+              className="text-sm font-semibold text-(--foreground)"
+            >
+              Research Content
+            </label>
+            <div className="profile-input-wrap">
+              <textarea
+                id="edit-research-content"
+                value={editingResearchContent}
+                onChange={(e) => setEditingResearchContent(e.target.value)}
+                placeholder="Research content"
+                className="profile-input min-h-40 px-3 py-2 text-md text-(--foreground) placeholder:text-(--text-muted) focus:border-(--foreground)"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setEditingResearchId(null)}
+              className="rounded-md border border-(--danger-border) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-bg)"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!jobId && !jobData) return;
+                setIsGenerating('research');
+                try {
+                  const requestBody = jobId
+                    ? {
+                        jobId,
+                        userContext: editingResearchUserContext,
+                      }
+                    : {
+                        jobData,
+                        userContext: editingResearchUserContext,
+                      };
+
+                  const response = await fetch(
+                    '/api/ai/company-research-draft',
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(requestBody),
+                    },
+                  );
+
+                  if (!response.ok) {
+                    const errorData = await response
+                      .json()
+                      .catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(
+                      errorData.error || `HTTP ${response.status}`,
+                    );
+                  }
+
+                  const data = await response.json();
+                  setEditingResearchContent(data.research);
+                } catch (error) {
+                  const errorMessage =
+                    error instanceof Error ? error.message : 'Unknown error';
+                  alert(`Failed to regenerate research: ${errorMessage}`);
+                } finally {
+                  setIsGenerating(null);
+                }
+              }}
+              disabled={isGenerating !== null || (!jobId && !jobData)}
+              className="rounded-md bg-(--foreground) px-4 py-2 text-sm font-semibold text-(--background) transition hover:bg-(--inverse-hover) disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isGenerating === 'research'
+                ? 'Regenerating...'
+                : 'Regenerate Research'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!editingResearchContent.trim()) return;
+                setIsSavingResearch(true);
+                try {
+                  const response = await fetch(
+                    `/api/documents/${editingResearchId}`,
+                    {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        content: editingResearchContent,
+                      }),
+                    },
+                  );
+
+                  if (!response.ok) {
+                    const errorData = await response
+                      .json()
+                      .catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(
+                      errorData.error || `HTTP ${response.status}`,
+                    );
+                  }
+
+                  setEditingResearchId(null);
+                  setEditingResearchContent('');
+                  setEditingResearchUserContext('');
+                  onRefreshDocuments?.();
+                } catch (error) {
+                  const errorMessage =
+                    error instanceof Error ? error.message : 'Unknown error';
+                  alert(`Failed to save research: ${errorMessage}`);
+                } finally {
+                  setIsSavingResearch(false);
+                }
+              }}
+              disabled={!editingResearchContent.trim() || isSavingResearch}
+              className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg) disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSavingResearch ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <p className="text-center text-sm text-(--text-muted)">
           Loading documents...
@@ -622,7 +779,7 @@ export default function DocumentsStepSection({
                           View/Download
                         </Link>
 
-                        {isGenerated && (
+                        {isGenerated && file.documentType !== 'other' && (
                           <Link
                             href={`/documents/${file.id}/edit`}
                             role="menuitem"
@@ -631,6 +788,42 @@ export default function DocumentsStepSection({
                           >
                             Edit Document
                           </Link>
+                        )}
+
+                        {isGenerated && file.documentType === 'other' && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={async () => {
+                              setOptionsMenuId(null);
+                              setEditingResearchId(file.id);
+                              // Fetch the full document content
+                              try {
+                                const res = await fetch(
+                                  `/api/documents/${file.id}`,
+                                );
+                                if (res.ok) {
+                                  const doc = (await res.json()) as {
+                                    content?: string;
+                                    notes?: string;
+                                  };
+                                  setEditingResearchContent(doc.content || '');
+                                  setEditingResearchUserContext('');
+                                } else {
+                                  setEditingResearchContent('');
+                                }
+                              } catch (error) {
+                                console.error(
+                                  'Failed to load research document:',
+                                  error,
+                                );
+                                setEditingResearchContent('');
+                              }
+                            }}
+                            className="block w-full rounded-md px-3 py-2 text-left text-xs font-semibold text-(--foreground) transition hover:bg-(--surface-hover)"
+                          >
+                            Edit Document
+                          </button>
                         )}
 
                         <button
