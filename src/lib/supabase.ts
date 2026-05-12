@@ -5,27 +5,21 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Anon client requires public URL and key (used for auth and public operations)
-let supabase: ReturnType<typeof createClient> | null = null;
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-} else {
-  console.warn(
-    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are not available. Supabase client will be unavailable during build.',
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required',
   );
 }
 
-export { supabase };
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Admin client is optional (only required for admin auth operations and protected endpoints)
 // If service role key is unavailable, supabaseAdmin will be null
-let supabaseAdminClient: ReturnType<typeof createClient> | null = null;
-if (supabaseUrl && supabaseServiceRole) {
-  supabaseAdminClient = createClient(supabaseUrl, supabaseServiceRole, {
-    auth: { persistSession: false },
-  });
-}
-
-export const supabaseAdmin = supabaseAdminClient;
+export const supabaseAdmin = supabaseServiceRole
+  ? createClient(supabaseUrl, supabaseServiceRole, {
+      auth: { persistSession: false },
+    })
+  : null;
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   if (!cookieHeader) return {};
