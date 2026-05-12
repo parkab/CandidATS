@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { tryParseStoredFileContent } from '@/lib/documents/metadata';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { createPdfSignedUrl } from '@/lib/storage/pdf';
 
 export async function GET(
@@ -47,6 +47,7 @@ export async function GET(
     const storedFile = tryParseStoredFileContent(document.content);
     if (storedFile) {
       let signedUrl: string | null = null;
+      const supabaseAdmin = getSupabaseAdmin();
       if (supabaseAdmin) {
         const { data } = await supabaseAdmin.storage
           .from(storedFile.bucket)

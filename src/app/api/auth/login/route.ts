@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import { withErrorHandler } from '@/app/api/error-handler';
 import { validationError, authError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
@@ -20,10 +20,8 @@ async function handler(request: NextRequest) {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Check if Supabase client is available
-  if (!supabase) {
-    throw new Error('Supabase authentication service is unavailable');
-  }
+  // Get the Supabase client (lazily initialized at runtime)
+  const supabase = getSupabaseClient();
 
   // Attempt login with Supabase
   const { data, error } = await supabase.auth.signInWithPassword({

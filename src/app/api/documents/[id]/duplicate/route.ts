@@ -17,7 +17,7 @@ import {
   type TemplateName,
 } from '@/lib/latex/render';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { deletePdf, uploadPdf } from '@/lib/storage/pdf';
 
 type DuplicateBody = {
@@ -176,6 +176,7 @@ export async function POST(
 
     const storedFile = tryParseStoredFileContent(sourceDocument.content);
     if (storedFile) {
+      const supabaseAdmin = getSupabaseAdmin();
       if (!supabaseAdmin) {
         return NextResponse.json(
           { error: 'Storage service unavailable' },

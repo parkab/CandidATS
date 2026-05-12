@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAccessTokenFromRequest, supabaseAdmin } from '@/lib/supabase';
+import { getAccessTokenFromRequest, getSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
 export async function middleware(request: NextRequest) {
@@ -23,32 +23,35 @@ export async function middleware(request: NextRequest) {
 
   // Only validate auth for protected and auth-only routes
   let user = null;
-  if ((isProtectedRoute || isAuthOnlyRoute) && supabaseAdmin) {
-    const accessToken = getAccessTokenFromRequest(request);
-    if (accessToken) {
-      try {
-        const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
-        if (!error && data.user) {
-          user = data.user;
-          logger.info('User authenticated via middleware', {
-            userId: data.user.id,
+  if (isProtectedRoute || isAuthOnlyRoute) {
+    const supabaseAdmin = getSupabaseAdmin();
+    if (supabaseAdmin) {
+      const accessToken = getAccessTokenFromRequest(request);
+      if (accessToken) {
+        try {
+          const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
+          if (!error && data.user) {
+            user = data.user;
+            logger.info('User authenticated via middleware', {
+              userId: data.user.id,
+              path: pathname,
+            });
+          } else {
+            logger.warn('Authentication failed in middleware', {
+              path: pathname,
+              reason: error?.message || 'No user returned',
+            });
+          }
+        } catch (error) {
+          logger.error('Middleware auth error', error as Error, {
             path: pathname,
-          });
-        } else {
-          logger.warn('Authentication failed in middleware', {
-            path: pathname,
-            reason: error?.message || 'No user returned',
           });
         }
-      } catch (error) {
-        logger.error('Middleware auth error', error as Error, {
+      } else {
+        logger.warn('No access token found in request', {
           path: pathname,
         });
       }
-    } else {
-      logger.warn('No access token found in request', {
-        path: pathname,
-      });
     }
   }
 

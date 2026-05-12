@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 
 type ForgotPasswordFormState = {
@@ -61,14 +61,7 @@ export default function ForgotPasswordForm() {
     setErrors({});
 
     try {
-      if (!supabase) {
-        setErrors({
-          submit: 'Authentication service is unavailable',
-        });
-        setIsLoading(false);
-        return;
-      }
-
+      const supabase = getSupabaseClient();
       const { error } = await supabase.auth.resetPasswordForEmail(
         form.email.toLowerCase(),
         {

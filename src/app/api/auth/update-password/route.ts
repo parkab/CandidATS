@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import { validateUpdatePasswordPayload } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -13,15 +13,9 @@ export async function POST(request: Request) {
 
   const { password } = validation.data;
 
-  // Check if Supabase client is available
-  if (!supabase) {
-    return NextResponse.json(
-      { error: 'Authentication service is unavailable' },
-      { status: 503 },
-    );
-  }
-
   try {
+    // Get the Supabase client (lazily initialized at runtime)
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.updateUser({
       password,
     });

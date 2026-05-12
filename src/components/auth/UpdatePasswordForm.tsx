@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 
 type UpdatePasswordFormState = {
@@ -32,14 +32,7 @@ export default function UpdatePasswordForm() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        if (!supabase) {
-          setErrors({
-            submit: 'Authentication service is unavailable',
-          });
-          setIsLoading(false);
-          return;
-        }
-
+        const supabase = getSupabaseClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -111,14 +104,7 @@ export default function UpdatePasswordForm() {
     setErrors({});
 
     try {
-      if (!supabase) {
-        setErrors({
-          submit: 'Authentication service is unavailable',
-        });
-        setIsFormSubmitting(false);
-        return;
-      }
-
+      const supabase = getSupabaseClient();
       const { error } = await supabase.auth.updateUser({
         password: form.password,
       });

@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin, getSupabaseClient } from '@/lib/supabase';
 import { validateRegistrationPayload } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler } from '@/app/api/error-handler';
@@ -17,15 +16,13 @@ async function handler(request: NextRequest) {
 
   const { email, password, firstName, lastName } = validation.data;
 
+  // Get the Supabase admin client (lazily initialized at runtime)
+  const supabaseAdmin = getSupabaseAdmin();
+
   // Admin client is required for user registration
   if (!supabaseAdmin) {
     logger.error('supabaseAdmin client is not available; cannot create user');
     throw serviceError('Registration');
-  }
-
-  // Check if Supabase admin client is available
-  if (!supabaseAdmin) {
-    throw new Error('Supabase authentication service is unavailable');
   }
 
   // Create user in Supabase Auth with auto-confirmation
@@ -80,27 +77,8 @@ async function handler(request: NextRequest) {
   }
 
   // Check if Supabase client is available for sign-in
-  if (!supabase) {
-    logger.warn('Supabase client unavailable for post-registration sign-in', {
-      userId: data.user.id,
-      email,
-    });
-    // Auth user created, but can't sign in right now
-    // User will need to sign in manually
-    return NextResponse.json(
-      {
-        message: 'Registration successful. Please sign in.',
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          firstName: data.user.user_metadata?.first_name,
-          lastName: data.user.user_metadata?.last_name,
-        },
-      },
-      { status: 200 },
-    );
-  }
-
+  const supabase = getSupabaseClient();
+  
   // Sign the user in immediately after registration
   const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email,

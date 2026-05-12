@@ -14,7 +14,7 @@ import {
   tryParseStoredFileContent,
 } from '@/lib/documents/metadata';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { withErrorHandler } from '@/app/api/error-handler';
 import { authError, validationError, notFoundError, databaseError, serviceError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
@@ -125,6 +125,7 @@ async function toApiDocumentWithOptions(
   let signedUrl: string | null = null;
   let signedUrlError: string | null = null;
 
+  const supabaseAdmin = getSupabaseAdmin();
   if (supabaseAdmin) {
     const { data, error } = await supabaseAdmin.storage
       .from(storedFile.bucket)
@@ -150,7 +151,12 @@ async function toApiDocumentWithOptions(
 async function deleteStoredFileIfPresent(content: string) {
   const metadata = tryParseStoredFileContent(content);
 
-  if (!metadata || !supabaseAdmin) {
+  if (!metadata) {
+    return;
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
     return;
   }
 
@@ -162,6 +168,7 @@ async function moveStoredFileToTypeFolder(params: {
   userId: string;
   type: DocumentType;
 }): Promise<StoredFileDocumentContent> {
+  const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
     throw new Error('Storage service unavailable');
   }
@@ -348,6 +355,7 @@ export async function PATCH(
         }
       }
 
+      const supabaseAdmin = getSupabaseAdmin();
       if (!supabaseAdmin) {
         return NextResponse.json(
           { error: 'Storage service unavailable' },
@@ -461,6 +469,7 @@ export async function PATCH(
       body.type &&
       body.type !== existingDocument.type
     ) {
+      const supabaseAdmin = getSupabaseAdmin();
       if (!supabaseAdmin) {
         return NextResponse.json(
           { error: 'Storage service unavailable' },

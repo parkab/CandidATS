@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import { validateForgotPasswordPayload } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -13,15 +13,9 @@ export async function POST(request: Request) {
 
   const { email } = validation.data;
 
-  // Check if Supabase client is available
-  if (!supabase) {
-    return NextResponse.json(
-      { error: 'Authentication service is unavailable' },
-      { status: 503 },
-    );
-  }
-
   try {
+    // Get the Supabase client (lazily initialized at runtime)
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/update-password`,
     });

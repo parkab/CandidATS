@@ -25,7 +25,7 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 import { createPdfSignedUrl } from '@/lib/storage/pdf';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { encodeStoredFileContent, DOCUMENTS_BUCKET } from '@/lib/documents/metadata';
 
 const mockedGetSession = jest.mocked(getSession);

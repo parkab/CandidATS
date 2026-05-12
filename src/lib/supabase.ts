@@ -1,31 +1,62 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Lazy-initialized clients to support Vercel's build-time environment variable loading
+// These are only initialized at runtime when first called, not at build time
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+let supabaseAdminClient: ReturnType<typeof createClient> | null = null;
 
-// Anon client requires public URL and key (used for auth and public operations)
-let supabase: ReturnType<typeof createClient> | null = null;
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-} else {
-  console.warn(
-    'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are not available. Supabase client will be unavailable during build.',
-  );
+/**
+ * Lazily initialize and return the Supabase anon client
+ * This client is used for authentication and public operations
+ * Initialization is deferred until runtime to ensure env vars are available
+ */
+export function getSupabaseClient(): ReturnType<typeof createClient> {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'Supabase client initialization failed: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set at runtime'
+    );
+  }
+
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  return supabaseClient;
 }
 
-export { supabase };
+/**
+ * Lazily initialize and return the Supabase admin client
+ * This client is used for admin auth operations and requires service role key
+ * Returns null if service role key is not available (non-critical for most operations)
+ */
+export function getSupabaseAdmin(): ReturnType<typeof createClient> | null {
+  if (supabaseAdminClient !== undefined) {
+    return supabaseAdminClient;
+  }
 
-// Admin client is optional (only required for admin auth operations and protected endpoints)
-// If service role key is unavailable, supabaseAdmin will be null
-let supabaseAdminClient: ReturnType<typeof createClient> | null = null;
-if (supabaseUrl && supabaseServiceRole) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRole) {
+    supabaseAdminClient = null;
+    return null;
+  }
+
   supabaseAdminClient = createClient(supabaseUrl, supabaseServiceRole, {
     auth: { persistSession: false },
   });
+
+  return supabaseAdminClient;
 }
 
-export const supabaseAdmin = supabaseAdminClient;
+// For backward compatibility, maintain named exports that use the lazy getters
+export function getSupabase() {
+  return getSupabaseClient();
+}
 
 function parseCookies(cookieHeader: string | null): Record<string, string> {
   if (!cookieHeader) return {};
@@ -52,9 +83,10 @@ export async function getSupabaseUserFromRequest(request: Request) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
-  if (!supabaseAdmin) {
+  const admin = getSupabaseAdmin();
+  if (!admin) {
     throw new Error('Supabase admin client is not configured');
   }
 
-  return await supabaseAdmin.auth.getUser(accessToken);
+  return await admin.auth.getUser(accessToken);
 }

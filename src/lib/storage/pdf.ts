@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import {
   DOCUMENTS_BUCKET,
   getStorageFolderByType,
@@ -9,6 +9,7 @@ export async function uploadPdf(params: {
   buffer: Buffer;
   type: 'resume' | 'cover_letter';
 }): Promise<string> {
+  const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
     throw new Error('Storage service unavailable');
   }
@@ -31,6 +32,7 @@ export async function uploadPdf(params: {
 }
 
 export async function deletePdf(path: string): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) return;
   await supabaseAdmin.storage.from(DOCUMENTS_BUCKET).remove([path]);
 }
@@ -38,6 +40,7 @@ export async function deletePdf(path: string): Promise<void> {
 export async function createPdfSignedUrl(
   path: string,
 ): Promise<string | null> {
+  const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) return null;
 
   const { data } = await supabaseAdmin.storage

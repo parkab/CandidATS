@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export interface SessionData {
   userId: string;
@@ -15,6 +15,9 @@ export async function getSession(): Promise<SessionData | null> {
   if (!accessToken) {
     return null;
   }
+
+  // Get admin client (lazily initialized at runtime)
+  const supabaseAdmin = getSupabaseAdmin();
 
   // Admin client must be available to validate the session token
   if (!supabaseAdmin) {

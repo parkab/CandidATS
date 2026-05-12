@@ -12,7 +12,7 @@ import {
   tryParseStoredFileContent,
 } from '@/lib/documents/metadata';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { withErrorHandler } from '@/app/api/error-handler';
 import { validationError, authError, notFoundError, databaseError, serviceError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
@@ -114,6 +114,7 @@ async function toApiDocumentWithOptions(
   let signedUrl: string | null = null;
   let signedUrlError: string | null = null;
 
+  const supabaseAdmin = getSupabaseAdmin();
   if (supabaseAdmin) {
     const { data, error } = await supabaseAdmin.storage
       .from(storedFile.bucket)
@@ -199,6 +200,7 @@ async function handlePost(request: NextRequest) {
       }
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
       throw serviceError('Supabase');
     }
