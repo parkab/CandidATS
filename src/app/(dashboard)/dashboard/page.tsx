@@ -755,6 +755,10 @@ export default async function Dashboard({ searchParams }: DashboardPageProps) {
           ) / totalMetricApplications,
         );
 
+  const activeMetricJobs = metricsJobsWithRelations.filter(
+    (job) => toApplicationStatus(job.pipeline_stage) !== 'Rejected',
+  );
+
   const appliedApplications = countJobsAtOrPastStage(
     metricsJobsWithRelations,
     'Applied',

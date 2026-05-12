@@ -30,9 +30,16 @@ function formatTimelineTitle(value: string) {
   if (TIMELINE_EVENT_LABELS[normalized]) {
     return TIMELINE_EVENT_LABELS[normalized];
   }
-  return trimmed
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  // Only convert to title case if the string is in snake_case format
+  // Snake case: contains underscores and is all lowercase
+  const isSnakeCase = /^[a-z0-9_]+$/.test(trimmed);
+  if (isSnakeCase) {
+    return trimmed
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+  // If not snake_case, return as-is
+  return trimmed;
 }
 
 function toItemTimestamp(date: string) {
@@ -59,14 +66,15 @@ function mergeDateWithNow(dateValue: string) {
   if (!dateValue) {
     return '';
   }
+  // dateValue is in the format "YYYY-MM-DD" from the date input
+  // Create ISO string directly at midnight UTC without timezone manipulation
   const [year, month, day] = dateValue.split('-').map((part) => Number(part));
   if (!year || !month || !day) {
     return dateValue;
   }
-  const now = new Date();
-  const merged = new Date(now);
-  merged.setFullYear(year, month - 1, day);
-  return merged.toISOString();
+  // Return ISO string for the selected date at midnight UTC
+  const isoString = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00.000Z`;
+  return isoString;
 }
 
 type ItemStepSectionProps = {
@@ -215,7 +223,7 @@ export default function ItemStepSection({
               composerMode === 'edit' &&
               editingItemId === item.id ? (
                 <div className="mt-3 border-t border-(--surface-divider) pt-3">
-                    <SectionItemComposer
+                  <SectionItemComposer
                     itemLabel={itemLabel}
                     titleId={titleId}
                     dateId={dateId}
