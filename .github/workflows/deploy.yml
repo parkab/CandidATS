@@ -71,9 +71,10 @@ jobs:
       - name: Check Next.js app
         run: |
           URL="${{ needs.deploy-app.outputs.deployment-url }}"
-          echo "Checking $URL"
+          HEALTH_URL="$URL/api/health"
+          echo "Checking $HEALTH_URL"
           for i in 1 2 3; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
             if [ "$STATUS" -eq 200 ]; then
               echo "App is up (HTTP $STATUS)"
               exit 0
