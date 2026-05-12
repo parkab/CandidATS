@@ -155,7 +155,7 @@ export async function POST(
           await tx.documentVersion.create({
             data: {
               documentId: doc.id,
-              versionNumber: 1,
+              versionNumber: latestVersion.versionNumber + 1,
               templateName,
               structuredData: latestVersion.structuredData as Prisma.InputJsonValue,
               latexSource,
@@ -223,26 +223,44 @@ export async function POST(
         );
       }
 
+      const nextVersionNumber = (latestVersion?.versionNumber ?? 1) + 1;
+
       let newDocument: { id: string };
       try {
-        newDocument = await prisma.document.create({
-          data: {
-            user_id: session.userId,
-            job_id: targetJobId,
-            title: newTitle,
-            content: encodeStoredFileContent({
-              kind: 'file',
-              bucket: storedFile.bucket,
-              path: newPath,
-              fileName: storedFile.fileName,
-              mimeType: storedFile.mimeType,
-              size: storedFile.size,
-              note: storedFile.note,
-            }),
-            type: docType,
-            status: sourceDocument.status,
-            tags: sourceDocument.tags,
-          },
+        newDocument = await prisma.$transaction(async (tx) => {
+          const doc = await tx.document.create({
+            data: {
+              user_id: session.userId,
+              job_id: targetJobId,
+              title: newTitle,
+              content: encodeStoredFileContent({
+                kind: 'file',
+                bucket: storedFile.bucket,
+                path: newPath,
+                fileName: storedFile.fileName,
+                mimeType: storedFile.mimeType,
+                size: storedFile.size,
+                note: storedFile.note,
+              }),
+              type: docType,
+              status: sourceDocument.status,
+              tags: sourceDocument.tags,
+            },
+          });
+
+          await tx.documentVersion.create({
+            data: {
+              documentId: doc.id,
+              versionNumber: nextVersionNumber,
+              templateName: 'uploaded',
+              structuredData: {} as Prisma.InputJsonValue,
+              latexSource: '',
+              pdfUrl: null,
+              changeNotes: null,
+            },
+          });
+
+          return doc;
         });
       } catch (dbError) {
         await supabaseAdmin.storage

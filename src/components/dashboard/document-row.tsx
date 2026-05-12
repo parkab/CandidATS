@@ -20,6 +20,7 @@ type DocumentRowProps = {
   status: 'Ready' | 'Needs review' | 'Draft' | 'Archived';
   docTypeLabel: string;
   tags: string[];
+  versionNumber: number;
   onDuplicate?: () => void;
   onRename?: () => void;
   onDelete?: () => void;
@@ -113,6 +114,7 @@ export default function DocumentRow({
   status,
   docTypeLabel,
   tags,
+  versionNumber,
   onDuplicate,
   onRename,
   onDelete,
@@ -439,6 +441,9 @@ export default function DocumentRow({
             <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <span className="inline-flex max-w-[10rem] truncate rounded-full border border-[--surface-border] px-2 py-0.5 text-xs font-semibold text-[--foreground]">
                 {docTypeLabel}
+              </span>
+              <span className="inline-flex rounded-full border border-(--surface-border) bg-(--surface-dimmed) px-2 py-0.5 text-xs font-medium text-(--text-muted)">
+                v{versionNumber}
               </span>
               {tags.slice(0, MAX_TAG_CHIPS).map((tag, index) => (
                 <span

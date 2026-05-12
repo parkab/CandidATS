@@ -37,6 +37,7 @@ const EMPTY_DRAFT: JobDocumentItemDraft = {
   name: '',
   size: 0,
   mimeType: '',
+  versionNumber: 1,
 };
 
 const SAMPLE_FILE: JobDocumentItemDraft = {
@@ -51,6 +52,7 @@ const SAMPLE_FILE: JobDocumentItemDraft = {
   size: 1024,
   mimeType: 'application/pdf',
   isAiGenerated: false,
+  versionNumber: 1,
 };
 
 function renderSection(

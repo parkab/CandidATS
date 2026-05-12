@@ -25,6 +25,7 @@ type ApiDocument = {
   status: string;
   tags?: string[];
   updated_at: string;
+  versionNumber?: number;
   Job?: {
     id: string;
     title: string;
@@ -73,6 +74,7 @@ type ListRow = {
   statusRaw: ApiStatus;
   docType: DocType;
   tags: string[];
+  versionNumber: number;
 };
 
 const DEFAULT_SORT_PRIMARY: 'date' | 'title' = 'date';
@@ -351,6 +353,7 @@ export default function DocumentTable() {
             statusRaw: mapApiStatusRaw(rawStatus),
             docType: parseDocType(doc.type),
             tags: normalizeTags(doc.tags),
+            versionNumber: typeof doc.versionNumber === 'number' ? doc.versionNumber : 1,
           });
         }
 
@@ -409,7 +412,7 @@ export default function DocumentTable() {
     setDuplicateError(null);
     setDuplicateRow(row);
     setDuplicateTitle(`${row.documentTitle} (copy)`);
-    setDuplicateJobId(row.jobId ?? '');
+    setDuplicateJobId(row.jobId ?? jobSelectOptions[0]?.id ?? '');
   }
 
   function closeDuplicateDialog() {
@@ -941,6 +944,7 @@ export default function DocumentTable() {
               status={doc.status}
               docTypeLabel={docTypeLabel(doc.docType)}
               tags={doc.tags}
+              versionNumber={doc.versionNumber}
               onDuplicate={() => openDuplicateDialog(doc)}
               onRename={() => openRenameDialog(doc)}
               onDelete={() => openDeleteDialog(doc)}
@@ -994,6 +998,11 @@ export default function DocumentTable() {
                     onChange={(e) => setDuplicateJobId(e.target.value)}
                     disabled={duplicateBusy}
                   >
+                    {!duplicateJobId && (
+                      <option value="" disabled>
+                        Select a job…
+                      </option>
+                    )}
                     {jobSelectOptions.map((job) => (
                       <option key={job.id} value={job.id}>
                         {job.title}

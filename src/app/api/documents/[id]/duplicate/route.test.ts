@@ -189,11 +189,19 @@ describe('POST /api/documents/[id]/duplicate (file)', () => {
     );
     expect(res.status).toBe(201);
     expect(mockCopy).toHaveBeenCalled();
-    expect(mockedPrismaDocumentCreate).toHaveBeenCalledWith(
+    expect(mockDocCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           job_id: 'job-2',
           title: 'Resume copy',
+        }),
+      }),
+    );
+    expect(mockVersionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          templateName: 'uploaded',
+          versionNumber: 2,
         }),
       }),
     );
