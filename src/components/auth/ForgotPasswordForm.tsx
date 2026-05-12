@@ -61,6 +61,14 @@ export default function ForgotPasswordForm() {
     setErrors({});
 
     try {
+      if (!supabase) {
+        setErrors({
+          submit: 'Authentication service is unavailable',
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         form.email.toLowerCase(),
         {

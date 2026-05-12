@@ -23,6 +23,11 @@ async function handler(request: NextRequest) {
     throw serviceError('Registration');
   }
 
+  // Check if Supabase admin client is available
+  if (!supabaseAdmin) {
+    throw new Error('Supabase authentication service is unavailable');
+  }
+
   // Create user in Supabase Auth with auto-confirmation
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -72,6 +77,28 @@ async function handler(request: NextRequest) {
       email,
     });
     // Don't fail - auth user exists, just DB sync issue
+  }
+
+  // Check if Supabase client is available for sign-in
+  if (!supabase) {
+    logger.warn('Supabase client unavailable for post-registration sign-in', {
+      userId: data.user.id,
+      email,
+    });
+    // Auth user created, but can't sign in right now
+    // User will need to sign in manually
+    return NextResponse.json(
+      {
+        message: 'Registration successful. Please sign in.',
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          firstName: data.user.user_metadata?.first_name,
+          lastName: data.user.user_metadata?.last_name,
+        },
+      },
+      { status: 200 },
+    );
   }
 
   // Sign the user in immediately after registration
