@@ -20,6 +20,11 @@ async function handler(request: NextRequest) {
 
   const normalizedEmail = email.trim().toLowerCase();
 
+  // Check if Supabase client is available
+  if (!supabase) {
+    throw new Error('Supabase authentication service is unavailable');
+  }
+
   // Attempt login with Supabase
   const { data, error } = await supabase.auth.signInWithPassword({
     email: normalizedEmail,
