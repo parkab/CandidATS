@@ -158,6 +158,13 @@ function parseTagNeedles(raw: string): string[] {
   return out;
 }
 
+function parseTagsInput(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
 function docTypeLabel(docType: DocType): string {
   switch (docType) {
     case 'resume':
@@ -227,11 +234,20 @@ export default function DocumentTable() {
   const [renameTitle, setRenameTitle] = useState('');
   const [renameBusy, setRenameBusy] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [editDetailsRow, setEditDetailsRow] = useState<ListRow | null>(null);
+  const [editDetailsTitle, setEditDetailsTitle] = useState('');
+  const [editDetailsStatus, setEditDetailsStatus] =
+    useState<ApiStatus>('draft');
+  const [editDetailsType, setEditDetailsType] = useState<DocType>('other');
+  const [editDetailsTags, setEditDetailsTags] = useState('');
+  const [editDetailsBusy, setEditDetailsBusy] = useState(false);
+  const [editDetailsError, setEditDetailsError] = useState<string | null>(null);
   const [deleteRow, setDeleteRow] = useState<ListRow | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const dupDialogTitleId = useId();
   const renDialogTitleId = useId();
+  const editDialogTitleId = useId();
   const delDialogTitleId = useId();
   const loadAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -353,7 +369,8 @@ export default function DocumentTable() {
             statusRaw: mapApiStatusRaw(rawStatus),
             docType: parseDocType(doc.type),
             tags: normalizeTags(doc.tags),
-            versionNumber: typeof doc.versionNumber === 'number' ? doc.versionNumber : 1,
+            versionNumber:
+              typeof doc.versionNumber === 'number' ? doc.versionNumber : 1,
           });
         }
 
@@ -510,6 +527,64 @@ export default function DocumentTable() {
       );
     } finally {
       setRenameBusy(false);
+    }
+  }
+
+  function openEditDetailsDialog(row: ListRow) {
+    setEditDetailsError(null);
+    setEditDetailsRow(row);
+    setEditDetailsTitle(row.documentTitle);
+    setEditDetailsStatus(row.statusRaw);
+    setEditDetailsType(row.docType);
+    setEditDetailsTags(row.tags.join(', '));
+  }
+
+  function closeEditDetailsDialog() {
+    setEditDetailsRow(null);
+    setEditDetailsError(null);
+    setEditDetailsBusy(false);
+  }
+
+  async function submitEditDetails() {
+    if (!editDetailsRow) return;
+    const title = editDetailsTitle.trim();
+    if (!title) {
+      setEditDetailsError('Enter a document name.');
+      return;
+    }
+
+    setEditDetailsBusy(true);
+    setEditDetailsError(null);
+    try {
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(editDetailsRow.id)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            status: editDetailsStatus,
+            type: editDetailsType,
+            tags: parseTagsInput(editDetailsTags),
+          }),
+        },
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          typeof body?.error === 'string'
+            ? body.error
+            : 'Could not update document.';
+        throw new Error(message);
+      }
+      closeEditDetailsDialog();
+      await runLoadDocuments(true);
+    } catch (err: unknown) {
+      setEditDetailsError(
+        err instanceof Error ? err.message : 'Could not update document.',
+      );
+    } finally {
+      setEditDetailsBusy(false);
     }
   }
 
@@ -947,6 +1022,7 @@ export default function DocumentTable() {
               versionNumber={doc.versionNumber}
               onDuplicate={() => openDuplicateDialog(doc)}
               onRename={() => openRenameDialog(doc)}
+              onEditDetails={() => openEditDetailsDialog(doc)}
               onDelete={() => openDeleteDialog(doc)}
             />
           ))}
@@ -1109,6 +1185,125 @@ export default function DocumentTable() {
         </div>
       ) : null}
 
+      {editDetailsRow ? (
+        <div className="fixed inset-0 z-[250] grid place-items-center p-4">
+          <button
+            type="button"
+            onClick={closeEditDetailsDialog}
+            aria-label="Close edit details dialog"
+            className="absolute inset-0 bg-black/55"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={editDialogTitleId}
+            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-[--surface-border] bg-[var(--popover-bg)] shadow-2xl [background-clip:padding-box]"
+          >
+            <div className="border-b border-[--surface-divider] p-5">
+              <h2
+                id={editDialogTitleId}
+                className="text-md font-semibold tracking-tight text-[--foreground]"
+              >
+                Edit document details
+              </h2>
+            </div>
+            <div className="space-y-4 p-5">
+              <label className="flex flex-col gap-1.5 text-sm text-[--foreground]">
+                Name
+                <div className="profile-input-wrap">
+                  <input
+                    type="text"
+                    value={editDetailsTitle}
+                    onChange={(e) => setEditDetailsTitle(e.target.value)}
+                    className="profile-input"
+                    autoComplete="off"
+                    disabled={editDetailsBusy}
+                  />
+                </div>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm text-[--foreground]">
+                Status
+                <div className="profile-input-wrap">
+                  <select
+                    className="profile-input"
+                    value={editDetailsStatus}
+                    onChange={(e) =>
+                      setEditDetailsStatus(e.target.value as ApiStatus)
+                    }
+                    disabled={editDetailsBusy}
+                  >
+                    {STATUS_FILTER_OPTIONS.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm text-[--foreground]">
+                Type
+                <div className="profile-input-wrap">
+                  <select
+                    className="profile-input"
+                    value={editDetailsType}
+                    onChange={(e) =>
+                      setEditDetailsType(e.target.value as DocType)
+                    }
+                    disabled={editDetailsBusy}
+                  >
+                    {TYPE_FILTER_OPTIONS.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm text-[--foreground]">
+                Tags
+                <div className="profile-input-wrap">
+                  <input
+                    type="text"
+                    value={editDetailsTags}
+                    onChange={(e) => setEditDetailsTags(e.target.value)}
+                    className="profile-input"
+                    placeholder="e.g. interview, leadership, follow-up"
+                    autoComplete="off"
+                    disabled={editDetailsBusy}
+                  />
+                </div>
+              </label>
+              {editDetailsError ? (
+                <p
+                  role="alert"
+                  className="text-sm font-medium text-[--danger-text]"
+                >
+                  {editDetailsError}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-[--surface-border] bg-[var(--popover-bg)] p-4">
+              <button
+                type="button"
+                onClick={closeEditDetailsDialog}
+                disabled={editDetailsBusy}
+                className="cursor-pointer rounded-lg border border-(--danger-text) bg-[var(--popover-bg)] px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-[var(--danger-hover)] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitEditDetails()}
+                disabled={editDetailsBusy}
+                className="cursor-pointer rounded-lg border border-[--action-border] bg-[--action-bg] px-4 py-2 text-sm font-semibold text-[--foreground] transition hover:bg-[var(--action-hover)] disabled:opacity-50"
+              >
+                {editDetailsBusy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {deleteRow ? (
         <div className="fixed inset-0 z-[250] grid place-items-center p-4">
           <button
@@ -1131,7 +1326,9 @@ export default function DocumentTable() {
                 Delete document?
               </h2>
               <p className="mt-3 text-sm text-(--text-muted)">
-                Are you sure you want to delete <span className="font-medium">{deleteRow.documentTitle}</span>? This will remove it from all jobs and cannot be undone.
+                Are you sure you want to delete{' '}
+                <span className="font-medium">{deleteRow.documentTitle}</span>?
+                This will remove it from all jobs and cannot be undone.
               </p>
               {deleteError ? (
                 <p
