@@ -23,6 +23,7 @@ type DocumentRowProps = {
   versionNumber: number;
   onDuplicate?: () => void;
   onRename?: () => void;
+  onEditDetails?: () => void;
   onDelete?: () => void;
 };
 
@@ -117,6 +118,7 @@ export default function DocumentRow({
   versionNumber,
   onDuplicate,
   onRename,
+  onEditDetails,
   onDelete,
 }: DocumentRowProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -383,6 +385,19 @@ export default function DocumentRow({
             className={`${itemClass} w-full rounded-xl border-0 bg-transparent text-left font-[inherit]`}
           >
             <span className="min-w-0">Rename…</span>
+          </button>
+        ) : null}
+        {onEditDetails ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setIsMenuOpen(false);
+              onEditDetails();
+            }}
+            className={`${itemClass} w-full rounded-xl border-0 bg-transparent text-left font-[inherit]`}
+          >
+            <span className="min-w-0">Edit details…</span>
           </button>
         ) : null}
         {onDelete ? (

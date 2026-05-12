@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import type { Document } from '@/types/documents';
@@ -82,12 +82,20 @@ export default function LinkDocumentsModal({
   const dialogTitleId = 'link-documents-title';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby={dialogTitleId}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={dialogTitleId}
+    >
       <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-lg bg-(--background) shadow-lg">
         {/* Header */}
         <div className="border-b border-(--surface-border) p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 id={dialogTitleId} className="text-xl font-semibold text-(--foreground)">
+            <h2
+              id={dialogTitleId}
+              className="text-xl font-semibold text-(--foreground)"
+            >
               Link Documents
             </h2>
             <button
