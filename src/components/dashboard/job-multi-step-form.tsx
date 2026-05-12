@@ -607,16 +607,19 @@ export default function JobMultiStepForm({
     try {
       setDocumentsError(null);
       const jobId = draft.overview.id?.trim();
-      
+
       if (!jobId) {
         throw new Error('Job ID is required');
       }
 
-      const response = await fetch(`/api/documents/${encodeURIComponent(id)}/unlink`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jobId }),
-      });
+      const response = await fetch(
+        `/api/documents/${encodeURIComponent(id)}/unlink`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ jobId }),
+        },
+      );
 
       if (!response.ok) {
         throw new Error('Unable to unlink document.');
@@ -670,7 +673,19 @@ export default function JobMultiStepForm({
         );
 
         if (!response.ok) {
-          throw new Error('Unable to load persisted documents.');
+          const errorData = (await response.json().catch(() => ({}))) as Record<
+            string,
+            unknown
+          >;
+          const errorMessage =
+            typeof errorData.error === 'string'
+              ? errorData.error
+              : `Unable to load persisted documents (${response.status})`;
+          console.error('Failed to fetch documents:', {
+            status: response.status,
+            errorData,
+          });
+          throw new Error(errorMessage);
         }
 
         const payload = (await response.json()) as {
