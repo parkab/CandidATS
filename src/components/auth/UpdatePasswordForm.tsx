@@ -32,6 +32,14 @@ export default function UpdatePasswordForm() {
   useEffect(() => {
     const checkSession = async () => {
       try {
+        if (!supabase) {
+          setErrors({
+            submit: 'Authentication service is unavailable',
+          });
+          setIsLoading(false);
+          return;
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -103,6 +111,14 @@ export default function UpdatePasswordForm() {
     setErrors({});
 
     try {
+      if (!supabase) {
+        setErrors({
+          submit: 'Authentication service is unavailable',
+        });
+        setIsFormSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: form.password,
       });

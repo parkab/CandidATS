@@ -13,6 +13,14 @@ export async function POST(request: Request) {
 
   const { password } = validation.data;
 
+  // Check if Supabase client is available
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Authentication service is unavailable' },
+      { status: 503 },
+    );
+  }
+
   try {
     const { data, error } = await supabase.auth.updateUser({
       password,
