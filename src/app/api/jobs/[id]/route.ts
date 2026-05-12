@@ -17,7 +17,13 @@ import {
   createFollowUpDeletedEvent,
 } from '@/lib/jobs/timeline';
 import { withErrorHandler } from '@/app/api/error-handler';
-import { validationError, authError, notFoundError, databaseError, AppError } from '@/lib/errors';
+import {
+  validationError,
+  authError,
+  notFoundError,
+  databaseError,
+  AppError,
+} from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
 type UpdateJobBody = Record<string, unknown>;
@@ -516,19 +522,19 @@ async function handlePatch(
         logger.error(
           'Failed to create stage transition history or stage change event',
           timelineError as Error,
-          { jobId, previousStage: currentJob.pipeline_stage, newStage: stage }
+          { jobId, previousStage: currentJob.pipeline_stage, newStage: stage },
         );
       }
     }
 
-    if (archived !== null) {
+    if (archived !== null && currentJob.archived !== archived) {
       try {
         await createArchiveStateEvent(jobId, archived, new Date());
       } catch (archiveEventError) {
         logger.error(
           'Failed to create archive state event',
           archiveEventError as Error,
-          { jobId, archived }
+          { jobId, archived },
         );
       }
     }
@@ -617,5 +623,9 @@ async function handleDelete(
   }
 }
 
-export const PATCH = withErrorHandler(handlePatch as Parameters<typeof withErrorHandler>[0]);
-export const DELETE = withErrorHandler(handleDelete as Parameters<typeof withErrorHandler>[0]);
+export const PATCH = withErrorHandler(
+  handlePatch as Parameters<typeof withErrorHandler>[0],
+);
+export const DELETE = withErrorHandler(
+  handleDelete as Parameters<typeof withErrorHandler>[0],
+);

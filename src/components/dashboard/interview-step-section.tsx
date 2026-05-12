@@ -29,14 +29,15 @@ function mergeDateWithNow(dateValue: string) {
   if (!dateValue) {
     return '';
   }
+  // dateValue is in the format "YYYY-MM-DD" from the date input
+  // Create ISO string directly at midnight UTC without timezone manipulation
   const [year, month, day] = dateValue.split('-').map((part) => Number(part));
   if (!year || !month || !day) {
     return dateValue;
   }
-  const now = new Date();
-  const merged = new Date(now);
-  merged.setFullYear(year, month - 1, day);
-  return merged.toISOString();
+  // Return ISO string for the selected date at midnight UTC
+  const isoString = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00.000Z`;
+  return isoString;
 }
 
 type InterviewStepSectionProps = {
