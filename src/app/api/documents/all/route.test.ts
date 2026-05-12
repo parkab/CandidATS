@@ -52,7 +52,13 @@ describe('GET /api/documents/all', () => {
     expect(mockedDocumentFindMany).toHaveBeenCalledWith({
       where: { user_id: 'user-1' },
       orderBy: { created_at: 'desc' },
-      include: undefined,
+      include: {
+        DocumentVersion: {
+          orderBy: { versionNumber: 'desc' },
+          take: 1,
+          select: { versionNumber: true },
+        },
+      },
     });
 
     const body = (await response.json()) as { documents: Array<{ id: string }> };
@@ -76,6 +82,11 @@ describe('GET /api/documents/all', () => {
       where: { user_id: 'user-1' },
       orderBy: { created_at: 'desc' },
       include: {
+        DocumentVersion: {
+          orderBy: { versionNumber: 'desc' },
+          take: 1,
+          select: { versionNumber: true },
+        },
         Job: {
           select: {
             id: true,

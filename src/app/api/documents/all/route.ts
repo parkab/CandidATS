@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const documentsWithVersion = documents.map(({ DocumentVersion, ...rest }) => ({
       ...rest,
-      versionNumber: DocumentVersion[0]?.versionNumber ?? 1,
+      versionNumber: (DocumentVersion ?? [])[0]?.versionNumber ?? 1,
     }));
 
     return NextResponse.json({ documents: documentsWithVersion });
