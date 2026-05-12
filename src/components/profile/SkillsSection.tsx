@@ -3,6 +3,7 @@
 import { GRADIENT_SUBHEADING_CLASS } from '@/components/dashboard/gradient';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type SkillEntry = {
   id: string;
@@ -52,6 +53,7 @@ export default function SkillsSection({
   initialSkills,
   onCompletionChange,
 }: SkillsSectionProps) {
+  const router = useRouter();
   const [skills, setSkills] = useState<SkillEntry[]>(initialSkills);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -164,6 +166,7 @@ export default function SkillsSection({
       }
 
       closeModal();
+      router.refresh();
     } catch {
       setErrors({ submit: 'Network issue. Please try again.' });
     } finally {
@@ -186,6 +189,7 @@ export default function SkillsSection({
       setSkills((prev) => prev.filter((s) => s.id !== id));
       setDeleteConfirmId(null);
       setToast('Skill removed.');
+      router.refresh();
     } catch {
       setToast('Network issue. Please try again.');
     } finally {
@@ -347,7 +351,7 @@ export default function SkillsSection({
                   type="button"
                   onClick={closeModal}
                   autoFocus
-                  className="rounded-md border border-(--action-border) px-4 py-2 text-sm font-semibold text-(--foreground) transition hover:bg-(--action-bg)"
+                  className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white"
                 >
                   Cancel
                 </button>
@@ -500,7 +504,7 @@ export default function SkillsSection({
                 type="button"
                 onClick={() => handleDelete(deleteConfirmId)}
                 disabled={isDeleting}
-                className="rounded-md bg-(--danger-text) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-50"
+                className="rounded-md border border-(--danger-text) px-4 py-2 text-sm font-semibold text-(--danger-text) transition hover:bg-(--danger-text) hover:text-white disabled:opacity-50"
               >
                 {isDeleting ? 'Removing...' : 'Remove'}
               </button>

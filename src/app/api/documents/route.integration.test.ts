@@ -25,6 +25,9 @@ jest.mock('@/lib/prisma', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    documentJob: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -54,6 +57,7 @@ const mockedDocFindMany = jest.mocked(prisma.document.findMany);
 const mockedDocFindFirst = jest.mocked(prisma.document.findFirst);
 const mockedDocUpdate = jest.mocked(prisma.document.update);
 const mockedDocDelete = jest.mocked(prisma.document.delete);
+const mockedDocumentJobFindMany = jest.mocked(prisma.documentJob.findMany);
 
 type SessionResult = Awaited<ReturnType<typeof getSession>>;
 type JobFindFirstResult = Awaited<ReturnType<typeof prisma.job.findFirst>>;
@@ -93,6 +97,7 @@ describe('Documents API integration', () => {
     });
     storageStub.copy.mockResolvedValue({ data: {}, error: null });
     storageStub.remove.mockResolvedValue({ data: null, error: null });
+    mockedDocumentJobFindMany.mockResolvedValue([]);
   });
 
   it('creates a document (JSON) with multiple tags', async () => {
@@ -353,8 +358,8 @@ describe('Documents API integration', () => {
         ),
       );
       expect(res.status).toBe(400);
-      const body = (await res.json()) as { error: string };
-      expect(body.error).toMatch(/unsupported file type/i);
+      const body = (await res.json()) as { error: { message: string; timestamp: string } };
+      expect(body.error.message).toMatch(/unsupported file type/i);
     });
 
     it('rejects empty file with 400', async () => {
@@ -365,8 +370,8 @@ describe('Documents API integration', () => {
         ),
       );
       expect(res.status).toBe(400);
-      const body = (await res.json()) as { error: string };
-      expect(body.error).toMatch(/empty/i);
+      const body = (await res.json()) as { error: { message: string; timestamp: string } };
+      expect(body.error.message).toMatch(/empty/i);
     });
 
     it('rejects cross-user job_id with 404', async () => {
@@ -464,7 +469,7 @@ describe('Documents API integration', () => {
       new Request('http://localhost/api/documents/doc-2', {
         method: 'DELETE',
         headers: { cookie: 'sb-access-token=test-token' },
-      }),
+      }) as NextRequest,
       documentRouteContext('doc-2'),
     );
 

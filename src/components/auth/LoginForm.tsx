@@ -82,13 +82,15 @@ export default function LoginForm() {
       if (!response.ok) {
         const data = await response.json();
         setErrors({
-          submit: data.error || 'Login failed. Please try again.',
+          submit: data.error?.message || 'Login failed. Please try again.',
         });
         setIsLoading(false);
         return;
       }
 
       // Success - redirect to dashboard
+      // Use refresh() to ensure server-side data is re-fetched with the new auth token
+      router.refresh();
       router.push('/dashboard');
     } catch {
       setErrors({

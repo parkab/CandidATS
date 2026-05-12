@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { APPLICATION_STATUS_COLOR } from '@/lib/jobs/status';
 import { getSupabaseUserFromRequest } from '@/lib/supabase';
@@ -16,6 +16,9 @@ import {
   createFollowUpCompletedEvent,
   createFollowUpDeletedEvent,
 } from '@/lib/jobs/timeline';
+import { withErrorHandler } from '@/app/api/error-handler';
+import { validationError, authError, notFoundError, databaseError, AppError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
 type UpdateJobBody = Record<string, unknown>;
 
@@ -55,14 +58,14 @@ function asOptionalDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export async function PATCH(
-  request: Request,
+async function handlePatch(
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { data, error } = await getSupabaseUserFromRequest(request);
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const sessionUserId = data.user.id;
@@ -71,16 +74,13 @@ export async function PATCH(
   const jobId = asRequiredString(id);
 
   if (!jobId) {
-    return NextResponse.json({ error: 'Job id is required' }, { status: 400 });
+    throw validationError('Job id is required');
   }
 
   const body = (await request.json().catch(() => null)) as UpdateJobBody | null;
 
   if (!body || typeof body !== 'object') {
-    return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 },
-    );
+    throw validationError('Invalid request body');
   }
 
   const title = asRequiredString(body.title);
@@ -99,28 +99,19 @@ export async function PATCH(
   const archived = typeof body.archived === 'boolean' ? body.archived : null;
 
   if (!title || !company || !location || !stage || !lastActivityDate) {
-    return NextResponse.json(
-      { error: 'Missing one or more required fields' },
-      { status: 400 },
-    );
+    throw validationError('Missing one or more required fields');
   }
 
   if (!(stage in APPLICATION_STATUS_COLOR)) {
-    return NextResponse.json({ error: 'Invalid stage value' }, { status: 400 });
+    throw validationError('Invalid stage value');
   }
 
   if (body.deadline && !deadline) {
-    return NextResponse.json(
-      { error: 'Invalid deadline date' },
-      { status: 400 },
-    );
+    throw validationError('Invalid deadline date');
   }
 
   if (body.applicationDate && !applicationDate) {
-    return NextResponse.json(
-      { error: 'Invalid application date' },
-      { status: 400 },
-    );
+    throw validationError('Invalid application date');
   }
 
   try {
@@ -132,10 +123,7 @@ export async function PATCH(
     });
 
     if (!currentJob) {
-      return NextResponse.json(
-        { error: 'Job not found or access denied' },
-        { status: 404 },
-      );
+      throw notFoundError('Job', { jobId, userId: sessionUserId });
     }
 
     const updateData: Record<string, unknown> = {
@@ -167,10 +155,7 @@ export async function PATCH(
     });
 
     if (updateResult.count === 0) {
-      return NextResponse.json(
-        { error: 'Job not found or access denied' },
-        { status: 404 },
-      );
+      throw notFoundError('Job', { jobId, userId: sessionUserId });
     }
 
     if (Array.isArray(body.timeline)) {
@@ -528,9 +513,10 @@ export async function PATCH(
           transitionOccurredAt,
         );
       } catch (timelineError) {
-        console.error(
+        logger.error(
           'Failed to create stage transition history or stage change event',
-          timelineError,
+          timelineError as Error,
+          { jobId, previousStage: currentJob.pipeline_stage, newStage: stage }
         );
       }
     }
@@ -539,9 +525,10 @@ export async function PATCH(
       try {
         await createArchiveStateEvent(jobId, archived, new Date());
       } catch (archiveEventError) {
-        console.error(
+        logger.error(
           'Failed to create archive state event',
-          archiveEventError,
+          archiveEventError as Error,
+          { jobId, archived }
         );
       }
     }
@@ -554,34 +541,34 @@ export async function PATCH(
     });
 
     if (!updatedJob) {
-      return NextResponse.json(
-        { error: 'Unable to load updated job.' },
-        { status: 500 },
-      );
+      throw databaseError('Unable to load updated job');
     }
+
+    logger.info('Job updated successfully', {
+      userId: sessionUserId,
+      jobId,
+      title,
+    });
 
     return NextResponse.json(updatedJob, { status: 200 });
   } catch (error) {
-    console.error('Failed to update job', error);
-
-    return NextResponse.json(
-      {
-        error:
-          'Unable to update job due to a server error. Please try again later.',
-      },
-      { status: 500 },
-    );
+    if (error instanceof AppError) throw error;
+    throw databaseError('Failed to update job', {
+      jobId,
+      userId: sessionUserId,
+      originalError: error instanceof Error ? error.message : 'Unknown',
+    });
   }
 }
 
-export async function DELETE(
-  request: Request,
+async function handleDelete(
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { data, error } = await getSupabaseUserFromRequest(request);
 
   if (error || !data.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    throw authError('Unauthorized');
   }
 
   const sessionUserId = data.user.id;
@@ -590,7 +577,7 @@ export async function DELETE(
   const jobId = asRequiredString(id);
 
   if (!jobId) {
-    return NextResponse.json({ error: 'Job id is required' }, { status: 400 });
+    throw validationError('Job id is required');
   }
 
   try {
@@ -603,10 +590,7 @@ export async function DELETE(
     });
 
     if (!jobToDelete) {
-      return NextResponse.json(
-        { error: 'Job not found or access denied' },
-        { status: 404 },
-      );
+      throw notFoundError('Job', { jobId, userId: sessionUserId });
     }
 
     // Delete the job (related records will be deleted via CASCADE)
@@ -616,16 +600,22 @@ export async function DELETE(
       },
     });
 
+    logger.info('Job deleted successfully', {
+      userId: sessionUserId,
+      jobId,
+      title: jobToDelete.title,
+    });
+
     return NextResponse.json(deletedJob, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete job', error);
-
-    return NextResponse.json(
-      {
-        error:
-          'Unable to delete job due to a server error. Please try again later.',
-      },
-      { status: 500 },
-    );
+    if (error instanceof AppError) throw error;
+    throw databaseError('Failed to delete job', {
+      jobId,
+      userId: sessionUserId,
+      originalError: error instanceof Error ? error.message : 'Unknown',
+    });
   }
 }
+
+export const PATCH = withErrorHandler(handlePatch as Parameters<typeof withErrorHandler>[0]);
+export const DELETE = withErrorHandler(handleDelete as Parameters<typeof withErrorHandler>[0]);

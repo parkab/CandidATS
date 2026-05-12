@@ -13,15 +13,26 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { jobId } = await request.json();
-    if (typeof jobId !== 'string' || jobId.trim().length === 0) {
+    const body = await request.json();
+    const { jobId, jobIds } = body;
+
+    // Support both single jobId and array of jobIds for backwards compatibility
+    let jobIdsToLink: string[] = [];
+    
+    if (jobIds && Array.isArray(jobIds)) {
+      jobIdsToLink = jobIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+    } else if (jobId && typeof jobId === 'string' && jobId.trim().length > 0) {
+      jobIdsToLink = [jobId];
+    }
+
+    if (jobIdsToLink.length === 0) {
       return NextResponse.json(
-        { error: 'jobId must be a non-empty string' },
+        { error: 'Either jobId or jobIds array must be provided with non-empty values' },
         { status: 400 },
       );
     }
 
-    // Verify document ownership
+    // Verify document ownership and get document details
     const document = await prisma.document.findUnique({
       where: { id },
     });
@@ -37,26 +48,63 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Verify job ownership
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
+    // Verify all jobs exist and belong to user
+    const jobs = await prisma.job.findMany({
+      where: {
+        id: { in: jobIdsToLink },
+        user_id: session.userId,
+      },
+      select: { id: true },
     });
 
-    if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (jobs.length !== jobIdsToLink.length) {
+      return NextResponse.json(
+        { error: 'One or more jobs not found or do not belong to user' },
+        { status: 404 },
+      );
     }
 
-    if (job.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // For generated documents (those with job_id set), only allow one link via job_id
+    // For uploaded documents, use the DocumentJob junction table for multiple links
+    if (document.job_id) {
+      // Generated document - already linked via job_id, cannot add more links via junction table
+      return NextResponse.json(
+        { error: 'Generated documents can only be linked to one job' },
+        { status: 400 },
+      );
     }
 
-    // Link the document to the job
-    const updatedDocument = await prisma.document.update({
+    // Create links in DocumentJob junction table
+    const createdLinks = await Promise.all(
+      jobIdsToLink.map((jobIdToLink) =>
+        prisma.documentJob.upsert({
+          where: {
+            documentId_jobId: {
+              documentId: id,
+              jobId: jobIdToLink,
+            },
+          },
+          update: {}, // If already exists, do nothing
+          create: {
+            documentId: id,
+            jobId: jobIdToLink,
+          },
+        }),
+      ),
+    );
+
+    // Fetch updated document with linked jobs
+    const updatedDocument = await prisma.document.findUnique({
       where: { id },
-      data: { job_id: jobId },
+      include: {
+        linkedJobs: true,
+      },
     });
 
-    return NextResponse.json({ document: updatedDocument });
+    return NextResponse.json({ 
+      document: updatedDocument,
+      linkedJobsCount: createdLinks.length,
+    });
   } catch (error) {
     console.error('Error linking document:', error);
     const errorMessage =
