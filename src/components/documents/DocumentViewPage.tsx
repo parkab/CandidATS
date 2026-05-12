@@ -8,6 +8,7 @@ type FileResponse = {
   signedUrl: string | null;
   mimeType: string;
   content?: string | null;
+  jobId?: string | null;
 };
 
 function fileExtension(mimeType: string): string {
@@ -35,6 +36,7 @@ export default function DocumentViewPage({
   const [mimeType, setMimeType] = useState<string>('application/pdf');
   const [title, setTitle] = useState('');
   const [textContent, setTextContent] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +48,7 @@ export default function DocumentViewPage({
       })
       .then(async (data) => {
         setTitle(data.title);
+        setJobId(data.jobId ?? null);
         const mime = data.mimeType ?? 'application/pdf';
         setMimeType(mime);
         setSignedUrl(data.signedUrl);
@@ -110,7 +113,7 @@ export default function DocumentViewPage({
         <p className="text-sm text-(--danger-text)">{error}</p>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => jobId ? router.push(`/dashboard?openJob=${jobId}&tab=documents`) : router.back()}
           className="rounded-md border border-(--surface-border) px-4 py-2 text-sm font-semibold text-(--foreground) hover:bg-(--action-hover)"
         >
           Go Back
@@ -189,7 +192,7 @@ export default function DocumentViewPage({
       <div className="flex items-center gap-3 border-b border-(--surface-border) bg-(--background) px-4 py-3">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => jobId ? router.push(`/dashboard?openJob=${jobId}&tab=documents`) : router.back()}
           className="rounded px-2 py-1 text-sm text-(--text-muted) hover:bg-(--action-hover)"
         >
           ← Back

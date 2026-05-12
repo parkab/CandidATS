@@ -19,7 +19,7 @@ export async function GET(
 
     const document = await prisma.document.findFirst({
       where: { id: documentId, user_id: session.userId },
-      select: { id: true, title: true, content: true },
+      select: { id: true, title: true, content: true, job_id: true },
     });
 
     if (!document) {
@@ -39,6 +39,7 @@ export async function GET(
         title: document.title,
         signedUrl,
         mimeType: 'application/pdf',
+        jobId: document.job_id ?? null,
       });
     }
 
@@ -56,6 +57,7 @@ export async function GET(
         title: document.title,
         signedUrl,
         mimeType: storedFile.mimeType,
+        jobId: document.job_id ?? null,
       });
     }
 
@@ -65,6 +67,7 @@ export async function GET(
         signedUrl: null,
         mimeType: 'text/plain',
         content: document.content,
+        jobId: document.job_id ?? null,
       });
     }
 
@@ -72,6 +75,7 @@ export async function GET(
       title: document.title,
       signedUrl: null,
       mimeType: 'application/pdf',
+      jobId: document.job_id ?? null,
     });
   } catch (error) {
     console.error('[pdf GET] unexpected error:', error);
